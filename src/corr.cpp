@@ -329,9 +329,9 @@ double* Corr::computeG2Levels(const Eigen::MatrixXf &pixelData,
                                 int level) {
 
     int tauIncrement = (level == 0) ? 1 : (int) pow(2.0, level);
-    double numerator = 0.0d;
-    double sumPast = 0.0d;
-    double sumFuture = 0.0d;
+    double numerator = 0.0;
+    double sumPast = 0.0;
+    double sumFuture = 0.0;
 
     int count = 0;
 
