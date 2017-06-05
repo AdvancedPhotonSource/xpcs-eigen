@@ -45,67 +45,43 @@ POSSIBILITY OF SUCH DAMAGE.
 
 **/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <stdint.h>
-#include <memory>
-#include <map>
-#include <vector>
-#include <iostream>
+#include "h5result.h"
 
 #include "hdf5.h"
-#include "imm.h"
-#include "corr.h"
-#include "configuration.h"
 
-#include "Eigen/Dense"
-#include "Eigen/SparseCore"
+void H5Result::writeG2(const std::string &file, 
+                       const std::string &grpname,
+                       Eigen::Ref<Eigen::MatrixXf> g2) {
 
+    hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
+    hsize_t dims[3];
 
-using namespace Eigen;
-using namespace std;
-
-
-int main(int argc, char** argv)
-{
-
-    if (argc < 2) {
-        fprintf(stderr, "Missing argument - <hdf5 file> <imm file>\n");
-        return -1;
+    file_id = H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+    // Disable hdf std err printout for opening an non-existing group. 
+    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    exchange_grp_id = H5Gopen2(file_id, grpname.c_str(), H5P_DEFAULT);
+    if (exchange_grp_id < 0) {
+        exchange_grp_id = H5Gcreate(file_id, grpname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     }
 
-    printf("File %s\n", argv[1]);
+    //TODO :: Log error if the grp creation fail. 
 
-    Configuration *conf = Configuration::instance();
-    conf->init(argv[1]);
+    dataset_id = H5Dopen2(exchange_grp_id, "g2", H5P_DEFAULT);
 
-    int* dqmap = conf->getDQMap();
-    int *sqmap = conf->getSQMap();
+    if (dataset_id < 0) {
 
-    int frames = conf->getFrameCount();
-    
-    IMM imm(argv[2], frames, -1);
+        dims[0] = g2.rows();
+        dims[1] = g2.cols();
+        dims[2] = 1;
 
-    int pixels = conf->getFrameWidth() * conf->getFrameHeight();
-    int maxLevel = Corr::calculateLevelMax(frames, 4);
-    vector<std::tuple<int,int> > delays_per_level = Corr::delaysPerLevel(frames, 4, maxLevel);
-
-    MatrixXf G2(pixels, delays_per_level.size());
-    MatrixXf IP(pixels, delays_per_level.size());
-    MatrixXf IF(pixels, delays_per_level.size());
-
-    if (imm.getIsSparse()) {
-        printf("IMM file is sparse\n");
-        SparseMatF mat = imm.getSparsePixelData();
-        Corr::multiTauVec(mat, G2, IP, IF);
-
-    } else {
-        MatrixXf pixelData = imm.getPixelData();
-        Corr::multiTauVec(pixelData, G2, IP, IF);
+        dataspace_id = H5Screate_simple(3, dims, NULL);
+        dataset_id = H5Dcreate(exchange_grp_id, "g2", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     }
 
-    Corr::normalizeG2s(G2, IP, IF);
+    hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, g2.data());
 
-    //TODO: Write results to HDF5 file. 
+    H5Dclose(dataset_id);
+    if (dataspace_id) H5Sclose(dataspace_id);
+    H5Gclose(exchange_grp_id);
+    H5Fclose(file_id);
 }

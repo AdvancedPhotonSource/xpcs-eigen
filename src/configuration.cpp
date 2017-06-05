@@ -77,6 +77,7 @@ Configuration::~Configuration()
 void Configuration::init(const string &path)
 {
     //TODO: Force initialization to once per instantiation
+    m_filename = path;
 
     file_id = H5Fopen(path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
     std::string value = getString("/xpcs/compression");
@@ -130,6 +131,8 @@ void Configuration::init(const string &path)
             m_mapping[dqmap[i]] = mapping;
         }
     }
+
+    H5Fclose(file_id);
 }
 
 /**
@@ -232,5 +235,10 @@ int Configuration::getTotalStaticPartitions()
 int Configuration::getTotalDynamicPartitions()
 {
     return this->m_totalDynamicPartitions;
+}
+
+std::string Configuration::getFilename()
+{
+    return this->m_filename;
 }
 

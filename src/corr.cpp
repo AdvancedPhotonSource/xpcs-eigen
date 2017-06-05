@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 **/
 
 #include "corr.h"
-
 #include "configuration.h"
+#include "h5result.h"
 
 #include <math.h>
 #include <vector>
@@ -243,7 +243,6 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
     int totalDynamicPartns = conf->getTotalDynamicPartitions();
 
     // Final result out of this function. 
-    printf("qbin size - %d\n", qbins.size());
     MatrixXf g2(qbins.size(), G2.cols());
     MatrixXf stdError(qbins.size(), G2.cols());
 
@@ -318,7 +317,10 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
         g2.row(q - 1).array() = g2.row(q - 1).array() / count;
     }
 
+    cout<<g2<<endl;
 
+    H5Result::writeG2(conf->getFilename(), "exchange", g2);
+    
     //TODO: return value + standard-error.  
 }
 

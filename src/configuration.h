@@ -76,6 +76,8 @@ public:
     int getTotalStaticPartitions();
     int getTotalDynamicPartitions();
 
+    std::string getFilename();
+
 private:
 
     Configuration();
@@ -102,6 +104,8 @@ private:
     hid_t file_id;
 
     bool compression;
+
+    std::string m_filename;
 
     static Configuration *s_instance;
 };

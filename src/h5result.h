@@ -44,68 +44,19 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <stdint.h>
-#include <memory>
-#include <map>
-#include <vector>
-#include <iostream>
-
-#include "hdf5.h"
-#include "imm.h"
-#include "corr.h"
-#include "configuration.h"
+#ifndef H5RESULT_H
+#define H5RESULT_H
 
 #include "Eigen/Dense"
 #include "Eigen/SparseCore"
 
 
-using namespace Eigen;
-using namespace std;
+class H5Result {
 
+public:
+    static void writeG2(const std::string &file, 
+                        const std::string &grpname,
+                        Eigen::Ref<Eigen::MatrixXf> g2);
+};
 
-int main(int argc, char** argv)
-{
-
-    if (argc < 2) {
-        fprintf(stderr, "Missing argument - <hdf5 file> <imm file>\n");
-        return -1;
-    }
-
-    printf("File %s\n", argv[1]);
-
-    Configuration *conf = Configuration::instance();
-    conf->init(argv[1]);
-
-    int* dqmap = conf->getDQMap();
-    int *sqmap = conf->getSQMap();
-
-    int frames = conf->getFrameCount();
-    
-    IMM imm(argv[2], frames, -1);
-
-    int pixels = conf->getFrameWidth() * conf->getFrameHeight();
-    int maxLevel = Corr::calculateLevelMax(frames, 4);
-    vector<std::tuple<int,int> > delays_per_level = Corr::delaysPerLevel(frames, 4, maxLevel);
-
-    MatrixXf G2(pixels, delays_per_level.size());
-    MatrixXf IP(pixels, delays_per_level.size());
-    MatrixXf IF(pixels, delays_per_level.size());
-
-    if (imm.getIsSparse()) {
-        printf("IMM file is sparse\n");
-        SparseMatF mat = imm.getSparsePixelData();
-        Corr::multiTauVec(mat, G2, IP, IF);
-
-    } else {
-        MatrixXf pixelData = imm.getPixelData();
-        Corr::multiTauVec(pixelData, G2, IP, IF);
-    }
-
-    Corr::normalizeG2s(G2, IP, IF);
-
-    //TODO: Write results to HDF5 file. 
-}
+#endif
