@@ -317,11 +317,13 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
         g2.row(q - 1).array() = g2.row(q - 1).array() / count;
     }
 
-    cout<<g2<<endl;
+    // Divide each G2 by its bin IP and IF. Compute average and std deviation. 
+    MatrixXf result = G2.array() / (IP.array() * IF.array());
 
     H5Result::writeG2(conf->getFilename(), "exchange", g2);
-    
     //TODO: return value + standard-error.  
+
+
 }
 
 double* Corr::computeG2Levels(const Eigen::MatrixXf &pixelData, 

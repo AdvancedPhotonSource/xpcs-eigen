@@ -83,7 +83,7 @@ int main(int argc, char** argv)
     int* dqmap = conf->getDQMap();
     int *sqmap = conf->getSQMap();
 
-    int frames = conf->getFrameCount();
+    int frames = 10; //conf->getFrameCount();
     
     IMM imm(argv[2], frames, -1);
 

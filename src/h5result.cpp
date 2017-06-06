@@ -57,8 +57,8 @@ void H5Result::writeG2(const std::string &file,
     hsize_t dims[3];
 
     file_id = H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-    // Disable hdf std err printout for opening an non-existing group. 
-    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    // Disable hdf std err printout for opening an non-existing group.
+    // H5Eset_auto(H5E_DEFAULT, NULL, NULL);
     exchange_grp_id = H5Gopen2(file_id, grpname.c_str(), H5P_DEFAULT);
     if (exchange_grp_id < 0) {
         exchange_grp_id = H5Gcreate(file_id, grpname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
