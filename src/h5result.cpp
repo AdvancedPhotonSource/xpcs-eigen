@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "h5result.h"
 
 #include "hdf5.h"
+#include "configuration.h"
 
 void H5Result::writeG2(const std::string &file, 
                        const std::string &grpname,
@@ -79,6 +80,56 @@ void H5Result::writeG2(const std::string &file,
     }
 
     hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, g2.data());
+
+    H5Dclose(dataset_id);
+    if (dataspace_id) H5Sclose(dataspace_id);
+    H5Gclose(exchange_grp_id);
+    H5Fclose(file_id);
+}
+
+
+void H5Result::writePixelSum(const std::string &file, 
+                   const std::string &grpname,
+                   Eigen::Ref<Eigen::VectorXf> pixelSum) {
+
+    hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
+    hsize_t dims[3];
+
+    file_id = H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+    // Disable hdf std err printout for opening an non-existing group.
+    // H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    exchange_grp_id = H5Gopen2(file_id, grpname.c_str(), H5P_DEFAULT);
+    if (exchange_grp_id < 0) {
+        exchange_grp_id = H5Gcreate(file_id, grpname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
+
+    //TODO :: Log error if the grp creation fail. 
+
+    dataset_id = H5Dopen2(exchange_grp_id, "pixelSum", H5P_DEFAULT);
+
+    Configuration *conf = Configuration::instance();
+    int w = conf->getFrameWidth();
+    int h = conf->getFrameHeight();
+
+    if (dataset_id < 0) {
+
+        dims[0] = w;
+        dims[1] = h;
+        dims[2] = 1;
+
+        dataspace_id = H5Screate_simple(3, dims, NULL);
+        dataset_id = H5Dcreate(exchange_grp_id, "pixelSum", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
+
+    float** pixelSumData = new float[w][h];
+    for (int i = 0; i < pixelSum.rows(); i++) {
+        int x = i / w;
+        int y = i % w;
+
+        pixelSumData[x][y] = pixelSum(i);
+    }
+
+    hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, pixelSumData);
 
     H5Dclose(dataset_id);
     if (dataspace_id) H5Sclose(dataspace_id);

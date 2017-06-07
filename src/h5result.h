@@ -57,6 +57,10 @@ public:
     static void writeG2(const std::string &file, 
                         const std::string &grpname,
                         Eigen::Ref<Eigen::MatrixXf> g2);
+
+    static void writePixelSum(const std::string &file, 
+                              const std::string &grpname,
+                              Eigen::Ref<Eigen::VectorXf> pixelSum);
 };
 
 #endif

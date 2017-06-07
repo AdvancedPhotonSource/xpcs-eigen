@@ -11,6 +11,7 @@ set(sources
     src/h5result.cpp
     src/corr.cpp
     src/imm.cpp
+    src/funcs.cpp
     src/main.cpp)
 
 

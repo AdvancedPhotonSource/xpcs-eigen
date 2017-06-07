@@ -317,9 +317,39 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
         g2.row(q - 1).array() = g2.row(q - 1).array() / count;
     }
 
-    // Divide each G2 by its bin IP and IF. Compute average and std deviation. 
-    MatrixXf result = G2.array() / (IP.array() * IF.array());
+    // Compute the standard error.
+    for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
+            it != qbins.end(); it++) {
 
+        int q = it->first;
+        map<int, vector<int> > values =  it->second;
+
+        VectorXf avgG2(G2.cols());
+        VectorXf tmpAvg(G2.cols());
+        VectorXf stdG2(G2.cols());
+        double samples = 1.0;
+
+        for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
+            int sbin = it2->first;
+
+            vector<int> pixels = it2->second;
+            for(vector<int>::const_iterator pind = pixels.begin(); pind != pixels.end(); pind++) {
+                int p = *pind;
+                tmpAvg = avgG2;
+
+                VectorXf normalizedG2 =  G2.row(p).array() / 
+                                (ipSums.row(sbin - 1).array() * ifSums.row(sbin - 1).array());
+                avgG2 += (normalizedG2 - tmpAvg) / samples;
+                stdG2 += (normalizedG2 - tmpAvg) * (normalizedG2 - avgG2);
+                samples = samples + 1.0;
+            }
+        }
+
+        VectorXf stdNorm = stdG2 / (samples - 1.0);
+        stdError.row(q - 1).array() = sqrt( 1 / (samples - 1.0) ) * stdNorm.array().sqrt();
+    }
+
+    cout<<stdError<<endl;
     H5Result::writeG2(conf->getFilename(), "exchange", g2);
     //TODO: return value + standard-error.  
 
