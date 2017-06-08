@@ -121,15 +121,7 @@ void H5Result::writePixelSum(const std::string &file,
         dataset_id = H5Dcreate(exchange_grp_id, "pixelSum", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     }
 
-    float** pixelSumData = new float[w][h];
-    for (int i = 0; i < pixelSum.rows(); i++) {
-        int x = i / w;
-        int y = i % w;
-
-        pixelSumData[x][y] = pixelSum(i);
-    }
-
-    hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, pixelSumData);
+    hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, pixelSum.data());
 
     H5Dclose(dataset_id);
     if (dataspace_id) H5Sclose(dataspace_id);

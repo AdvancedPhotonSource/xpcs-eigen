@@ -16,8 +16,8 @@ set(sources
 
 
 # TODO. Fix the hard-coded path. 
-include_directories("/local/fkhan/libexec/include" "/local/fkhan/libexec/boost_1_55_0/")
-link_directories("/local/fkhan/libexec/lib")
+include_directories("/usr/local/hdf5/include" "/usr/local/boost_1_64_0/")
+link_directories("/usr/local/hdf5/lib")
 
 add_executable(corr ${sources})
 

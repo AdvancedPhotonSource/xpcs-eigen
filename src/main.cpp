@@ -106,7 +106,7 @@ int main(int argc, char** argv)
 
     } else {
         MatrixXf pixelData = imm.getPixelData();
-        MatrixXf pixelSum = funcs.pixelSum(pixelData);
+        VectorXf pixelSum = funcs.pixelSum(pixelData);
 
         H5Result::writePixelSum(conf->getFilename(), "exchange", pixelSum);
 
