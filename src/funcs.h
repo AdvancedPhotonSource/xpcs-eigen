@@ -55,7 +55,7 @@ class Funcs {
 
 public:
     static Eigen::VectorXf pixelSum(Eigen::Ref<Eigen::MatrixXf> pixels);
-
+    static Eigen::MatrixXf maskFromDQmap(int* dqmap, int w, int h);
 };
 
 #endif

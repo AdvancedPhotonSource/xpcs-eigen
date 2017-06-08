@@ -115,7 +115,6 @@ void Corr::multiTauVec(Ref<MatrixXf> pixelData,
     vector<std::tuple<int,int> > delays_per_level = delaysPerLevel(frames, 4, maxLevel);
 
     //TODO asserts for G2, IP and IF sizes
-
     int i = 0;
     int ll = 0; // Last level
 
@@ -186,7 +185,6 @@ void Corr::multiTauVec(SparseMatrix<float>& pixelData,
     int i = 0;
     int ll = 0; // Last level
 
-    cout<<pixelData<<endl;
     int lastframe = frames;
     for (std::vector<std::tuple<int, int> >::iterator it = delays_per_level.begin() ;
                 it != delays_per_level.end(); ++it)
@@ -349,10 +347,8 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
         stdError.row(q - 1).array() = sqrt( 1 / (samples - 1.0) ) * stdNorm.array().sqrt();
     }
 
-    cout<<stdError<<endl;
     H5Result::writeG2(conf->getFilename(), "exchange", g2);
-    //TODO: return value + standard-error.  
-
+    H5Result::writeStdError(conf->getFilename(), "exchange", g2);
 
 }
 

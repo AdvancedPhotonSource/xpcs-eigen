@@ -55,3 +55,15 @@ using namespace std;
 VectorXf Funcs::pixelSum(Eigen::Ref<Eigen::MatrixXf> pixelData) {
     return pixelData.rowwise().sum();
 }
+
+/**
+ * Compute mask of pixles from the dqmap
+ */
+Eigen::MatrixXf Funcs::maskFromDQmap(int* dqmap, int w, int h) {
+    for (int i = 0; i < w; i++) {
+        for (int j = 0; j < h; j++) {
+            printf ("%d", dqmap[w*i + j]);
+        }
+        printf("\n");
+    }
+}

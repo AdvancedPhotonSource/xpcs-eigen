@@ -85,7 +85,7 @@ int main(int argc, char** argv)
     int* dqmap = conf->getDQMap();
     int *sqmap = conf->getSQMap();
 
-    int frames = 10; //conf->getFrameCount();
+    int frames = 100;
     
     IMM imm(argv[2], frames, -1);
 
@@ -107,14 +107,9 @@ int main(int argc, char** argv)
     } else {
         MatrixXf pixelData = imm.getPixelData();
         VectorXf pixelSum = funcs.pixelSum(pixelData);
-
         H5Result::writePixelSum(conf->getFilename(), "exchange", pixelSum);
-
         Corr::multiTauVec(pixelData, G2, IP, IF);
     }
 
-
     Corr::normalizeG2s(G2, IP, IF);
-
-    //TODO: Write results to HDF5 file. 
 }
