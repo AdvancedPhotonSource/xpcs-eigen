@@ -56,13 +56,23 @@ VectorXf Funcs::pixelSum(Eigen::Ref<Eigen::MatrixXf> pixelData) {
     return pixelData.rowwise().sum();
 }
 
+
+VectorXf Funcs::frameSum(SparseMatF pixelData) {
+    VectorXf fsum(pixelData.cols());
+    for (int i = 0; i < pixelData.cols(); i++) {
+        fsum(i) = pixelData.col(i).sum();
+    }
+
+    return fsum;
+}
+
 /**
  * Compute mask of pixles from the dqmap
  */
 Eigen::MatrixXf Funcs::maskFromDQmap(int* dqmap, int w, int h) {
-    for (int i = 0; i < w; i++) {
-        for (int j = 0; j < h; j++) {
-            printf ("%d", dqmap[w*i + j]);
+    for (int i = 1290; i < 1300; i++) {
+        for (int j = 1335; j < 1340; j++) {
+            printf (" %d ", dqmap[w*i + j]);
         }
         printf("\n");
     }

@@ -96,9 +96,14 @@ void Configuration::init(const string &path)
     this->m_totalStaticPartitions = 0;
     this->m_totalDynamicPartitions = 0;
 
+
+    this->m_validPixelMask = new short[this->xdim * this->ydim];
     // Build mapping from q-bin to s-bins and from s-bins to pixels. 
     for (int i=0; i<(xdim*ydim); i++) {
         if (dqmap[i] < 1 || sqmap[i] < 1) continue;
+
+        // Mark this pixel to be part of a valid mask. 
+        m_validPixelMask[i] = 1;
 
         map<int, map<int, vector<int>> >::iterator it = m_mapping.find(dqmap[i]);
 
@@ -242,3 +247,7 @@ std::string Configuration::getFilename()
     return this->m_filename;
 }
 
+short* Configuration::getPixelMask()
+{
+    return this->m_validPixelMask;
+}

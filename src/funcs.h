@@ -50,11 +50,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "Eigen/Dense"
 #include "Eigen/SparseCore"
 
+typedef Eigen::SparseMatrix<float> SparseMatF;
 
 class Funcs {
 
 public:
     static Eigen::VectorXf pixelSum(Eigen::Ref<Eigen::MatrixXf> pixels);
+    static Eigen::VectorXf frameSum(SparseMatF pixels);
     static Eigen::MatrixXf maskFromDQmap(int* dqmap, int w, int h);
 };
 

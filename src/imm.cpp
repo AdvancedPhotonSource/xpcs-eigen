@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 **/
 
 #include "imm.h"
+#include "configuration.h"
 
 #include <stdio.h>
 #include <iostream>
@@ -66,7 +67,7 @@ IMM::IMM(const char* filename, int frames, int pixelsPerFrame)
         return;
     }
 
-    if (m_pixelsPerFrame == -1)
+    if (m_pixelsPerFrame < 1)
         m_pixelsPerFrame = m_ptrHeader->rows * m_ptrHeader->cols;
 
     printf("compression %d\n", m_ptrHeader->compression);
@@ -98,7 +99,6 @@ void IMM::init()
 
 void IMM::load_nonsprase()
 {
-    
     short* buffer = new short[m_pixelsPerFrame];
     m_data = new float[m_frames * m_pixelsPerFrame];
 
@@ -134,6 +134,9 @@ void IMM::load_nonsprase()
 
 void IMM::load_sparse()
 {
+    Configuration *conf = Configuration::instance();
+    short *pixelmask = conf->getPixelMask();
+
     rewind(m_ptrFile);
 
     int fcount = 0;
@@ -153,7 +156,6 @@ void IMM::load_sparse()
     while (fcount < m_frames)
     {
         fread(m_ptrHeader, 1024, 1, m_ptrFile);
-        printf("%d\n", m_ptrHeader->rows);
 
         uint pixels = m_ptrHeader->dlen;
         uint skip = pixels - m_pixelsPerFrame;
@@ -173,7 +175,8 @@ void IMM::load_sparse()
             if (index[i] >= m_pixelsPerFrame)
                 break;
 
-            tripletList.push_back(Triplet(index[i], fcount, values[i]));       
+            // if (pixelmask[index[i]] != 0)
+                tripletList.push_back(Triplet(index[i], fcount, values[i]));       
         }
         
         fcount++;

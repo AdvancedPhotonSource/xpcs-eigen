@@ -78,6 +78,8 @@ public:
 
     std::string getFilename();
 
+    short* getPixelMask();
+
 private:
 
     Configuration();
@@ -90,6 +92,9 @@ private:
 
     int* dqmap;
     int* sqmap;
+
+    // Valid pixel mask - mark an entry as 1 in an array if the pixel is contained in any of the bins.
+    short* m_validPixelMask;
 
     int m_totalStaticPartitions;
     int m_totalDynamicPartitions;
