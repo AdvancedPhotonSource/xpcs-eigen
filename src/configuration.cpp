@@ -92,11 +92,15 @@ void Configuration::init(const string &path)
     this->ydim = getInteger("/measurement/instrument/detector/y_dimension");
     this->frameCount = getInteger("/xpcs/data_end_todo");
 
-
     this->m_totalStaticPartitions = 0;
     this->m_totalDynamicPartitions = 0;
 
+    this->m_detAdhupPhot = getFloat("/measurement/instrument/detector/adu_per_photon");
+    this->m_detPreset = getFloat("/measurement/instrument/detector/exposure_time");
+    this->m_detEfficiency = getFloat("/measurement/instrument/detector/efficiency");
 
+    printf ("%f, %f, %f\n", m_detAdhupPhot, m_detEfficiency, m_detPreset);
+    
     this->m_validPixelMask = new short[this->xdim * this->ydim];
     // Build mapping from q-bin to s-bins and from s-bins to pixels. 
     for (int i=0; i<(xdim*ydim); i++) {
@@ -201,6 +205,25 @@ int Configuration::getInteger(const std::string &path)
     return value;
 }
 
+float Configuration::getFloat(const std::string &path)
+{
+    hid_t  dataset_id;
+    herr_t status;
+
+    dataset_id = H5Dopen(this->file_id, path.c_str(), H5P_DEFAULT);
+    
+    hid_t dtype = H5Dget_type(dataset_id);
+    hid_t size = H5Dget_storage_size(dataset_id);
+
+    float value = 0;
+
+    status = H5Dread(dataset_id, dtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, &value);
+
+    H5Dclose(dataset_id);
+
+    return value;   
+}
+
 int* Configuration::getDQMap()
 {
     return this->dqmap;
@@ -250,4 +273,19 @@ std::string Configuration::getFilename()
 short* Configuration::getPixelMask()
 {
     return this->m_validPixelMask;
+}
+
+float Configuration::getDetAdhuPhot()
+{
+    return this->m_detAdhupPhot;
+}
+
+float Configuration::getDetPreset()
+{
+    return this->m_detPreset;
+}
+
+float Configuration::getDetEfficiency()
+{
+    return this->m_detEfficiency;
 }

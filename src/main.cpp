@@ -84,7 +84,7 @@ int main(int argc, char** argv)
     int* dqmap = conf->getDQMap();
     int *sqmap = conf->getSQMap();
 
-    int frames = 2; //conf->getFrameCount();
+    int frames = conf->getFrameCount();
     IMM imm(argv[2], frames, -1);
 
     int pixels = conf->getFrameWidth() * conf->getFrameHeight();
@@ -102,10 +102,14 @@ int main(int argc, char** argv)
         SparseMatF mat = imm.getSparsePixelData();
 
         printf ("Frame read %d\n", mat.cols());
-        cout<<mat<<endl;
-        // VectorXf frameSum = funcs.frameSum(mat);
-        // cout<<frameSum<<endl;
-        // Corr::multiTauVec(mat, G2, IP, IF);
+        VectorXf frameSum = funcs.frameSum(mat);
+        H5Result::writeFrameSum(conf->getFilename(), "exchange", frameSum);        
+
+        VectorXf pixelSum = funcs.pixelSum(mat);
+        H5Result::writePixelSum(conf->getFilename(), "exchange", pixelSum);        
+
+        Corr::multiTauVec(mat, G2, IP, IF);
+
     } else {
         MatrixXf pixelData = imm.getPixelData();
         VectorXf pixelSum = funcs.pixelSum(pixelData);
@@ -113,7 +117,7 @@ int main(int argc, char** argv)
         Corr::multiTauVec(pixelData, G2, IP, IF);
     }
 
-    // Corr::normalizeG2s(G2, IP, IF);
+    Corr::normalizeG2s(G2, IP, IF);
 
     // Test
     // MatrixXf pixelData = imm.getPixelData();

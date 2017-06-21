@@ -157,28 +157,31 @@ void IMM::load_sparse()
     {
         fread(m_ptrHeader, 1024, 1, m_ptrFile);
 
-        uint pixels = m_ptrHeader->dlen;
-        uint skip = pixels - m_pixelsPerFrame;
-        // TODO: assert m_pixelsPerFrame < pixels
+        uint pixels = m_ptrHeader->dlen;        
+        uint skip = 0;
+        
+        if (pixels > m_pixelsPerFrame)
+            skip = pixels - m_pixelsPerFrame;
 
-        fread(index, m_pixelsPerFrame  * 4, 1, m_ptrFile);
-        fseek(m_ptrFile, skip * 4, SEEK_CUR);
-        fread(values, m_pixelsPerFrame * 2, 1, m_ptrFile);
-        fseek(m_ptrFile, skip * 2, SEEK_CUR);
+        fread(index, pixels  * 4, 1, m_ptrFile);
+        if (skip > 0) fseek(m_ptrFile, skip * 4, SEEK_CUR);
+        fread(values, pixels * 2, 1, m_ptrFile);
+        if (skip > 0) fseek(m_ptrFile, skip * 2, SEEK_CUR);
 
         // TODO insert assert statements
         /// - read pixels == requested pixels to read etc. 
 
-        for (int i = 0; i < m_pixelsPerFrame; i++)
+        for (int i = 0; i < pixels; i++)
         {
             // We want the sparse pixel index to be less the number of pixels requested.
-            if (index[i] >= m_pixelsPerFrame)
-                break;
+            // if (index[i] >= m_pixelsPerFrame)
+            //     break;
 
-            // if (pixelmask[index[i]] != 0)
+            if (pixelmask[index[i]] != 0) {
                 tripletList.push_back(Triplet(index[i], fcount, values[i]));       
+            }
         }
-        
+
         fcount++;
     }
 

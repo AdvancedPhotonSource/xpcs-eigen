@@ -65,6 +65,10 @@ public:
     static void writePixelSum(const std::string &file, 
                               const std::string &grpname,
                               Eigen::Ref<Eigen::VectorXf> pixelSum);
+
+    static void writeFrameSum(const std::string &file, 
+                              const std::string &grpname,
+                              Eigen::Ref<Eigen::VectorXf> frameSum);
 };
 
 #endif

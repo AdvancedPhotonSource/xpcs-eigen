@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 **/
 
 #include "funcs.h"
+#include "configuration.h"
 
 #include <iostream>
 
@@ -57,12 +58,26 @@ VectorXf Funcs::pixelSum(Eigen::Ref<Eigen::MatrixXf> pixelData) {
 }
 
 
-VectorXf Funcs::frameSum(SparseMatF pixelData) {
-    VectorXf fsum(pixelData.cols());
-    for (int i = 0; i < pixelData.cols(); i++) {
-        fsum(i) = pixelData.col(i).sum();
+VectorXf Funcs::pixelSum(SparseMatF pixelData) {
+    Configuration *conf = Configuration::instance();
+    int fcount = conf->getFrameCount();
+
+    VectorXf psum(pixelData.rows());
+     for (int i = 0; i < pixelData.cols(); i++) {
+        psum += pixelData.col(i);
     }
 
+    return psum.array() / fcount;
+}
+
+VectorXf Funcs::frameSum(SparseMatF pixelData) {
+    Configuration *conf = Configuration::instance();
+
+    VectorXf fsum(pixelData.cols());
+    for (int i = 0; i < pixelData.cols(); i++) {
+        fsum(i) = pixelData.col(i).sum() / conf->getDetEfficiency() / 
+                    conf->getDetAdhuPhot() / conf->getDetPreset();
+    }
     return fsum;
 }
 

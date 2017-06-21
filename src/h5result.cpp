@@ -71,8 +71,8 @@ void H5Result::writeG2(const std::string &file,
 
     if (dataset_id < 0) {
 
-        dims[0] = g2.rows();
-        dims[1] = g2.cols();
+        dims[0] = g2.cols();
+        dims[1] = g2.rows();
         dims[2] = 1;
 
         dataspace_id = H5Screate_simple(3, dims, NULL);
@@ -152,8 +152,8 @@ void H5Result::writePixelSum(const std::string &file,
 
     if (dataset_id < 0) {
 
-        dims[0] = w;
-        dims[1] = h;
+        dims[0] = h;
+        dims[1] = w;
         dims[2] = 1;
 
         dataspace_id = H5Screate_simple(3, dims, NULL);
@@ -161,6 +161,45 @@ void H5Result::writePixelSum(const std::string &file,
     }
 
     hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, pixelSum.data());
+
+    H5Dclose(dataset_id);
+    if (dataspace_id) H5Sclose(dataspace_id);
+    H5Gclose(exchange_grp_id);
+    H5Fclose(file_id);
+}
+
+
+void H5Result::writeFrameSum(const std::string &file, 
+                   const std::string &grpname,
+                   Eigen::Ref<Eigen::VectorXf> frameSum) {
+
+    hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
+    hsize_t dims[3];
+
+    file_id = H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+    // Disable hdf std err printout for opening an non-existing group.
+    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    exchange_grp_id = H5Gopen2(file_id, grpname.c_str(), H5P_DEFAULT);
+    if (exchange_grp_id < 0) {
+        exchange_grp_id = H5Gcreate(file_id, grpname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
+
+    //TODO :: Log error if the grp creation fail. 
+    dataset_id = H5Dopen2(exchange_grp_id, "frameSum", H5P_DEFAULT);
+
+    Configuration *conf = Configuration::instance();
+
+    if (dataset_id < 0) {
+
+        dims[0] = 1;
+        dims[1] = conf->getFrameCount();
+        dims[2] = 1;
+
+        dataspace_id = H5Screate_simple(3, dims, NULL);
+        dataset_id = H5Dcreate(exchange_grp_id, "frameSum", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
+
+    hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, frameSum.data());
 
     H5Dclose(dataset_id);
     if (dataspace_id) H5Sclose(dataspace_id);

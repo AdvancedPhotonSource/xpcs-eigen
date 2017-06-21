@@ -80,11 +80,17 @@ public:
 
     short* getPixelMask();
 
+    float getDetAdhuPhot();
+    float getDetPreset();
+    float getDetEfficiency();
+
 private:
 
     Configuration();
 
     std::string getString(const std::string &path);
+
+    float getFloat(const std::string &path);
 
     int getInteger(const std::string &path);
 
@@ -105,6 +111,10 @@ private:
     int ydim;
 
     int frameCount;
+
+    float m_detAdhupPhot;
+    float m_detPreset;
+    float m_detEfficiency;
 
     hid_t file_id;
 
