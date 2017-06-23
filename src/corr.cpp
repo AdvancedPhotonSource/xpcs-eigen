@@ -216,9 +216,22 @@ void Corr::multiTauVec(SparseMatrix<float>& pixelData,
         c0 = pixelData.middleCols(0, lastframe-tau);
         c1 = pixelData.middleCols(tau, lastframe-tau);
 
-        G2.col(i) = c0.cwiseProduct(c1) * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
-        IP.col(i) = c0 * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
-        IF.col(i) = c1 * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
+        SparseMatrix<float> prod = c0.cwiseProduct(c1);
+        for (int k = 0; k < prod.cols(); k++) {
+            G2.col(i) += prod.col(k);
+            IP.col(i) += c0.col(k);
+            IF.col(i) += c1.col(k);
+        }
+
+
+        G2.col(i) = G2.col(i).array() / prod.cols();
+        IP.col(i) = IP.col(i).array() / c0.cols();
+        IF.col(i) = IF.col(i).array() / c1.cols();
+
+
+        // G2.col(i) =  * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
+        // IP.col(i) = c0 * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
+        // IF.col(i) = c1 * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
 
         i++;
         ll = level;
