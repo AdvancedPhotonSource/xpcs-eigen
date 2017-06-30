@@ -65,13 +65,14 @@ Configuration* Configuration::instance()
     return s_instance;
 }
 
-Configuration::Configuration() 
+Configuration::Configuration() : 
+        dqmap(NULL), sqmap(NULL), flatfield(NULL)
 {
-
 }
 
 Configuration::~Configuration()
 {
+    //TODO delete tables. 
 }
 
 void Configuration::init(const string &path)
@@ -98,6 +99,13 @@ void Configuration::init(const string &path)
     this->m_detAdhupPhot = getFloat("/measurement/instrument/detector/adu_per_photon");
     this->m_detPreset = getFloat("/measurement/instrument/detector/exposure_time");
     this->m_detEfficiency = getFloat("/measurement/instrument/detector/efficiency");
+
+    value = getString("/xpcs/flatfield_enabled");
+    if (boost::iequals(value, "ENABLED"))
+        this->flatfieldEnabled = true;
+
+    if (this->flatfieldEnabled) 
+        this->flatfield = get2DTableD("/measurement/instrument/detector/flatfield");
 
     printf ("%f, %f, %f\n", m_detAdhupPhot, m_detEfficiency, m_detPreset);
     
@@ -160,6 +168,25 @@ int* Configuration::get2DTable(const std::string &path)
     int *data = new int[dims[0] * dims[1]];
 
     H5Dread(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+
+    H5Dclose(dataset_id);
+
+    return data;
+}
+
+double* Configuration::get2DTableD(const std::string &path)
+{
+    hid_t dataset_id;
+
+    dataset_id = H5Dopen(this->file_id, path.c_str(), H5P_DEFAULT);
+    hid_t space = H5Dget_space(dataset_id);
+
+    hsize_t dims[2] = {0, 0};
+    int ndims = H5Sget_simple_extent_dims (space, dims, NULL);
+
+    double *data = new double[dims[0] * dims[1]];
+
+    H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
 
     H5Dclose(dataset_id);
 
@@ -288,4 +315,14 @@ float Configuration::getDetPreset()
 float Configuration::getDetEfficiency()
 {
     return this->m_detEfficiency;
+}
+
+double* Configuration::getFlatField()
+{
+    return this->flatfield;
+}
+
+bool Configuration::getIsFlatFieldEnabled()
+{
+    return this->flatfieldEnabled;
 }

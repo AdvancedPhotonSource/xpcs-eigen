@@ -110,6 +110,10 @@ int main(int argc, char** argv)
 
         Corr::multiTauVec(mat, G2, IP, IF);
 
+        cout<<G2.row(10892)<<endl;
+        cout<<IP.row(10892)<<endl;
+        cout<<IF.row(10892)<<endl;
+        
     } else {
         MatrixXf pixelData = imm.getPixelData();
         VectorXf pixelSum = funcs.pixelSum(pixelData);
@@ -117,8 +121,7 @@ int main(int argc, char** argv)
         Corr::multiTauVec(pixelData, G2, IP, IF);
     }
 
-    Corr::normalizeG2s(G2, IP, IF);
-
+    // Corr::normalizeG2s(G2, IP, IF);
     // Test
     // MatrixXf pixelData = imm.getPixelData();
     // Funcs::maskFromDQmap(conf->getDQMap(), conf->getFrameWidth(), conf->getFrameHeight());

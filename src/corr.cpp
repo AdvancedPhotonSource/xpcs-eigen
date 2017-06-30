@@ -133,7 +133,6 @@ void Corr::multiTauVec(Ref<MatrixXf> pixelData,
 
         if (ll != level)
         {
-
             // level change, smooth out intensities.
             if (lastframe % 2)
                 lastframe -= 1;
@@ -149,8 +148,6 @@ void Corr::multiTauVec(Ref<MatrixXf> pixelData,
 
         if (level > 0)
             tau = tau / pow(2, level) - 1;
-
-
 
         c0 = Map<MatrixXf>(pixelData.data(), pixels, lastframe-tau);
         c1 = Map<MatrixXf>(pixelData.data() + (tau*pixels), pixels, lastframe-tau);
@@ -197,45 +194,35 @@ void Corr::multiTauVec(SparseMatrix<float>& pixelData,
 
         if (ll != level)
         {
-
             // level change, smooth out intensities.
             if (lastframe % 2)
                 lastframe -= 1;
 
-            for (int i = 0; i < lastframe/2; i++) {
-                pixelData.col(i) = 0.5 * (pixelData.col(i) + pixelData.col(i+1));
+	    printf("%d\n", lastframe/2);
+            for (int k = 0; k < lastframe/2; k++) {
+                pixelData.col(k) = 0.5 * (pixelData.col(k) + pixelData.col(k+1));
             }
 
             lastframe = lastframe / 2;
         }
 
         if (level > 0)
-            tau = tau / pow(2, level) - 1;
+            tau = tau / pow(2, level);
+        
+	printf("Tau %d, %f\n", tau, tau * pow(2, level));
 
-
+        // Get lastframe-tau number of cols starting at 0 for c0 and tau for c1. 
         c0 = pixelData.middleCols(0, lastframe-tau);
         c1 = pixelData.middleCols(tau, lastframe-tau);
 
-        SparseMatrix<float> prod = c0.cwiseProduct(c1);
-        for (int k = 0; k < prod.cols(); k++) {
-            G2.col(i) += prod.col(k);
-            IP.col(i) += c0.col(k);
-            IF.col(i) += c1.col(k);
-        }
-
-
-        G2.col(i) = G2.col(i).array() / prod.cols();
-        IP.col(i) = IP.col(i).array() / c0.cols();
-        IF.col(i) = IF.col(i).array() / c1.cols();
-
-
-        // G2.col(i) =  * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
-        // IP.col(i) = c0 * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
-        // IF.col(i) = c1 * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
+        G2.col(i) = c0.cwiseProduct(c1) * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
+        IP.col(i) = c0 * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
+        IF.col(i) = c1 * (VectorXf::Ones(c0.cols()) * 1.0/c1.cols());
 
         i++;
         ll = level;
     }   
+
 }
 
 //TODO: Refactor this function and possibly break into sub function for the unit-tests. 

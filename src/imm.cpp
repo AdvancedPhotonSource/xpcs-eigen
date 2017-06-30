@@ -136,6 +136,7 @@ void IMM::load_sparse()
 {
     Configuration *conf = Configuration::instance();
     short *pixelmask = conf->getPixelMask();
+    double *flatfield = conf->getFlatField();
 
     rewind(m_ptrFile);
 
@@ -171,6 +172,8 @@ void IMM::load_sparse()
         // TODO insert assert statements
         /// - read pixels == requested pixels to read etc. 
 
+
+
         for (int i = 0; i < pixels; i++)
         {
             // We want the sparse pixel index to be less the number of pixels requested.
@@ -178,7 +181,7 @@ void IMM::load_sparse()
             //     break;
 
             if (pixelmask[index[i]] != 0) {
-                tripletList.push_back(Triplet(index[i], fcount, values[i]));       
+                tripletList.push_back(Triplet(index[i], fcount, values[i] * flatfield[index[i]]));       
             }
         }
 

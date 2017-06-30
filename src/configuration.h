@@ -84,6 +84,9 @@ public:
     float getDetPreset();
     float getDetEfficiency();
 
+    bool getIsFlatFieldEnabled();
+    double* getFlatField();
+
 private:
 
     Configuration();
@@ -96,8 +99,11 @@ private:
 
     int* get2DTable(const std::string &path);
 
+    double* get2DTableD(const std::string &path);
+
     int* dqmap;
     int* sqmap;
+    double* flatfield;
 
     // Valid pixel mask - mark an entry as 1 in an array if the pixel is contained in any of the bins.
     short* m_validPixelMask;
@@ -118,7 +124,9 @@ private:
 
     hid_t file_id;
 
+    // Flags for checkig if certain fields are enabled. 
     bool compression;
+    bool flatfieldEnabled;
 
     std::string m_filename;
 
