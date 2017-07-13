@@ -109,10 +109,6 @@ int main(int argc, char** argv)
         H5Result::writePixelSum(conf->getFilename(), "exchange", pixelSum);        
 
         Corr::multiTauVec(mat, G2, IP, IF);
-
-        cout<<G2.row(10892)<<endl;
-        cout<<IP.row(10892)<<endl;
-        cout<<IF.row(10892)<<endl;
         
     } else {
         MatrixXf pixelData = imm.getPixelData();
@@ -121,8 +117,5 @@ int main(int argc, char** argv)
         Corr::multiTauVec(pixelData, G2, IP, IF);
     }
 
-    // Corr::normalizeG2s(G2, IP, IF);
-    // Test
-    // MatrixXf pixelData = imm.getPixelData();
-    // Funcs::maskFromDQmap(conf->getDQMap(), conf->getFrameWidth(), conf->getFrameHeight());
+    Corr::normalizeG2s(G2, IP, IF);
 }

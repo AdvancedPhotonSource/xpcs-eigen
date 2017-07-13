@@ -198,9 +198,11 @@ void Corr::multiTauVec(SparseMatrix<float>& pixelData,
             if (lastframe % 2)
                 lastframe -= 1;
 
-	    printf("%d\n", lastframe/2);
-            for (int k = 0; k < lastframe/2; k++) {
-                pixelData.col(k) = 0.5 * (pixelData.col(k) + pixelData.col(k+1));
+            int ij = 0;
+
+            for (int k = 0; k < lastframe; k+=2) {
+                pixelData.col(ij) = 0.5 * (pixelData.col(k) + pixelData.col(k+1));
+                ij++;
             }
 
             lastframe = lastframe / 2;
@@ -209,15 +211,13 @@ void Corr::multiTauVec(SparseMatrix<float>& pixelData,
         if (level > 0)
             tau = tau / pow(2, level);
         
-	printf("Tau %d, %f\n", tau, tau * pow(2, level));
-
         // Get lastframe-tau number of cols starting at 0 for c0 and tau for c1. 
         c0 = pixelData.middleCols(0, lastframe-tau);
         c1 = pixelData.middleCols(tau, lastframe-tau);
 
         G2.col(i) = c0.cwiseProduct(c1) * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
         IP.col(i) = c0 * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
-        IF.col(i) = c1 * (VectorXf::Ones(c0.cols()) * 1.0/c1.cols());
+        IF.col(i) = c1 * (VectorXf::Ones(c1.cols()) * 1.0/c1.cols());
 
         i++;
         ll = level;
@@ -244,14 +244,20 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
     MatrixXf g2(qbins.size(), G2.cols());
     MatrixXf stdError(qbins.size(), G2.cols());
 
+    g2.setZero(g2.rows(), g2.cols());
+    stdError.setZero(stdError.rows(), stdError.cols());
+
     // A matrix of the form total_static partitions over tau values.
     // Each row is a static partition and column is different tau value.  
     MatrixXf g2Sums(totalStaticPartns, G2.cols());
     MatrixXf ipSums(totalStaticPartns, G2.cols());
     MatrixXf ifSums(totalStaticPartns, G2.cols());
 
+    g2Sums.setZero(g2Sums.rows(), g2Sums.cols());
+
     // Count of pixels for each static partition
     VectorXi partitionPixelCounts(totalStaticPartns);
+    partitionPixelCounts.setZero(totalStaticPartns);
 
     // Sum pixels for each static partitions. 
     for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
@@ -259,26 +265,28 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
 
         int q = it->first;
         map<int, vector<int> > values =  it->second;
-
+        
         for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
             int sbin = it2->first;
 
             vector<int> pixels = it2->second;
-
             for(vector<int>::const_iterator pind = pixels.begin(); pind != pixels.end(); pind++) {
                 int p = *pind;
                 
-                g2Sums.row(sbin - 1) = g2Sums.row(sbin - 1) + G2.row(p);
-                ipSums.row(sbin - 1) = ipSums.row(sbin - 1) + IP.row(p);
-                ifSums.row(sbin - 1) = ifSums.row(sbin - 1) + IF.row(p);
+                g2Sums.row(sbin - 1) += G2.row(p);
+                ipSums.row(sbin - 1) += IP.row(p);
+                ifSums.row(sbin - 1) += IF.row(p);
 
-                partitionPixelCounts(sbin-1) =+ 1;
+                partitionPixelCounts(sbin-1) += 1;
             }
         }
     }
 
+
     // Compute averag of each static parition
     VectorXi sbinCounts(totalDynamicPartns);
+    sbinCounts.setZero(totalDynamicPartns);
+    
     for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
             it != qbins.end(); it++) {
 
@@ -288,16 +296,16 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
         for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
             int sbin = it2->first;
 
-            g2Sums.row(sbin-1) = g2Sums.row(sbin-1) / partitionPixelCounts(sbin-1);
-            ipSums.row(sbin-1) = ipSums.row(sbin-1) / partitionPixelCounts(sbin-1);
-            ifSums.row(sbin-1) = ifSums.row(sbin-1) / partitionPixelCounts(sbin-1);
+            g2Sums.row(sbin-1).array() /= partitionPixelCounts(sbin-1);
+            ipSums.row(sbin-1).array() /= partitionPixelCounts(sbin-1);
+            ifSums.row(sbin-1).array() /= partitionPixelCounts(sbin-1);
 
             // // Normalize per bin static partition . 
             g2Sums.row(sbin-1) = g2Sums.row(sbin-1).array() / (ipSums.row(sbin-1).array() * ifSums.row(sbin-1).array());
         }
     }
 
-    // Compute the mean of normalized g2 values. 
+    // // Compute the mean of normalized g2 values per dynamic bin. 
     for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
             it != qbins.end(); it++) {
 
@@ -312,43 +320,43 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
         }
 
         // Mean of each G2 across tau values. This is our final g2 Matrix. 
-        g2.row(q - 1).array() = g2.row(q - 1).array() / count;
+        g2.row(q - 1).array() = g2.row(q - 1).array() / (float)count;
     }
 
     // Compute the standard error.
-    for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
-            it != qbins.end(); it++) {
+    // for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
+    //         it != qbins.end(); it++) {
 
-        int q = it->first;
-        map<int, vector<int> > values =  it->second;
+    //     int q = it->first;
+    //     map<int, vector<int> > values =  it->second;
 
-        VectorXf avgG2(G2.cols());
-        VectorXf tmpAvg(G2.cols());
-        VectorXf stdG2(G2.cols());
-        double samples = 1.0;
+    //     VectorXf avgG2(G2.cols());
+    //     VectorXf tmpAvg(G2.cols());
+    //     VectorXf stdG2(G2.cols());
+    //     double samples = 1.0;
 
-        for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
-            int sbin = it2->first;
+    //     for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
+    //         int sbin = it2->first;
 
-            vector<int> pixels = it2->second;
-            for(vector<int>::const_iterator pind = pixels.begin(); pind != pixels.end(); pind++) {
-                int p = *pind;
-                tmpAvg = avgG2;
+    //         vector<int> pixels = it2->second;
+    //         for(vector<int>::const_iterator pind = pixels.begin(); pind != pixels.end(); pind++) {
+    //             int p = *pind;
+    //             tmpAvg = avgG2;
 
-                VectorXf normalizedG2 =  G2.row(p).array() / 
-                                (ipSums.row(sbin - 1).array() * ifSums.row(sbin - 1).array());
-                avgG2 += (normalizedG2 - tmpAvg) / samples;
-                stdG2 += (normalizedG2 - tmpAvg) * (normalizedG2 - avgG2);
-                samples = samples + 1.0;
-            }
-        }
+    //             VectorXf normalizedG2 =  G2.row(p).array() / 
+    //                             (ipSums.row(sbin - 1).array() * ifSums.row(sbin - 1).array());
+    //             avgG2 += (normalizedG2 - tmpAvg) / samples;
+    //             stdG2 += (normalizedG2 - tmpAvg) * (normalizedG2 - avgG2);
+    //             samples = samples + 1.0;
+    //         }
+    //     }
 
-        VectorXf stdNorm = stdG2 / (samples - 1.0);
-        stdError.row(q - 1).array() = sqrt( 1 / (samples - 1.0) ) * stdNorm.array().sqrt();
-    }
+    //     VectorXf stdNorm = stdG2 / (samples - 1.0);
+    //     stdError.row(q - 1).array() = sqrt( 1 / (samples - 1.0) ) * stdNorm.array().sqrt();
+    // }
 
     H5Result::writeG2(conf->getFilename(), "exchange", g2);
-    H5Result::writeStdError(conf->getFilename(), "exchange", g2);
+    // H5Result::writeStdError(conf->getFilename(), "exchange", g2);
 
 }
 
