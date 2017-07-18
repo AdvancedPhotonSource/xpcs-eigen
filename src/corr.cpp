@@ -324,7 +324,7 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
     }
 
     // Compute the standard error.
-    /*for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
+    for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
             it != qbins.end(); it++) {
 
         int q = it->first;
@@ -350,17 +350,21 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
                 VectorXf normalizedG2 =  G2.row(p).array() / 
                                 (ipSums.row(sbin - 1).array() * ifSums.row(sbin - 1).array());
                 avgG2 += (normalizedG2 - tmpAvg) / samples;
-                stdG2 += (normalizedG2 - tmpAvg) * (normalizedG2 - avgG2);
+                VectorXf tmp1 = (normalizedG2 - tmpAvg);
+                VectorXf tmp2 = (normalizedG2 - avgG2);
+                VectorXf tmp3 = tmp1.array() * tmp2.array();
+
+                stdG2 += tmp3;
                 samples = samples + 1.0;
             }
         }
 
         VectorXf stdNorm = stdG2 / (samples - 1.0);
         stdError.row(q - 1).array() = sqrt( 1 / (samples - 1.0) ) * stdNorm.array().sqrt();
-    }*/
+    }
 
     H5Result::writeG2(conf->getFilename(), "exchange", g2);
-    // H5Result::writeStdError(conf->getFilename(), "exchange", g2);
+    H5Result::writeStdError(conf->getFilename(), "exchange", stdError);
 
 }
 

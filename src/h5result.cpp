@@ -109,8 +109,8 @@ void H5Result::writeStdError(const std::string &file,
 
     if (dataset_id < 0) {
 
-        dims[0] = stdError.rows();
-        dims[1] = stdError.cols();
+        dims[0] = stdError.cols();
+        dims[1] = stdError.rows();
         dims[2] = 1;
 
         dataspace_id = H5Screate_simple(3, dims, NULL);
