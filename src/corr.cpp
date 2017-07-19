@@ -363,8 +363,8 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
         stdError.row(q - 1).array() = sqrt( 1 / (samples - 1.0) ) * stdNorm.array().sqrt();
     }
 
-    H5Result::writeG2(conf->getFilename(), "exchange", g2);
-    H5Result::writeStdError(conf->getFilename(), "exchange", stdError);
+    H5Result::write2DData(conf->getFilename(), "exchange", "norm-0-g2", g2);
+    H5Result::write2DData(conf->getFilename(), "exchange", "norm-0-stderr", stdError);
 
 }
 

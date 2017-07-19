@@ -117,5 +117,9 @@ int main(int argc, char** argv)
         Corr::multiTauVec(pixelData, G2, IP, IF);
     }
 
+    H5Result::write2DData(conf->getFilename(), "exchange", "G2", G2);
+    H5Result::write2DData(conf->getFilename(), "exchange", "IP", IP);
+    H5Result::write2DData(conf->getFilename(), "exchange", "IF", IF);
+
     Corr::normalizeG2s(G2, IP, IF);
 }

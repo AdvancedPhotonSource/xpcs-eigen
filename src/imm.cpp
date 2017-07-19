@@ -181,7 +181,7 @@ void IMM::load_sparse()
             //     break;
 
             if (pixelmask[index[i]] != 0) {
-                tripletList.push_back(Triplet(index[i], fcount, values[i] * flatfield[index[i]]));       
+                tripletList.push_back(Triplet(index[i], fcount, values[i] *flatfield[index[i]]));       
             }
         }
 

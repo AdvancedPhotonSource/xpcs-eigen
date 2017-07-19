@@ -101,6 +101,7 @@ void Configuration::init(const string &path)
     this->m_detEfficiency = getFloat("/measurement/instrument/detector/efficiency");
 
     value = getString("/xpcs/flatfield_enabled");
+    cout<<value<<endl;
     if (boost::iequals(value, "ENABLED"))
         this->flatfieldEnabled = true;
 
@@ -195,22 +196,38 @@ double* Configuration::get2DTableD(const std::string &path)
 
 std::string Configuration::getString(const std::string &path)
 {
-    hid_t  dataset_id;
+    hid_t  dataset_id, space_id;
     herr_t status;
 
     dataset_id = H5Dopen(this->file_id, path.c_str(), H5P_DEFAULT);
     
     hid_t dtype = H5Dget_type(dataset_id);
-    hid_t size = H5Dget_storage_size(dataset_id);
+    space_id  = H5Dget_space(dataset_id);
 
-    char * str = new char[size + 1];
-    str[size] = '\0';
+    hsize_t size = H5Dget_storage_size(dataset_id);
+    hsize_t dims[1] = {1};
+    int ndims = H5Sget_simple_extent_dims(space_id, dims, NULL);
 
-    status = H5Dread(dataset_id, dtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, str);
-
+    std::string value;
+    if (H5Tis_variable_str(dtype)) 
+    {
+        char **str = (char **) malloc(dims[0] * sizeof(char *));
+        hid_t memtype = H5Tcopy(H5T_C_S1);
+        status = H5Tset_size(memtype, H5T_VARIABLE);
+        status = H5Dread(dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, str);
+        value = std::string(str[0]);
+    }
+    else
+    {
+        char *str = new char[size + 1];
+        status = H5Dread(dataset_id, dtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, str);
+        str[size + 1] = '\n';
+        value = std::string(str);
+    }
+    
     H5Dclose(dataset_id);
 
-    return std::string(str);
+    return value;
 }
 
 int Configuration::getInteger(const std::string &path)

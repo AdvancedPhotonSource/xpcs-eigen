@@ -54,13 +54,10 @@ POSSIBILITY OF SUCH DAMAGE.
 class H5Result {
 
 public:
-    static void writeG2(const std::string &file, 
+    static void write2DData(const std::string &file, 
                         const std::string &grpname,
-                        Eigen::Ref<Eigen::MatrixXf> g2);
-
-    static void writeStdError(const std::string &file, 
-                        const std::string &grpname,
-                        Eigen::Ref<Eigen::MatrixXf> stdError);
+                        const std::string &nodename,
+                        Eigen::Ref<Eigen::MatrixXf> mat);
 
     static void writePixelSum(const std::string &file, 
                               const std::string &grpname,
