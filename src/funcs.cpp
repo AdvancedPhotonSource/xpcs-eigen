@@ -60,7 +60,7 @@ VectorXf Funcs::pixelSum(Eigen::Ref<Eigen::MatrixXf> pixelData) {
 
 VectorXf Funcs::pixelSum(SparseMatF pixelData) {
     Configuration *conf = Configuration::instance();
-    int fcount = conf->getFrameCount();
+    int fcount = conf->getFrameTodoCount();
 
     VectorXf psum(pixelData.rows());
      for (int i = 0; i < pixelData.cols(); i++) {

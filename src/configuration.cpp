@@ -91,7 +91,12 @@ void Configuration::init(const string &path)
 
     this->xdim = getInteger("/measurement/instrument/detector/x_dimension");
     this->ydim = getInteger("/measurement/instrument/detector/y_dimension");
-    this->frameCount = getInteger("/xpcs/data_end_todo");
+
+    // Subtract 1 to make the index zero based. 
+    this->frameStart = getInteger("/xpcs/data_begin") - 1;
+    this->frameEnd = getInteger("/xpcs/data_end") - 1;
+    this->frameStartTodo = getInteger("/xpcs/data_begin_todo") - 1;
+    this->frameEndTodo = getInteger("/xpcs/data_end_todo") - 1;
 
     this->m_totalStaticPartitions = 0;
     this->m_totalDynamicPartitions = 0;
@@ -288,16 +293,40 @@ int Configuration::getFrameHeight()
     return this->ydim;
 }
 
+int Configuration::getFrameStartTodo()
+{
+    return frameStartTodo;
+}
+
+int Configuration::getFrameEndTodo()
+{
+    return frameEndTodo;
+}
+
+int Configuration::getFrameStart()
+{
+    return frameStart;
+}
+
+int Configuration::getFrameEnd()
+{
+    return frameEnd;
+}
+
+int Configuration::getFrameTodoCount()
+{
+    return (frameEndTodo - frameStartTodo + 1);
+}
+
 int Configuration::getFrameCount()
 {
-    return this->frameCount;
+    return (frameEnd - frameStart) + 1;
 }
 
 std::map<int, std::map<int, std::vector<int>> > Configuration::getBinMaps()
 {
     return this->m_mapping;
 }
-
 
 int Configuration::getTotalStaticPartitions()
 {

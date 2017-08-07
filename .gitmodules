@@ -1,0 +1,3 @@
+[submodule "src/gflags"]
+	path = src/gflags
+	url = https://github.com/gflags/gflags.git

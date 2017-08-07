@@ -67,8 +67,13 @@ public:
     int getFrameWidth();
     int getFrameHeight();
 
+    int getFrameStartTodo();
+    int getFrameEndTodo();
+    int getFrameStart();
+    int getFrameEnd();
+    int getFrameTodoCount();
     int getFrameCount();
-
+    
     void init(const std::string &path);
 
     std::map<int, std::map<int, std::vector<int>> > getBinMaps();
@@ -116,8 +121,12 @@ private:
     int xdim;
     int ydim;
 
-    int frameCount;
 
+    int frameStart;
+    int frameEnd;
+    int frameStartTodo;
+    int frameEndTodo;
+    
     float m_detAdhupPhot;
     float m_detPreset;
     float m_detEfficiency;

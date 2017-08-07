@@ -65,7 +65,7 @@ typedef Eigen::SparseMatrix<float> SparseMatF;
 class IMM
 {
 public:
-   IMM(const char* filename, int frames_to_load, int pixels_per_frame);
+   IMM(const char* filename, int frameFrom, int frameTo, int pixels_per_frame);
    
    ~IMM();
 
@@ -77,8 +77,10 @@ public:
 
 private:
 
-    long m_frames;
+    long m_frameStartTodo;
+    long m_frameEndTodo;
     long m_pixelsPerFrame;
+    long m_frames;
     
     const char* m_filename;
     IMMHeader *m_ptrHeader;

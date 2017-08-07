@@ -64,9 +64,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "Eigen/Dense"
 #include "Eigen/SparseCore"
 
+#include "gflags/gflags.h"
 
 using namespace Eigen;
 using namespace std;
+
+
 
 
 int main(int argc, char** argv)
@@ -84,8 +87,11 @@ int main(int argc, char** argv)
     int* dqmap = conf->getDQMap();
     int *sqmap = conf->getSQMap();
 
-    int frames = conf->getFrameCount();
-    IMM imm(argv[2], frames, -1);
+    int frames = conf->getFrameTodoCount();
+    int frameFrom = conf->getFrameStartTodo();
+    int frameTo = conf->getFrameEndTodo();
+
+    IMM imm(argv[2], frameFrom, frameTo, -1);
 
     int pixels = conf->getFrameWidth() * conf->getFrameHeight();
     int maxLevel = Corr::calculateLevelMax(frames, 4);
@@ -94,7 +100,6 @@ int main(int argc, char** argv)
     MatrixXf G2(pixels, delays_per_level.size());
     MatrixXf IP(pixels, delays_per_level.size());
     MatrixXf IF(pixels, delays_per_level.size());
-
 
     Funcs funcs;
     if (imm.getIsSparse()) {

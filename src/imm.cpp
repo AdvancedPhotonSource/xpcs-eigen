@@ -53,10 +53,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 
-IMM::IMM(const char* filename, int frames, int pixelsPerFrame)
+IMM::IMM(const char* filename, int frameFrom, int frameTo, int pixelsPerFrame)
 {
     m_filename = filename;
-    m_frames = frames;
+    m_frameStartTodo = frameFrom;
+    m_frameEndTodo = frameTo;
+    m_frames = frameTo - frameFrom + 1;
     m_pixelsPerFrame = pixelsPerFrame;
     
     init();
@@ -70,7 +72,6 @@ IMM::IMM(const char* filename, int frames, int pixelsPerFrame)
     if (m_pixelsPerFrame < 1)
         m_pixelsPerFrame = m_ptrHeader->rows * m_ptrHeader->cols;
 
-    printf("compression %d\n", m_ptrHeader->compression);
 
     if (m_ptrHeader->compression) {
         load_sparse();
@@ -113,6 +114,7 @@ void IMM::load_nonsprase()
     int fcount = 0;
 
     rewind(m_ptrFile);
+
     while (fcount < m_frames)
     {
         
@@ -134,6 +136,7 @@ void IMM::load_nonsprase()
 
 void IMM::load_sparse()
 {
+    //TODO:: Remove the dependence of IMM reader on configuration object. 
     Configuration *conf = Configuration::instance();
     short *pixelmask = conf->getPixelMask();
     double *flatfield = conf->getFlatField();
@@ -154,6 +157,15 @@ void IMM::load_sparse()
     int* index = new int[m_pixelsPerFrame];
     short* values = new short[m_pixelsPerFrame];
 
+    // Skip frames below start frame. 
+    while (fcount < m_frameStartTodo)
+    {
+        fread(m_ptrHeader, 1024, 1, m_ptrFile);
+        uint skip = m_ptrHeader->dlen;        
+        fseek(m_ptrFile, skip * 6, SEEK_CUR);
+        fcount++;
+    }
+
     while (fcount < m_frames)
     {
         fread(m_ptrHeader, 1024, 1, m_ptrFile);
@@ -171,8 +183,6 @@ void IMM::load_sparse()
 
         // TODO insert assert statements
         /// - read pixels == requested pixels to read etc. 
-
-
 
         for (int i = 0; i < pixels; i++)
         {

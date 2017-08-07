@@ -230,7 +230,7 @@ void H5Result::writeFrameSum(const std::string &file,
     if (dataset_id < 0) {
 
         dims[0] = 1;
-        dims[1] = conf->getFrameCount();
+        dims[1] = conf->getFrameTodoCount();
         dims[2] = 1;
 
         dataspace_id = H5Screate_simple(3, dims, NULL);
