@@ -93,10 +93,10 @@ void Configuration::init(const string &path)
     this->ydim = getInteger("/measurement/instrument/detector/y_dimension");
 
     // Subtract 1 to make the index zero based. 
-    this->frameStart = getInteger("/xpcs/data_begin") - 1;
-    this->frameEnd = getInteger("/xpcs/data_end") - 1;
-    this->frameStartTodo = getInteger("/xpcs/data_begin_todo") - 1;
-    this->frameEndTodo = getInteger("/xpcs/data_end_todo") - 1;
+    this->frameStart = getInteger("/xpcs/data_begin");
+    this->frameEnd = getInteger("/xpcs/data_end");
+    this->frameStartTodo = getInteger("/xpcs/data_begin_todo");
+    this->frameEndTodo = getInteger("/xpcs/data_end_todo");
 
     this->m_totalStaticPartitions = 0;
     this->m_totalDynamicPartitions = 0;
@@ -295,27 +295,27 @@ int Configuration::getFrameHeight()
 
 int Configuration::getFrameStartTodo()
 {
-    return frameStartTodo;
+    return frameStartTodo - 1;
 }
 
 int Configuration::getFrameEndTodo()
 {
-    return frameEndTodo;
+    return frameEndTodo - 1;
 }
 
 int Configuration::getFrameStart()
 {
-    return frameStart;
+    return frameStart - 1;
 }
 
 int Configuration::getFrameEnd()
 {
-    return frameEnd;
+    return frameEnd -1;
 }
 
 int Configuration::getFrameTodoCount()
 {
-    return (frameEndTodo - frameStartTodo + 1);
+    return (frameEndTodo - frameStartTodo);
 }
 
 int Configuration::getFrameCount()

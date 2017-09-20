@@ -409,6 +409,7 @@ double* Corr::computeG2Levels(const Eigen::MatrixXf &pixelData,
 
 vector<tuple<int, int>> Corr::delaysPerLevel(int frameCount, int dpl, int maxDelay)
 {
+    printf("Frame count = %d\n", frameCount);
     vector< tuple<int, int> > result;
 
     int ll_dpl = 0;
@@ -422,7 +423,7 @@ vector<tuple<int, int>> Corr::delaysPerLevel(int frameCount, int dpl, int maxDel
             
             if ( (ll_dpl+step) >= frameCount) break;
 
-
+            printf ("%d - %d - %d\n", i, ll_dpl, ll_dpl + step);
             result.push_back(std::make_tuple(i, ll_dpl + step));
             ll_dpl = ll_dpl + step;
         }

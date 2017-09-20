@@ -166,7 +166,7 @@ void IMM::load_sparse()
         fcount++;
     }
 
-    while (fcount < m_frames)
+    while ((fcount - m_frameStartTodo) < m_frames)
     {
         fread(m_ptrHeader, 1024, 1, m_ptrFile);
 
@@ -191,7 +191,7 @@ void IMM::load_sparse()
             //     break;
 
             if (pixelmask[index[i]] != 0) {
-                tripletList.push_back(Triplet(index[i], fcount, values[i] *flatfield[index[i]]));       
+                tripletList.push_back(Triplet(index[i], fcount - m_frameStartTodo, values[i] *flatfield[index[i]]));       
             }
         }
 

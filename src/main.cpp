@@ -91,11 +91,14 @@ int main(int argc, char** argv)
     int frameFrom = conf->getFrameStartTodo();
     int frameTo = conf->getFrameEndTodo();
 
-    IMM imm(argv[2], frameFrom, frameTo, -1);
-
     int pixels = conf->getFrameWidth() * conf->getFrameHeight();
     int maxLevel = Corr::calculateLevelMax(frames, 4);
     vector<std::tuple<int,int> > delays_per_level = Corr::delaysPerLevel(frames, 4, maxLevel);
+
+    printf("Frames %d\n", frames);
+    printf("Taus %d\n", delays_per_level.size());
+
+    IMM imm(argv[2], frameFrom, frameTo, -1);
 
     MatrixXf G2(pixels, delays_per_level.size());
     MatrixXf IP(pixels, delays_per_level.size());
@@ -127,4 +130,22 @@ int main(int argc, char** argv)
     H5Result::write2DData(conf->getFilename(), "exchange", "IF", IF);
 
     Corr::normalizeG2s(G2, IP, IF);
+
+    
+    // MatrixXf mat = MatrixXf::Random(4, 5) * 10;
+
+    // cout<<mat<<endl;
+
+    // cout<<endl;
+
+    // MatrixXf mat2 = MatrixXf(mat.triangularView<Eigen::Upper>());
+
+    // cout<<mat2<<endl;
+
+    // cout<<endl;
+
+    // cout<<mat.array() * mat.array()<<endl;
+
+
+
 }
