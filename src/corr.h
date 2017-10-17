@@ -86,6 +86,8 @@ public:
                             Eigen::Ref<Eigen::MatrixXf> IP, 
                             Eigen::Ref<Eigen::MatrixXf> IF);
 
+    static void twoTimesVec(Eigen::Ref<Eigen::MatrixXf> pixelData);
+
     static void normalizeG2s(Eigen::Ref<Eigen::MatrixXf> g2,
                       Eigen::Ref<Eigen::MatrixXf> IP, 
                       Eigen::Ref<Eigen::MatrixXf> IF);

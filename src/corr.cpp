@@ -225,6 +225,35 @@ void Corr::multiTauVec(SparseMatrix<float>& pixelData,
 
 }
 
+void Corr::twoTimesVec(Ref<MatrixXf> pixelData)
+{
+
+    Configuration* conf = Configuration::instance();
+    int frames = conf->getFrameTodoCount();
+
+    MatrixXf g2(pixelData.rows(), int(0.5 * frames * (frames - 1)) );
+
+    int index = 0;
+    for (int i = 0; i < frames; i++)
+    {
+        for (int j = i+1; j < frames; j++)
+        {
+            // g2.col(index) = pixelData.col(i) * pixelData.col(j);
+            index++;
+        }
+    }
+
+    // For self dot product of two times, create an upper triangular view of the original data
+    // MatrixXf pixelData2 = MatrixXf(pixelData.triangularView<Eigen::Uppper>());
+    // MatrixXf prod = pixelData.array() * pixelData2.array();
+
+    // Sum products based on the q-bin pixels
+
+    // map<int, map<int, vector<int>> > qbins = conf->getBinMaps();
+
+
+}
+
 //TODO: Refactor this function and possibly break into sub function for the unit-tests. 
 void Corr::normalizeG2s( Ref<MatrixXf> G2,
                    Ref<MatrixXf> IP, 
