@@ -311,6 +311,24 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
         }
     }
 
+    for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
+            it != qbins.end(); it++) {
+
+        int q = it->first;
+        map<int, vector<int> > values =  it->second;
+
+        for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
+            int sbin = it2->first;
+	   // printf("q = %d, sbin = %d\n", q, sbin);
+	    cout<<g2Sums(sbin-1, 0)<<endl;
+	    cout<<ipSums(sbin-1, 0)<<endl;
+	    cout<<ifSums(sbin-1, 0)<<endl;
+
+	    cout<<partitionPixelCounts(sbin-1)<<endl;
+        }
+    }
+
+
 
     // Compute averag of each static parition
     VectorXi sbinCounts(totalDynamicPartns);
@@ -329,8 +347,10 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
             ipSums.row(sbin-1).array() /= partitionPixelCounts(sbin-1);
             ifSums.row(sbin-1).array() /= partitionPixelCounts(sbin-1);
 
+	    cout<<"Sums/pixel_count "<<(sbin-1)<<" "<<g2Sums(sbin - 1, 0)<<" "<<ipSums(sbin-1,0)<<" "<<ifSums(sbin-1,0)<<endl;
             // // Normalize per bin static partition . 
             g2Sums.row(sbin-1) = g2Sums.row(sbin-1).array() / (ipSums.row(sbin-1).array() * ifSums.row(sbin-1).array());
+	   // cout<<g2Sums(sbin-1, 0)<<endl;
         }
     }
 
@@ -348,8 +368,11 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
             count++;
         }
 
+	printf("count = %d\n", count);
+
         // Mean of each G2 across tau values. This is our final g2 Matrix. 
         g2.row(q - 1).array() = g2.row(q - 1).array() / (float)count;
+//	cout<<g2.row(q-1)<<endl;
     }
 
     // Compute the standard error.
