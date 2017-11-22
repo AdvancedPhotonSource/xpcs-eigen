@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "Eigen/Dense"
 #include "Eigen/SparseCore"
+#include "spdlog/spdlog.h"
 
 using namespace Eigen;
 
@@ -103,6 +104,8 @@ private:
 
     // Load non-sparse data. 
     void load_nonsprase();
+
+    std::shared_ptr<spdlog::logger> _logger;
 };
 
 #endif

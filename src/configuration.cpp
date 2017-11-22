@@ -101,9 +101,27 @@ void Configuration::init(const string &path)
     this->m_totalStaticPartitions = 0;
     this->m_totalDynamicPartitions = 0;
 
-    this->m_detAdhupPhot = getFloat("/measurement/instrument/detector/adu_per_photon");
-    this->m_detPreset = getFloat("/measurement/instrument/detector/exposure_time");
-    this->m_detEfficiency = getFloat("/measurement/instrument/detector/efficiency");
+    //TODO: We probably don't need to save all these values other than the norm factor. 
+    m_detDpixX = getFloat("/measurement/instrument/detector/x_pixel_size");
+    m_detDpixY = getFloat("/measurement/instrument/detector/y_pixel_size");
+    m_detAdhupPhot = getFloat("/measurement/instrument/detector/adu_per_photon");
+    m_detPreset = getFloat("/measurement/instrument/detector/exposure_time");
+    m_detEfficiency = getFloat("/measurement/instrument/detector/efficiency");
+    float detDistance = getFloat("/measurement/instrument/detector/distance");
+    float fluxTransmitted = getFloat("/measurement/instrument/source_begin/beam_intensity_transmitted");
+    float thickness = getFloat("/measurement/sample/thickness");
+
+    m_normFactor = 1.0;    
+
+    printf("%f %f %f %f %f %f\n", fluxTransmitted, thickness, m_detAdhupPhot, m_detPreset, m_detEfficiency, detDistance);
+
+    m_normFactor = m_normFactor / m_detEfficiency / m_detAdhupPhot / m_detPreset ;
+    m_normFactor = m_normFactor / (m_detDpixX/detDistance * m_detDpixY/ detDistance);
+
+    m_normFactor /= fluxTransmitted;
+    m_normFactor /= thickness;
+                
+    this->m_staticWindow = getInteger("/xpcs/static_mean_window_size");
 
     value = getString("/xpcs/flatfield_enabled");
     cout<<value<<endl;
@@ -348,6 +366,16 @@ short* Configuration::getPixelMask()
     return this->m_validPixelMask;
 }
 
+float Configuration::getDetDpixX()
+{
+    return this->m_detDpixX;
+}
+
+float Configuration::getDetDpixY()
+{
+    return this->m_detDpixY;
+}
+
 float Configuration::getDetAdhuPhot()
 {
     return this->m_detAdhupPhot;
@@ -371,4 +399,14 @@ double* Configuration::getFlatField()
 bool Configuration::getIsFlatFieldEnabled()
 {
     return this->flatfieldEnabled;
+}
+
+int Configuration::getStaticWindowSize()
+{
+    return this->m_staticWindow;
+}
+
+float Configuration::getNormFactor()
+{
+    return this->m_normFactor;
 }

@@ -56,10 +56,10 @@ class Funcs {
 
 public:
     static Eigen::VectorXf pixelSum(Eigen::Ref<Eigen::MatrixXf> pixels);
-    
+    static Eigen::MatrixXf pixelWindowSum(SparseMatF pixels);
     static Eigen::VectorXf pixelSum(SparseMatF pixels);
+    static Eigen::MatrixXf partitionMean(Eigen::Ref<Eigen::MatrixXf> pixelSum);
     static Eigen::VectorXf frameSum(SparseMatF pixels);
-    
     static Eigen::MatrixXf maskFromDQmap(int* dqmap, int w, int h);
 };
 

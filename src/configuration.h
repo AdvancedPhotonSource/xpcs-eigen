@@ -80,14 +80,18 @@ public:
 
     int getTotalStaticPartitions();
     int getTotalDynamicPartitions();
+    int getStaticWindowSize();
 
     std::string getFilename();
 
     short* getPixelMask();
 
+    float getDetDpixX();
+    float getDetDpixY();
     float getDetAdhuPhot();
     float getDetPreset();
     float getDetEfficiency();
+    float getNormFactor();
 
     bool getIsFlatFieldEnabled();
     double* getFlatField();
@@ -116,6 +120,7 @@ private:
     int m_totalStaticPartitions;
     int m_totalDynamicPartitions;
 
+    // Map of dynamic bins to static bin to pixels.
     std::map<int, std::map<int, std::vector<int> >> m_mapping;
 
     int xdim;
@@ -126,10 +131,14 @@ private:
     int frameEnd;
     int frameStartTodo;
     int frameEndTodo;
-    
+    int m_staticWindow;
+
+    float m_detDpixX;
+    float m_detDpixY;
     float m_detAdhupPhot;
     float m_detPreset;
     float m_detEfficiency;
+    float m_normFactor;
 
     hid_t file_id;
 

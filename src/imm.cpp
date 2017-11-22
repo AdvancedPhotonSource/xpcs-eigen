@@ -44,7 +44,6 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-
 #include "imm.h"
 #include "configuration.h"
 
@@ -81,11 +80,12 @@ IMM::IMM(const char* filename, int frameFrom, int frameTo, int pixelsPerFrame)
         load_nonsprase();
         m_isSparse = false;
     }
+
+    // _logger = spd::stdout_color_mt("console");
 }
 
 IMM::~IMM()
 {
-
 }
 
 void IMM::init()
@@ -117,7 +117,6 @@ void IMM::load_nonsprase()
 
     while (fcount < m_frames)
     {
-        
         fseek(m_ptrFile, 1024, SEEK_CUR);
         fread(buffer, 1, bytesPerFrame, m_ptrFile);
 
@@ -184,21 +183,23 @@ void IMM::load_sparse()
         // TODO insert assert statements
         /// - read pixels == requested pixels to read etc. 
 
+        int fnumber = fcount - m_frameStartTodo;
         for (int i = 0; i < pixels; i++)
         {
             // We want the sparse pixel index to be less the number of pixels requested.
             // if (index[i] >= m_pixelsPerFrame)
             //     break;
 
-            if (pixelmask[index[i]] != 0) {
-                tripletList.push_back(Triplet(index[i], fcount - m_frameStartTodo, values[i] *flatfield[index[i]]));       
+            if (pixelmask[index[i]] != 0) {                
+                tripletList.push_back(Triplet(index[i], fnumber, values[i] *flatfield[index[i]]));       
             }
         }
 
         fcount++;
     }
 
-    m_sparsePixelData = SparseMatF(m_pixelsPerFrame, fcount);
+
+    m_sparsePixelData = SparseMatF(m_pixelsPerFrame, fcount - m_frameStartTodo);
     m_sparsePixelData.setFromTriplets(tripletList.begin(), tripletList.end());
 }
 

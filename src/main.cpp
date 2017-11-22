@@ -65,12 +65,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "Eigen/SparseCore"
 
 //#include "gflags/gflags.h"
+#include "spdlog/spdlog.h"
 
 using namespace Eigen;
 using namespace std;
-
-
-
+namespace spd = spdlog; 
 
 int main(int argc, char** argv)
 {
@@ -79,6 +78,8 @@ int main(int argc, char** argv)
         fprintf(stderr, "Missing argument - <hdf5 file> <imm file>\n");
         return -1;
     }
+
+    spd::stdout_color_mt("console");
 
     printf("File %s\n", argv[1]);
     Configuration *conf = Configuration::instance();
@@ -97,6 +98,7 @@ int main(int argc, char** argv)
 
     printf("Frames %d\n", frames);
     printf("Taus %d\n", delays_per_level.size());
+    printf("Static window %d\n", conf->getStaticWindowSize());
 
     IMM imm(argv[2], frameFrom, frameTo, -1);
 
@@ -113,23 +115,25 @@ int main(int argc, char** argv)
         VectorXf frameSum = funcs.frameSum(mat);
         H5Result::writeFrameSum(conf->getFilename(), "exchange", frameSum);        
 
-        VectorXf pixelSum = funcs.pixelSum(mat);
-        H5Result::writePixelSum(conf->getFilename(), "exchange", pixelSum);        
-
-        Corr::multiTauVec(mat, G2, IP, IF);
+        MatrixXf pixelSum = funcs.pixelWindowSum(mat);
+        MatrixXf pmean = funcs.partitionMean(pixelSum);
+        H5Result::writePixelSum(conf->getFilename(), "exchange", pixelSum.col(0));        
+        H5Result::write1DData(conf->getFilename(), "exchange", "partition-mean-total", pmean.col(0));
+        H5Result::write2DData(conf->getFilename(), "exchange", "partition-mean-partial", pmean.rightCols(pmean.cols()-1));
+        // Corr::multiTauVec(mat, G2, IP, IF);
         
     } else {
         MatrixXf pixelData = imm.getPixelData();
         VectorXf pixelSum = funcs.pixelSum(pixelData);
         H5Result::writePixelSum(conf->getFilename(), "exchange", pixelSum);
-        Corr::multiTauVec(pixelData, G2, IP, IF);
+        // Corr::multiTauVec(pixelData, G2, IP, IF);
     }
 
-    H5Result::write2DData(conf->getFilename(), "exchange", "G2", G2);
-    H5Result::write2DData(conf->getFilename(), "exchange", "IP", IP);
-    H5Result::write2DData(conf->getFilename(), "exchange", "IF", IF);
+    // H5Result::write2DData(conf->getFilename(), "exchange", "G2", G2);
+    // H5Result::write2DData(conf->getFilename(), "exchange", "IP", IP);
+    // H5Result::write2DData(conf->getFilename(), "exchange", "IF", IF);
 
-    Corr::normalizeG2s(G2, IP, IF);
+    // Corr::normalizeG2s(G2, IP, IF);
 
     // Corr::twoTimesVec(imm.getPixelData());
 }
