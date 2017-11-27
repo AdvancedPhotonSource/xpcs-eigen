@@ -89,8 +89,6 @@ MatrixXf Funcs::pixelWindowSum(SparseMatF pixelData) {
           win++;
     }
 
-    pixelSums.col(0) = pixelSums.col(0).array()/fcount;
-
     return pixelSums;
 }
 
@@ -101,6 +99,8 @@ Eigen::MatrixXf Funcs::partitionMean(Eigen::Ref<Eigen::MatrixXf> pixelSum)
     int swindow = conf->getStaticWindowSize();
     int totalStaticPartns = conf->getTotalStaticPartitions();
     int partitions = (int) ceil((double)fcount/swindow);
+
+    printf("Total partition %d\n", partitions);
     float normFactor = conf->getNormFactor();
     printf("Norm factor %f\n", normFactor);
 
@@ -125,10 +125,14 @@ Eigen::MatrixXf Funcs::partitionMean(Eigen::Ref<Eigen::MatrixXf> pixelSum)
                 pixcount++;
             }
 
-            means.row(sbin - 1).array() /= (pixcount * swindow) / normFactor;
+            double denom = pixcount * swindow * normFactor;
+            double tmp = means(sbin-1, 0);
+            means.row(sbin-1).array() /= denom;
+            denom = (double)pixcount * fcount * normFactor;
+            means(sbin-1, 0) = tmp / denom;
         }
     }
-
+    
     return means;
 }
 

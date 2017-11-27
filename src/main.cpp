@@ -117,7 +117,8 @@ int main(int argc, char** argv)
 
         MatrixXf pixelSum = funcs.pixelWindowSum(mat);
         MatrixXf pmean = funcs.partitionMean(pixelSum);
-        H5Result::writePixelSum(conf->getFilename(), "exchange", pixelSum.col(0));        
+        VectorXf pixelSumV = pixelSum.col(0).array() / frames;
+        H5Result::writePixelSum(conf->getFilename(), "exchange", pixelSumV);        
         H5Result::write1DData(conf->getFilename(), "exchange", "partition-mean-total", pmean.col(0));
         H5Result::write2DData(conf->getFilename(), "exchange", "partition-mean-partial", pmean.rightCols(pmean.cols()-1));
         // Corr::multiTauVec(mat, G2, IP, IF);
