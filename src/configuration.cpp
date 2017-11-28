@@ -113,8 +113,6 @@ void Configuration::init(const string &path)
 
     m_normFactor = 1.0;    
 
-    printf("%f %f %f %f %f %f\n", fluxTransmitted, thickness, m_detAdhupPhot, m_detPreset, m_detEfficiency, detDistance);
-
     m_normFactor = m_normFactor / m_detEfficiency / m_detAdhupPhot / m_detPreset ;
     m_normFactor = m_normFactor / (m_detDpixX/detDistance * m_detDpixY/ detDistance);
 

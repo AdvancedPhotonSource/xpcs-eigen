@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 **/
 #include "imm.h"
 #include "configuration.h"
+#include "benchmark.h"
 
 #include <stdio.h>
 #include <iostream>
@@ -60,6 +61,8 @@ IMM::IMM(const char* filename, int frameFrom, int frameTo, int pixelsPerFrame)
     m_frames = frameTo - frameFrom + 1;
     m_pixelsPerFrame = pixelsPerFrame;
     
+    Benchmark ben("Reading of IMM file");
+
     init();
 
     if (m_ptrHeader == NULL)
@@ -81,7 +84,6 @@ IMM::IMM(const char* filename, int frameFrom, int frameTo, int pixelsPerFrame)
         m_isSparse = false;
     }
 
-    // _logger = spd::stdout_color_mt("console");
 }
 
 IMM::~IMM()

@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "configuration.h"
 #include "h5result.h"
 #include "funcs.h"
+#include "benchmark.h"
 
 #include "Eigen/Dense"
 #include "Eigen/SparseCore"
@@ -83,18 +84,15 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    printf("%d\n", argc);
-    printf("File %s\n", FLAGS_imm.c_str());
-    spd::stdout_color_mt("console");
-    printf("File %s\n", argv[1]);
-
+    auto console = spd::stdout_color_mt("console");
+    
     Configuration *conf = Configuration::instance();
     conf->init(argv[1]);
 
     if (!FLAGS_imm.empty())
         conf->setIMMFilePath(FLAGS_imm);
 
-    printf("%s\n", conf->getIMMFilePath().c_str());
+    console->info("Processing IMM file at path arg{}..", conf->getIMMFilePath().c_str());
 
     int* dqmap = conf->getDQMap();
     int *sqmap = conf->getSQMap();
@@ -103,13 +101,12 @@ int main(int argc, char** argv)
     int frameFrom = conf->getFrameStartTodo();
     int frameTo = conf->getFrameEndTodo();
 
+    console->info("Data frames {0}..", frames);
+    console->debug("Frames count={0}, from={1}, todo={2}", frames, frameFrom, frameTo);
+
     int pixels = conf->getFrameWidth() * conf->getFrameHeight();
     int maxLevel = Corr::calculateLevelMax(frames, 4);
     vector<std::tuple<int,int> > delays_per_level = Corr::delaysPerLevel(frames, 4, maxLevel);
-
-    printf("Frames %d\n", frames);
-    printf("Taus %d\n", delays_per_level.size());
-    printf("Static window %d\n", conf->getStaticWindowSize());
 
     IMM imm(conf->getIMMFilePath().c_str(), frameFrom, frameTo, -1);
 
@@ -119,20 +116,22 @@ int main(int argc, char** argv)
 
     Funcs funcs;
     if (imm.getIsSparse()) {
-        printf("IMM file is sparse\n");
         SparseMatF mat = imm.getSparsePixelData();
-
-        printf ("Frame read %d\n", mat.cols());
         VectorXf frameSum = funcs.frameSum(mat);
         H5Result::writeFrameSum(conf->getFilename(), "exchange", frameSum);        
 
         MatrixXf pixelSum = funcs.pixelWindowSum(mat);
         MatrixXf pmean = funcs.partitionMean(pixelSum);
         VectorXf pixelSumV = pixelSum.col(0).array() / frames;
-        H5Result::writePixelSum(conf->getFilename(), "exchange", pixelSumV);        
-        H5Result::write1DData(conf->getFilename(), "exchange", "partition-mean-total", pmean.col(0));
-        H5Result::write2DData(conf->getFilename(), "exchange", "partition-mean-partial", pmean.rightCols(pmean.cols()-1));
-        // Corr::multiTauVec(mat, G2, IP, IF);
+
+        {
+            Benchmark b("Writing pixelsum and partition-means");
+            H5Result::writePixelSum(conf->getFilename(), "exchange", pixelSumV);        
+            H5Result::write1DData(conf->getFilename(), "exchange", "partition-mean-total", pmean.col(0));
+            H5Result::write2DData(conf->getFilename(), "exchange", "partition-mean-partial", pmean.rightCols(pmean.cols()-1));
+        }
+        Benchmark b("Computing G2");
+        Corr::multiTauVec(mat, G2, IP, IF);
         
     } else {
         MatrixXf pixelData = imm.getPixelData();
@@ -145,7 +144,7 @@ int main(int argc, char** argv)
     // H5Result::write2DData(conf->getFilename(), "exchange", "IP", IP);
     // H5Result::write2DData(conf->getFilename(), "exchange", "IF", IF);
 
-    // Corr::normalizeG2s(G2, IP, IF);
-
+    Benchmark b("Normalizing G2s");
+    Corr::normalizeG2s(G2, IP, IF);
     // Corr::twoTimesVec(imm.getPixelData());
 }

@@ -100,9 +100,7 @@ Eigen::MatrixXf Funcs::partitionMean(Eigen::Ref<Eigen::MatrixXf> pixelSum)
     int totalStaticPartns = conf->getTotalStaticPartitions();
     int partitions = (int) ceil((double)fcount/swindow);
 
-    printf("Total partition %d\n", partitions);
     float normFactor = conf->getNormFactor();
-    printf("Norm factor %f\n", normFactor);
 
     map<int, map<int, vector<int>> > qbins = conf->getBinMaps();
 
