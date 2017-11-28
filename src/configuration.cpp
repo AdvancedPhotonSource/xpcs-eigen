@@ -124,14 +124,14 @@ void Configuration::init(const string &path)
     this->m_staticWindow = getInteger("/xpcs/static_mean_window_size");
 
     value = getString("/xpcs/flatfield_enabled");
-    cout<<value<<endl;
     if (boost::iequals(value, "ENABLED"))
         this->flatfieldEnabled = true;
 
     if (this->flatfieldEnabled) 
         this->flatfield = get2DTableD("/measurement/instrument/detector/flatfield");
 
-    printf ("%f, %f, %f\n", m_detAdhupPhot, m_detEfficiency, m_detPreset);
+
+    m_immFile = getString("/xpcs/input_file_local");
     
     this->m_validPixelMask = new short[this->xdim * this->ydim];
     // Build mapping from q-bin to s-bins and from s-bins to pixels. 
@@ -409,4 +409,14 @@ int Configuration::getStaticWindowSize()
 float Configuration::getNormFactor()
 {
     return this->m_normFactor;
+}
+
+void Configuration::setIMMFilePath(std::string& path)
+{
+    m_immFile = path;
+}
+
+std::string& Configuration::getIMMFilePath()
+{
+    return m_immFile;
 }

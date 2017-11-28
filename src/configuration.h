@@ -83,6 +83,8 @@ public:
     int getStaticWindowSize();
 
     std::string getFilename();
+    std::string& getIMMFilePath();
+    void setIMMFilePath(std::string& str);
 
     short* getPixelMask();
 
@@ -147,6 +149,7 @@ private:
     bool flatfieldEnabled;
 
     std::string m_filename;
+    std::string m_immFile;
 
     static Configuration *s_instance;
 };

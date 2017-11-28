@@ -19,7 +19,7 @@ set(sources
 include_directories("/usr/local/hdf5/include" "/usr/local/boost_1_64_0/")
 link_directories("/usr/local/hdf5/lib")
 
-#add_subdirectory(src/gflags)
+add_subdirectory("src/gflags")
 add_executable(corr ${sources})
 
-target_link_libraries(corr hdf5)
+target_link_libraries(corr hdf5 gflags)

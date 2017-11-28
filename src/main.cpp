@@ -64,26 +64,37 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "Eigen/Dense"
 #include "Eigen/SparseCore"
 
-//#include "gflags/gflags.h"
+#include "gflags/gflags.h"
 #include "spdlog/spdlog.h"
 
 using namespace Eigen;
 using namespace std;
 namespace spd = spdlog; 
 
+DEFINE_string(imm, "", "The path to IMM file. By default the file specified in HDF5 metadata is used");
+
 int main(int argc, char** argv)
 {
 
+    gflags::ParseCommandLineFlags(&argc, &argv, true);
+
     if (argc < 2) {
-        fprintf(stderr, "Missing argument - <hdf5 file> <imm file>\n");
-        return -1;
+        fprintf(stderr, "Please specify a HDF5 metadata file");
+        return 1;
     }
 
+    printf("%d\n", argc);
+    printf("File %s\n", FLAGS_imm.c_str());
     spd::stdout_color_mt("console");
-
     printf("File %s\n", argv[1]);
+
     Configuration *conf = Configuration::instance();
     conf->init(argv[1]);
+
+    if (!FLAGS_imm.empty())
+        conf->setIMMFilePath(FLAGS_imm);
+
+    printf("%s\n", conf->getIMMFilePath().c_str());
 
     int* dqmap = conf->getDQMap();
     int *sqmap = conf->getSQMap();
@@ -100,7 +111,7 @@ int main(int argc, char** argv)
     printf("Taus %d\n", delays_per_level.size());
     printf("Static window %d\n", conf->getStaticWindowSize());
 
-    IMM imm(argv[2], frameFrom, frameTo, -1);
+    IMM imm(conf->getIMMFilePath().c_str(), frameFrom, frameTo, -1);
 
     MatrixXf G2(pixels, delays_per_level.size());
     MatrixXf IP(pixels, delays_per_level.size());
