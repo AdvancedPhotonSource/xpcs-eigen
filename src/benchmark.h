@@ -67,11 +67,21 @@ public:
         const auto t1(std::chrono::steady_clock::now());
         const auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>( t1 - t0).count();        
         std::string suffix = "ms";
-        
         float time = duration_ms;
-        // if (time > 1000)
 
-        spd::get("console")->info("{0} took {1} {2}", blkName.c_str(), duration_ms);
+        if (time > 1000) 
+        {
+            suffix = "s";
+            time /= 1000;
+
+            if (time > 60)
+            {
+                suffix = "m";
+                time /= 60;
+            }
+        }
+
+        spd::get("console")->info("{0} took {1} {2}", blkName.c_str(), time, suffix.c_str());
     }
 };
 

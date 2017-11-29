@@ -61,7 +61,7 @@ IMM::IMM(const char* filename, int frameFrom, int frameTo, int pixelsPerFrame)
     m_frames = frameTo - frameFrom + 1;
     m_pixelsPerFrame = pixelsPerFrame;
     
-    Benchmark ben("Reading of IMM file");
+    Benchmark ben("Reading IMM file");
 
     init();
 
