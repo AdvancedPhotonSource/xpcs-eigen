@@ -55,6 +55,7 @@ using namespace std;
 
 IMM::IMM(const char* filename, int frameFrom, int frameTo, int pixelsPerFrame)
 {
+    m_data = NULL;
     m_filename = filename;
     m_frameStartTodo = frameFrom;
     m_frameEndTodo = frameTo;
@@ -88,6 +89,8 @@ IMM::IMM(const char* filename, int frameFrom, int frameTo, int pixelsPerFrame)
 
 IMM::~IMM()
 {
+    if (m_data)
+        free(m_data);
 }
 
 void IMM::init()
@@ -141,10 +144,13 @@ void IMM::load_sparse()
     Configuration *conf = Configuration::instance();
     short *pixelmask = conf->getPixelMask();
     double *flatfield = conf->getFlatField();
+    m_timestampClock = new float[2*m_frames];
+    m_timestampTick = new float[2*m_frames];
 
     rewind(m_ptrFile);
 
     int fcount = 0;
+    int count = 0;
     typedef Eigen::Triplet<float> Triplet;
 
     std::vector<Triplet> tripletList;
@@ -172,6 +178,13 @@ void IMM::load_sparse()
         fread(m_ptrHeader, 1024, 1, m_ptrFile);
 
         uint pixels = m_ptrHeader->dlen;        
+
+        m_timestampClock[count] = count + 1;
+        m_timestampClock[count+m_frames] = m_ptrHeader->elapsed;
+        m_timestampTick[count] = count + 1;
+        m_timestampTick[count+m_frames] = m_ptrHeader->corecotick;
+        count++;
+
         uint skip = 0;
         
         if (pixels > m_pixelsPerFrame)
@@ -184,7 +197,6 @@ void IMM::load_sparse()
 
         // TODO insert assert statements
         /// - read pixels == requested pixels to read etc. 
-
         int fnumber = fcount - m_frameStartTodo;
         for (int i = 0; i < pixels; i++)
         {
@@ -218,4 +230,14 @@ SparseMatF IMM::getSparsePixelData()
 bool IMM::getIsSparse()
 {
     return m_isSparse;
+}
+
+float* IMM::getTimestampClock()
+{
+    return m_timestampClock;
+}
+
+float* IMM::getTimestampTick()
+{
+    return m_timestampTick;
 }

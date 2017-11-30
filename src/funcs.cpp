@@ -134,13 +134,15 @@ Eigen::MatrixXf Funcs::partitionMean(Eigen::Ref<Eigen::MatrixXf> pixelSum)
     return means;
 }
 
-VectorXf Funcs::frameSum(SparseMatF pixelData) {
+MatrixXf Funcs::frameSum(SparseMatF pixelData) {
     Configuration *conf = Configuration::instance();
+    int frames = pixelData.cols();
 
-    VectorXf fsum(pixelData.cols());
+    MatrixXf fsum(frames, 2);
     for (int i = 0; i < pixelData.cols(); i++) {
-        fsum(i) = pixelData.col(i).sum() / conf->getDetEfficiency() / 
-                    conf->getDetAdhuPhot() / conf->getDetPreset();
+        fsum(i) = i + 1;
+        fsum(i+frames) = pixelData.col(i).sum() / conf->getDetEfficiency() / 
+                                    conf->getDetAdhuPhot() / conf->getDetPreset();
     }
     return fsum;
 }

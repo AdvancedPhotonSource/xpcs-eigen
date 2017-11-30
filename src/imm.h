@@ -76,6 +76,9 @@ public:
 
    bool getIsSparse();
 
+   float* getTimestampClock();
+   float* getTimestampTick();
+
 private:
 
     long m_frameStartTodo;
@@ -90,10 +93,12 @@ private:
 
     // Internal data pointer for storing pixels. 
     float *m_data;
+    float *m_timestampClock;
+    float *m_timestampTick;
 
     MatrixXf m_pixelData;
     SparseMatF m_sparsePixelData;
-
+    
     bool m_isSparse;
 
     // Initialize the file ptr and read-in file header. 

@@ -331,7 +331,7 @@ int Configuration::getFrameEnd()
 
 int Configuration::getFrameTodoCount()
 {
-    return (frameEndTodo - frameStartTodo);
+    return (frameEndTodo - frameStartTodo) + 1;
 }
 
 int Configuration::getFrameCount()

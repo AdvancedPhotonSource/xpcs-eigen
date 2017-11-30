@@ -56,7 +56,7 @@ void H5Result::write2DData(const std::string &file,
                            Eigen::Ref<Eigen::MatrixXf> mat)
 {
     hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
-    hsize_t dims[3];
+    hsize_t dims[2];
 
     file_id = H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
     // Disable hdf std err printout for opening an non-existing group.
@@ -74,9 +74,8 @@ void H5Result::write2DData(const std::string &file,
 
         dims[0] = mat.cols();
         dims[1] = mat.rows();
-        dims[2] = 1;
 
-        dataspace_id = H5Screate_simple(3, dims, NULL);
+        dataspace_id = H5Screate_simple(2, dims, NULL);
         dataset_id = H5Dcreate(exchange_grp_id, nodename.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     }
 
@@ -94,7 +93,7 @@ void H5Result::write1DData(const std::string &file,
                            Eigen::Ref<Eigen::VectorXf> vec)
 {
     hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
-    hsize_t dims[3];
+    hsize_t dims[2];
 
     file_id = H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
     // Disable hdf std err printout for opening an non-existing group.
@@ -112,9 +111,8 @@ void H5Result::write1DData(const std::string &file,
 
         dims[0] = 1;
         dims[1] = vec.rows();
-        dims[2] = 1;
 
-        dataspace_id = H5Screate_simple(3, dims, NULL);
+        dataspace_id = H5Screate_simple(2, dims, NULL);
         dataset_id = H5Dcreate(exchange_grp_id, nodename.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     }
 
@@ -126,89 +124,12 @@ void H5Result::write1DData(const std::string &file,
     H5Fclose(file_id);    
 }
 
-// void H5Result::writeG2(const std::string &file, 
-//                        const std::string &grpname,
-//                        Eigen::Ref<Eigen::MatrixXf> g2) {
-
-//     hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
-//     hsize_t dims[3];
-
-//     file_id = H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-//     // Disable hdf std err printout for opening an non-existing group.
-//     H5Eset_auto(H5E_DEFAULT, NULL, NULL);
-//     exchange_grp_id = H5Gopen2(file_id, grpname.c_str(), H5P_DEFAULT);
-//     if (exchange_grp_id < 0) {
-//         exchange_grp_id = H5Gcreate(file_id, grpname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-//     }
-
-//     //TODO :: Log error if the grp creation fail. 
-
-//     dataset_id = H5Dopen2(exchange_grp_id, "g2", H5P_DEFAULT);
-
-//     if (dataset_id < 0) {
-
-//         dims[0] = g2.cols();
-//         dims[1] = g2.rows();
-//         dims[2] = 1;
-
-//         dataspace_id = H5Screate_simple(3, dims, NULL);
-//         dataset_id = H5Dcreate(exchange_grp_id, "g2", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-//     }
-
-//     hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, g2.data());
-
-//     H5Dclose(dataset_id);
-//     if (dataspace_id) H5Sclose(dataspace_id);
-//     H5Gclose(exchange_grp_id);
-//     H5Fclose(file_id);
-// }
-
-
-// void H5Result::writeStdError(const std::string &file, 
-//                        const std::string &grpname,
-//                        Eigen::Ref<Eigen::MatrixXf> stdError) {
-
-//     hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
-//     hsize_t dims[3];
-
-//     file_id = H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-//     // Disable hdf std err printout for opening an non-existing group.
-//     H5Eset_auto(H5E_DEFAULT, NULL, NULL);
-//     exchange_grp_id = H5Gopen2(file_id, grpname.c_str(), H5P_DEFAULT);
-//     if (exchange_grp_id < 0) {
-//         exchange_grp_id = H5Gcreate(file_id, grpname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-//     }
-
-//     //TODO :: Log error if the grp creation fail. 
-
-//     dataset_id = H5Dopen2(exchange_grp_id, "stdError", H5P_DEFAULT);
-
-//     if (dataset_id < 0) {
-
-//         dims[0] = stdError.cols();
-//         dims[1] = stdError.rows();
-//         dims[2] = 1;
-
-//         dataspace_id = H5Screate_simple(3, dims, NULL);
-//         dataset_id = H5Dcreate(exchange_grp_id, "stdError", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-//     }
-
-//     hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, stdError.data());
-
-//     H5Dclose(dataset_id);
-//     if (dataspace_id) H5Sclose(dataspace_id);
-//     H5Gclose(exchange_grp_id);
-//     H5Fclose(file_id);
-// }
-
-
-
 void H5Result::writePixelSum(const std::string &file, 
                    const std::string &grpname,
                    Eigen::Ref<Eigen::VectorXf> pixelSum) {
 
     hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
-    hsize_t dims[3];
+    hsize_t dims[2];
 
     file_id = H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
     // Disable hdf std err printout for opening an non-existing group.
@@ -229,9 +150,8 @@ void H5Result::writePixelSum(const std::string &file,
 
         dims[0] = h;
         dims[1] = w;
-        dims[2] = 1;
 
-        dataspace_id = H5Screate_simple(3, dims, NULL);
+        dataspace_id = H5Screate_simple(2, dims, NULL);
         dataset_id = H5Dcreate(exchange_grp_id, "pixelSum", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     }
 
@@ -249,7 +169,7 @@ void H5Result::writeFrameSum(const std::string &file,
                    Eigen::Ref<Eigen::VectorXf> frameSum) {
 
     hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
-    hsize_t dims[3];
+    hsize_t dims[2];
 
     file_id = H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
     // Disable hdf std err printout for opening an non-existing group.
@@ -268,9 +188,8 @@ void H5Result::writeFrameSum(const std::string &file,
 
         dims[0] = 1;
         dims[1] = conf->getFrameTodoCount();
-        dims[2] = 1;
 
-        dataspace_id = H5Screate_simple(3, dims, NULL);
+        dataspace_id = H5Screate_simple(2, dims, NULL);
         dataset_id = H5Dcreate(exchange_grp_id, "frameSum", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     }
 
