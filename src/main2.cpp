@@ -44,62 +44,73 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#ifndef CORR_H
-#define CORR_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <stdint.h>
+#include <memory>
+#include <map>
 #include <vector>
-#include <tuple>
+#include <iostream>
+#include <omp.h>
+
+#include "hdf5.h"
+#include "imm.h"
+#include "corr.h"
+#include "configuration.h"
+#include "h5result.h"
+#include "funcs.h"
+#include "benchmark.h"
 
 #include "Eigen/Dense"
 #include "Eigen/SparseCore"
 
-#include "imm.h"
+#include "gflags/gflags.h"
+#include "spdlog/spdlog.h"
 
+using namespace Eigen;
+using namespace std;
 
-class Corr {
+typedef Eigen::Triplet<double> T;
 
-public:
-    static int calculateDelayCount(int dpl, int level);
+int main(int argc, char** argv)
+{
+    srand (time(NULL));
 
-    static int calculateLevelMax(int frameCount, int dpl);
+    int rows = 500;
+    int cols = 80000;
 
-    static std::vector< std::tuple<int, int> > delaysPerLevel(int frameCount, int dpl, int maxDelay);
+    auto console = spd::stdout_color_mt("console");
 
+    SparseMatrix<float, RowMajor> mat(rows, cols);
+    std::vector<T> tripletList;
+    {
+        Benchmark b("Generating 25% sparse matrix");
+        for (int i = 0; i < rows; i++)
+        {
+            for (int j = 0; j < cols; j++)
+            {
+                if ((rand() % 100) > 75)
+                {
+                    tripletList.push_back(T(i, j, 1+random()%30));
+                }
+            }
+        }
 
-    /**
-     * Non vectorized version of G2 calcuation, here only for reference. 
-     * I will delete it from the source soon. 
-     */
-    static void multiTau(const Eigen::MatrixXf &pixelData, int pix);
+        mat.setFromTriplets(tripletList.begin(), tripletList.end());
+    }
 
-    /**
-     *  Compute G2,IP, and IF from a Dense matrix. 
-     */
-    static void multiTauVec(Eigen::Ref<Eigen::MatrixXf> pixelData, 
-                            Eigen::Ref<Eigen::MatrixXf> G2, 
-                            Eigen::Ref<Eigen::MatrixXf> IP, 
-                            Eigen::Ref<Eigen::MatrixXf> IF);
+    {
+        Benchmark b("Averaging out matrix");
+        #pragma omp parallel for num_threads(5) default(none) shared(mat, rows, cols)
+        for (int r = 0; r < rows; r++)
+        {
 
-    /**
-     *  Compute G2,IP, and IF from a Sparse Matrix. 
-     */
-    static void multiTauVec(SparseRMatF& pixelData,
-                            Eigen::Ref<Eigen::MatrixXf> G2, 
-                            Eigen::Ref<Eigen::MatrixXf> IP, 
-                            Eigen::Ref<Eigen::MatrixXf> IF);
-
-    static void twoTimesVec(Eigen::Ref<Eigen::MatrixXf> pixelData);
-
-    static void normalizeG2s(Eigen::Ref<Eigen::MatrixXf> g2,
-                      Eigen::Ref<Eigen::MatrixXf> IP, 
-                      Eigen::Ref<Eigen::MatrixXf> IF);
-
-    static double* computeG2Levels(const Eigen::MatrixXf &pixelData, 
-                                int pixel,
-                                int frameCount, 
-                                int tau, 
-                                int level);
-
-};
-
-#endif
+            SparseMatrix<float, RowMajor> c0 = mat.block(r, 0, 1, cols);
+            // SparseMatrix<float, RowMajor> c1 = mat.block(r, 1, 1, cols-1);
+            // printf("Thread # %d and sum %f, %f \n", omp_get_thread_num(), c0.sum(), c1.sum());
+            mat.row(r) = 0.5 * c0;
+        }
+    }    
+}

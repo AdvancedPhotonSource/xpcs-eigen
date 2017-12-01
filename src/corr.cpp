@@ -52,7 +52,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <math.h>
 #include <vector>
 
+#include <stdio.h>
 #include <iostream>
+#include <omp.h>
 
 using namespace Eigen;
 using namespace std;
@@ -161,7 +163,7 @@ void Corr::multiTauVec(Ref<MatrixXf> pixelData,
     }
 }
 
-void Corr::multiTauVec(SparseMatrix<float>& pixelData,
+void Corr::multiTauVec(SparseRMatF& pixelData,
                        Ref<MatrixXf> G2, 
                        Ref<MatrixXf> IP,
                        Ref<MatrixXf> IF)
@@ -174,54 +176,71 @@ void Corr::multiTauVec(SparseMatrix<float>& pixelData,
     Configuration* conf = Configuration::instance();
     int w = conf->getFrameWidth();
     int h = conf->getFrameHeight();
+    int fcount = conf->getFrameTodoCount();
 
     vector<std::tuple<int,int> > delays_per_level = delaysPerLevel(frames, 4, maxLevel);
 
-    SparseMatrix<float> c0, c1;
+    SparseMatrix<float, RowMajor> c0, c1;
+
+    printf("rows=%d, cols=%d\n", pixelData.rows(), pixelData.cols());
+
+    int pix;
+    // #pragma omp parallel for default(none) shared(pixelData, fcount)
+    // for (pix = 0; pix < pixelData.cols(); pix++)
+    // {
+        // printf("pix # %d, %f\n", pix, pixelData.col(pix).sum()/fcount);
+        SparseVector<float> vec = pixelData.block(9037, 0, -1, -1);
+        // SparseVector<float> vec2 = vec.rightCols(pixelData.cols() - 21);
+        cout<<vec<<endl;
+        // cout<<vec2<<endl;
+        // cout<<vec.rightCols(10)<<endl;
+
+    // }
+
     //TODO asserts for G2, IP and IF sizes
     int i = 0;
     int ll = 0; // Last level
 
-    int lastframe = frames;
-    for (std::vector<std::tuple<int, int> >::iterator it = delays_per_level.begin() ;
-                it != delays_per_level.end(); ++it)
-    {
+    // int lastframe = frames;
+    // for (std::vector<std::tuple<int, int> >::iterator it = delays_per_level.begin() ;
+    //             it != delays_per_level.end(); ++it)
+    // {
 
-        // View of pixel data at two different tau values. 
-        std::tuple<int, int> tau_level = *it;
-        int level = std::get<0>(tau_level);
-        int tau = std::get<1>(tau_level);
+    //     // View of pixel data at two different tau values. 
+    //     std::tuple<int, int> tau_level = *it;
+    //     int level = std::get<0>(tau_level);
+    //     int tau = std::get<1>(tau_level);
 
-        if (ll != level)
-        {
-            // level change, smooth out intensities.
-            if (lastframe % 2)
-                lastframe -= 1;
+    //     if (ll != level)
+    //     {
+    //         // level change, smooth out intensities.
+    //         if (lastframe % 2)
+    //             lastframe -= 1;
 
-            int ij = 0;
+    //         int ij = 0;
 
-            for (int k = 0; k < lastframe; k+=2) {
-                pixelData.col(ij) = 0.5 * (pixelData.col(k) + pixelData.col(k+1));
-                ij++;
-            }
+    //         for (int k = 0; k < lastframe; k+=2) {
+    //             pixelData.row(ij) = 0.5 * (pixelData.row(k) + pixelData.row(k+1));
+    //             ij++;
+    //         }
 
-            lastframe = lastframe / 2;
-        }
+    //         lastframe = lastframe / 2;
+    //     }
 
-        if (level > 0)
-            tau = tau / pow(2, level);
+    //     if (level > 0)
+    //         tau = tau / pow(2, level);
         
-        // Get lastframe-tau number of cols starting at 0 for c0 and tau for c1. 
-        c0 = pixelData.middleCols(0, lastframe-tau);
-        c1 = pixelData.middleCols(tau, lastframe-tau);
+    //     // Get lastframe-tau number of cols starting at 0 for c0 and tau for c1. 
+    //     c0 = pixelData.middleRows(0, lastframe-tau);
+    //     c1 = pixelData.middleRows(tau, lastframe-tau);
 
-        G2.col(i) = c0.cwiseProduct(c1) * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
-        IP.col(i) = c0 * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
-        IF.col(i) = c1 * (VectorXf::Ones(c1.cols()) * 1.0/c1.cols());
+    //     G2.col(i) = c0.cwiseProduct(c1) * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
+    //     IP.col(i) = c0 * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
+    //     IF.col(i) = c1 * (VectorXf::Ones(c1.cols()) * 1.0/c1.cols());
 
-        i++;
-        ll = level;
-    }   
+    //     i++;
+    //     ll = level;
+    // }   
 
 }
 

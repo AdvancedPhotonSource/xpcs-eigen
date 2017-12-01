@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace Eigen;
 
 typedef Eigen::SparseMatrix<float> SparseMatF;
+typedef Eigen::SparseMatrix<float, RowMajor> SparseRMatF;
 
 class IMM
 {
@@ -72,7 +73,7 @@ public:
 
    Eigen::MatrixXf getPixelData();
    
-   SparseMatF getSparsePixelData();
+   SparseRMatF getSparsePixelData();
 
    bool getIsSparse();
 
@@ -97,7 +98,7 @@ private:
     float *m_timestampTick;
 
     MatrixXf m_pixelData;
-    SparseMatF m_sparsePixelData;
+    SparseRMatF m_sparsePixelData;
     
     bool m_isSparse;
 

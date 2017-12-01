@@ -85,6 +85,9 @@ int main(int argc, char** argv)
     }
 
     auto console = spd::stdout_color_mt("console");
+
+    // Eigen::initParallel();
+    
     
     Configuration *conf = Configuration::instance();
     conf->init(argv[1]);
@@ -116,44 +119,44 @@ int main(int argc, char** argv)
 
     Funcs funcs;
     if (imm.getIsSparse()) {
-        SparseMatF mat = imm.getSparsePixelData();
+        SparseRMatF mat = imm.getSparsePixelData();
 
-        {
-            Benchmark b("Computing framesums, pixelsums and partition-means");
-            MatrixXf frameSum = funcs.frameSum(mat);
-            H5Result::write2DData(conf->getFilename(), "exchange", "frameSum", frameSum);        
+        // {
+        //     Benchmark b("Computing framesums, pixelsums and partition-means");
+        //     MatrixXf frameSum = funcs.frameSum(mat);
+        //     H5Result::write2DData(conf->getFilename(), "exchange", "frameSum", frameSum);        
 
-            MatrixXf pixelSum = funcs.pixelWindowSum(mat);
-            MatrixXf pmean = funcs.partitionMean(pixelSum);
-            VectorXf pixelSumV = pixelSum.col(0).array() / frames;
+        //     MatrixXf pixelSum = funcs.pixelWindowSum(mat);
+        //     MatrixXf pmean = funcs.partitionMean(pixelSum);
+        //     VectorXf pixelSumV = pixelSum.col(0).array() / frames;
 
-            H5Result::writePixelSum(conf->getFilename(), "exchange", pixelSumV);        
-            H5Result::write1DData(conf->getFilename(), "exchange", "partition-mean-total", pmean.col(0));
-            H5Result::write2DData(conf->getFilename(), "exchange", "partition-mean-partial", pmean.rightCols(pmean.cols()-1));
-        }
+        //     H5Result::writePixelSum(conf->getFilename(), "exchange", pixelSumV);        
+        //     H5Result::write1DData(conf->getFilename(), "exchange", "partition-mean-total", pmean.col(0));
+        //     H5Result::write2DData(conf->getFilename(), "exchange", "partition-mean-partial", pmean.rightCols(pmean.cols()-1));
+        // }
 
-        {
-            Benchmark b("Writing timestamps and taus");
-            float* tclock = imm.getTimestampClock();
-            float* ttick = imm.getTimestampTick();
+        // {
+        //     Benchmark b("Writing timestamps and taus");
+        //     float* tclock = imm.getTimestampClock();
+        //     float* ttick = imm.getTimestampTick();
 
-            MatrixXf c = Map<MatrixXf>(tclock, frames, 2);
-            H5Result::write2DData(conf->getFilename(), "exchange", "timestamp_clock", c);
+        //     MatrixXf c = Map<MatrixXf>(tclock, frames, 2);
+        //     H5Result::write2DData(conf->getFilename(), "exchange", "timestamp_clock", c);
 
-            c = Map<MatrixXf>(ttick, frames, 2);
-            H5Result::write2DData(conf->getFilename(), "exchange", "timestamp_tick", c);
+        //     c = Map<MatrixXf>(ttick, frames, 2);
+        //     H5Result::write2DData(conf->getFilename(), "exchange", "timestamp_tick", c);
 
-            VectorXf tau(delays_per_level.size());
-            for (int x = 0 ; x < delays_per_level.size(); x++)
-            {   
-                std::tuple<int, int> value = delays_per_level[x];
-                // printf("%d - %d\n", std::get<0>(value), std::get<1>(value));   
-                tau[x] = std::get<1>(value);
-            }
+        //     VectorXf tau(delays_per_level.size());
+        //     for (int x = 0 ; x < delays_per_level.size(); x++)
+        //     {   
+        //         std::tuple<int, int> value = delays_per_level[x];
+        //         // printf("%d - %d\n", std::get<0>(value), std::get<1>(value));   
+        //         tau[x] = std::get<1>(value);
+        //     }
 
-            H5Result::write2DData(conf->getFilename(), "exchange", "tau", tau);
+        //     H5Result::write2DData(conf->getFilename(), "exchange", "tau", tau);
 
-        }
+        // }
 
         Benchmark b("Computing G2");
         Corr::multiTauVec(mat, G2, IP, IF);
@@ -169,7 +172,7 @@ int main(int argc, char** argv)
     // H5Result::write2DData(conf->getFilename(), "exchange", "IP", IP);
     // H5Result::write2DData(conf->getFilename(), "exchange", "IF", IF);
 
-    Benchmark b("Normalizing G2s");
-    Corr::normalizeG2s(G2, IP, IF);
+    // Benchmark b("Normalizing G2s");
+    // Corr::normalizeG2s(G2, IP, IF);
     // Corr::twoTimesVec(imm.getPixelData());
 }

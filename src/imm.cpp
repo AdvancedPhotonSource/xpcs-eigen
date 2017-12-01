@@ -213,7 +213,7 @@ void IMM::load_sparse()
     }
 
 
-    m_sparsePixelData = SparseMatF(m_pixelsPerFrame, fcount - m_frameStartTodo);
+    m_sparsePixelData = SparseMatF(m_pixelsPerFrame, m_frames);
     m_sparsePixelData.setFromTriplets(tripletList.begin(), tripletList.end());
 }
 
@@ -222,7 +222,7 @@ Eigen::MatrixXf IMM::getPixelData()
     return m_pixelData;
 }
 
-SparseMatF IMM::getSparsePixelData()
+SparseRMatF IMM::getSparsePixelData()
 {
     return m_sparsePixelData;
 }
