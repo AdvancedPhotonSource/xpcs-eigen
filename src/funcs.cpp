@@ -105,6 +105,7 @@ Eigen::MatrixXf Funcs::partitionMean(Eigen::Ref<Eigen::MatrixXf> pixelSum)
     map<int, map<int, vector<int>> > qbins = conf->getBinMaps();
 
     MatrixXf means(totalStaticPartns, partitions+1);
+    means.setZero(totalStaticPartns, partitions+1);
 
     int pixcount = 0;
     for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
