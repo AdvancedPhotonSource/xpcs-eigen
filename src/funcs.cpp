@@ -141,8 +141,9 @@ MatrixXf Funcs::frameSum(SparseMatF pixelData) {
     MatrixXf fsum(frames, 2);
     for (int i = 0; i < pixelData.cols(); i++) {
         fsum(i) = i + 1;
-        fsum(i+frames) = pixelData.col(i).sum() / conf->getDetEfficiency() / 
-                                    conf->getDetAdhuPhot() / conf->getDetPreset();
+        fsum(i+frames) = pixelData.col(i).sum()/pixelData.rows();
+        //fsum(i+frames) = pixelData.col(i).sum() / conf->getDetEfficiency() / 
+        //                            conf->getDetAdhuPhot() / conf->getDetPreset();
     }
     return fsum;
 }
