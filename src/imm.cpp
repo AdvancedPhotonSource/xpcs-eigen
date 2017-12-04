@@ -156,7 +156,8 @@ void IMM::load_sparse()
     std::vector<Triplet> tripletList;
 
     // Estimated reserve space. 
-    tripletList.reserve(m_frames * m_pixelsPerFrame);
+    //TODO: Make sparse factor configurable. 
+    tripletList.reserve(m_frames * int(m_pixelsPerFrame*0.10));
 
     // Row/Cols large enough to hold the index buffer
     // TODO: We can further reduce the memory requirement here 
