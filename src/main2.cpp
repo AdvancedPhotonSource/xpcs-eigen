@@ -78,8 +78,8 @@ int main(int argc, char** argv)
 {
     srand (time(NULL));
 
-    int rows = 500;
-    int cols = 80000;
+    int rows = 10;
+    int cols = 5;
 
     auto console = spd::stdout_color_mt("console");
 
@@ -101,16 +101,20 @@ int main(int argc, char** argv)
         mat.setFromTriplets(tripletList.begin(), tripletList.end());
     }
 
+    cout<<mat<<endl;
+    // MatrixXf out
     {
-        Benchmark b("Averaging out matrix");
-        #pragma omp parallel for num_threads(5) default(none) shared(mat, rows, cols)
-        for (int r = 0; r < rows; r++)
-        {
+        // Benchmark b("Averaging out matrix");
+        // #pragma omp parallel for num_threads(5) default(none) shared(mat, rows, cols)
+        // for (int r = 0; r < rows; r++)
+        // {
 
-            SparseMatrix<float, RowMajor> c0 = mat.block(r, 0, 1, cols);
-            // SparseMatrix<float, RowMajor> c1 = mat.block(r, 1, 1, cols-1);
-            // printf("Thread # %d and sum %f, %f \n", omp_get_thread_num(), c0.sum(), c1.sum());
-            mat.row(r) = 0.5 * c0;
-        }
+        //     // SparseMatrix<float, RowMajor> c0 = mat.block(r, 0, 1, cols);
+        //     // SparseMatrix<float, RowMajor> c1 = mat.block(r, 1, 1, cols-1);
+        //     // printf("Thread # %d and sum %f, %f \n", omp_get_thread_num(), c0.sum(), c1.sum());
+        //     mat.row(r) = 0.5 * c0;
+        // }
+
+        cout<<mat.innerVector(0, 1)<<endl;
     }    
 }
