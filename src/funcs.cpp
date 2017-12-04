@@ -125,7 +125,6 @@ Eigen::MatrixXf Funcs::partitionMean(Eigen::Ref<Eigen::MatrixXf> pixelSum)
 
             float denom = (float)pixcount * swindow * normFactor;
             float tmp = means(sbin-1, 0);
-            printf("%f\n", tmp);
             means.row(sbin-1).array() /= denom;
             denom = (float)pixcount * fcount * normFactor;
             means(sbin-1, 0) = tmp / denom;
