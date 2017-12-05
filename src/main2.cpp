@@ -80,6 +80,8 @@ int main(int argc, char** argv)
 
     int rows = 10;
     int cols = 5;
+    int rowno = atoi(argv[1]);
+    printf("Printing row # %d\n", rowno);
 
     auto console = spd::stdout_color_mt("console");
 
@@ -91,7 +93,7 @@ int main(int argc, char** argv)
         {
             for (int j = 0; j < cols; j++)
             {
-                if ((rand() % 100) > 75)
+                if ((rand() % 100) > 50)
                 {
                     tripletList.push_back(T(i, j, 1+random()%30));
                 }
@@ -99,12 +101,33 @@ int main(int argc, char** argv)
         }
 
         mat.setFromTriplets(tripletList.begin(), tripletList.end());
+        mat.makeCompressed();
     }
 
+
     cout<<mat<<endl;
-    // MatrixXf out
     {
-        // Benchmark b("Averaging out matrix");
+        Benchmark b("Averaging out matrix");
+        float* vals = mat.valuePtr();
+        int *ind = mat.innerIndexPtr();
+        int *outer = mat.outerIndexPtr();
+        int nonzeros = outer[rowno+1] - outer[rowno];
+
+        ind += outer[rowno];
+        vals += outer[rowno];
+
+        printf("R%d :", rowno);
+
+        for (int i = 0; i < nonzeros; i++)
+        {
+            printf(" %f ", *vals);   
+            vals++;
+            ind++;
+        }
+
+        printf("\n");
+
+        
         // #pragma omp parallel for num_threads(5) default(none) shared(mat, rows, cols)
         // for (int r = 0; r < rows; r++)
         // {
@@ -115,6 +138,6 @@ int main(int argc, char** argv)
         //     mat.row(r) = 0.5 * c0;
         // }
 
-        cout<<mat.innerVector(0, 1)<<endl;
     }    
+    // cout<<mat<<endl;
 }
