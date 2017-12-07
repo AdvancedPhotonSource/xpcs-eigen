@@ -13,7 +13,7 @@ set(sources
     src/corr.cpp
     src/imm.cpp
     src/funcs.cpp
-    src/main2.cpp)
+    src/main.cpp)
 
 
 find_package(OpenMP)

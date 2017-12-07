@@ -180,67 +180,124 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
 
     vector<std::tuple<int,int> > delays_per_level = delaysPerLevel(frames, 4, maxLevel);
 
-    SparseMatrix<float, RowMajor> c0, c1;
-
-    printf("rows=%d, cols=%d\n", pixelData.rows(), pixelData.cols());
-
-    int pix;
-    // #pragma omp parallel for default(none) shared(pixelData, fcount)
-    // for (pix = 0; pix < pixelData.cols(); pix++)
-    // {
-        // printf("pix # %d, %f\n", pix, pixelData.col(pix).sum()/fcount);
-        SparseVector<float> vec = pixelData.block(9037, 0, -1, -1);
-        // SparseVector<float> vec2 = vec.rightCols(pixelData.cols() - 21);
-        cout<<vec<<endl;
-        // cout<<vec2<<endl;
-        // cout<<vec.rightCols(10)<<endl;
-
-    // }
+    // SparseMatrix<float, RowMajor> c0, c1;
 
     //TODO asserts for G2, IP and IF sizes
     int i = 0;
-    int ll = 0; // Last level
+    int ll = 0;
 
-    // int lastframe = frames;
-    // for (std::vector<std::tuple<int, int> >::iterator it = delays_per_level.begin() ;
-    //             it != delays_per_level.end(); ++it)
-    // {
+    int lastframe = frames;
+    for (std::vector<std::tuple<int, int> >::iterator it = delays_per_level.begin() ;
+                it != delays_per_level.end(); ++it)
+    {
 
-    //     // View of pixel data at two different tau values. 
-    //     std::tuple<int, int> tau_level = *it;
-    //     int level = std::get<0>(tau_level);
-    //     int tau = std::get<1>(tau_level);
+        // View of pixel data at two different tau values. 
+        std::tuple<int, int> tau_level = *it;
+        int level = std::get<0>(tau_level);
+        int tau = std::get<1>(tau_level);
 
-    //     if (ll != level)
-    //     {
-    //         // level change, smooth out intensities.
-    //         if (lastframe % 2)
-    //             lastframe -= 1;
+        if (ll != level)
+        {
+            // level change, smooth out intensities.
+            if (lastframe % 2)
+                lastframe -= 1;
 
-    //         int ij = 0;
+            // int ij = 0;
 
-    //         for (int k = 0; k < lastframe; k+=2) {
-    //             pixelData.row(ij) = 0.5 * (pixelData.row(k) + pixelData.row(k+1));
-    //             ij++;
-    //         }
+            // for (int k = 0; k < lastframe; k+=2) {
+            //     pixelData.row(ij) = 0.5 * (pixelData.row(k) + pixelData.row(k+1));
+            //     ij++;
+            // }
+            float* vals = pixelData.valuePtr();
+            int *ind = pixelData.innerIndexPtr();
+            int *outer = pixelData.outerIndexPtr();
 
-    //         lastframe = lastframe / 2;
-    //     }
+            for (int r = 0; r < pixels; r++)
+            {
+                int nonzeros = outer[r+1] - outer[r];
 
-    //     if (level > 0)
-    //         tau = tau / pow(2, level);
+                if (!nonzeros) continue;
+
+                int *iptr = ind + outer[r];
+                float *vptr = vals + outer[r];
+
+                int *ciptr = iptr;
+                float *cvptr = vptr;
+
+                int index = 0;
+                int cnt = 0;
+                int i0, i1;
+                i0 = 0;
+
+                if (nonzeros == 1) {
+                    iptr[index] = i0;
+                    vptr[index] = (0.0 + *vptr)/2;
+                    continue;
+                }
+
+                int inc;
+                while (i0 < lastframe && cnt < (nonzeros-1))
+                {   
+                    i0 = *iptr/2;
+                    i1 = *(iptr+1)/2;
+                    
+                    inc = 0;
+                    if (i0 == i1)
+                    {
+                        ciptr[index] = i0;
+                        cvptr[index] = (*vptr + *(vptr+1)) / 2.0f;
+                        inc = 2;
+                    }
+                    else
+                    {
+                        ciptr[index] = i0;
+                        cvptr[index] = (*vptr + 0.0f) / 2.0f;
+                        inc = 1;
+                    }
+
+                    iptr += inc; vptr += inc; cnt += inc;
+                    index++; 
+                }
+
+                // In case,we are left with one off element
+                if (i0 < lastframe)
+                {
+                    ciptr[index] = i0;
+                    cvptr[index] = (0.0f + *vptr) / 2.0f;
+                } 
+
+            }
+
+            lastframe = lastframe / 2;
+
+            outer = pixelData.outerIndexPtr();
+
+            for (int r = 0; r < pixels; r++)
+            {
+                int nonzeros = outer[r+1] - outer[r];
+                printf("row = %d, nonzeros=%d\n", r, nonzeros);
+            }
+
+        }
+
+        if (level > 0)
+            tau = tau / pow(2, level);
         
-    //     // Get lastframe-tau number of cols starting at 0 for c0 and tau for c1. 
-    //     c0 = pixelData.middleRows(0, lastframe-tau);
-    //     c1 = pixelData.middleRows(tau, lastframe-tau);
+        printf("%d - %d\n", pixelData.rows(), pixelData.cols());
 
-    //     G2.col(i) = c0.cwiseProduct(c1) * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
-    //     IP.col(i) = c0 * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
-    //     IF.col(i) = c1 * (VectorXf::Ones(c1.cols()) * 1.0/c1.cols());
+        // Get lastframe-tau number of cols starting at 0 for c0 and tau for c1. 
+        const SparseMatrix<float, RowMajor> c0 = pixelData.block(0, 0, pixels, lastframe-tau);
+        const SparseMatrix<float, RowMajor> c1 = pixelData.block(0, tau, pixels, lastframe-tau);
 
-    //     i++;
-    //     ll = level;
-    // }   
+        
+
+        G2.col(i) = c0.cwiseProduct(c1) * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
+        // IP.col(i) = c0 * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
+        // IF.col(i) = c1 * (VectorXf::Ones(c1.cols()) * 1.0/c1.cols());
+
+        i++;
+        ll = level;
+    }   
 
 }
 

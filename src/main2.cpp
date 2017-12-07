@@ -74,14 +74,24 @@ using namespace std;
 
 typedef Eigen::Triplet<double> T;
 
+void correlaton1()
+{
+       // for (int tau = 1; tau <= 2; tau++)
+       //  {
+       //      const SparseMatrix<float, RowMajor> c0 = mat.block(0, 0, rows, cols-tau);
+       //      const SparseMatrix<float, RowMajor> c1 = mat.block(0, tau, rows, cols-tau);
+       //      result.col(tau-1) = c0.cwiseProduct(c1) * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
+       //  }
+}
+
 int main(int argc, char** argv)
 {
     srand (time(NULL));
 
-    int rows = 10;
-    int cols = 5;
-    int rowno = atoi(argv[1]);
-    printf("Printing row # %d\n", rowno);
+    int rows = 800000;
+    int cols = 500;
+    // int rowno = atoi(argv[1]);
+    // printf("Printing row # %d\n", rowno);
 
     auto console = spd::stdout_color_mt("console");
 
@@ -93,9 +103,10 @@ int main(int argc, char** argv)
         {
             for (int j = 0; j < cols; j++)
             {
-                if ((rand() % 100) > 50)
+                int r = rand() % 100;
+                if ( r > 75 )
                 {
-                    tripletList.push_back(T(i, j, 1+random()%30));
+                    tripletList.push_back(T(i, j, r));
                 }
             }
         }
@@ -105,39 +116,80 @@ int main(int argc, char** argv)
     }
 
 
-    cout<<mat<<endl;
+    // cout<<mat<<endl;
+    // MatrixXf result(rows, 2);
     {
         Benchmark b("Averaging out matrix");
         float* vals = mat.valuePtr();
         int *ind = mat.innerIndexPtr();
         int *outer = mat.outerIndexPtr();
-        int nonzeros = outer[rowno+1] - outer[rowno];
 
-        ind += outer[rowno];
-        vals += outer[rowno];
-
-        printf("R%d :", rowno);
-
-        for (int i = 0; i < nonzeros; i++)
+        #pragma omp parallel for default(none) shared(mat, ind, vals, outer, rows, cols)
+        for (int r = 0; r < rows; r++)
         {
-            printf(" %f ", *vals);   
-            vals++;
-            ind++;
+            int nonzeros = outer[r+1] - outer[r];
+
+            // printf("Number of nonzeros at row %d are %d\n", r, nonzeros);
+
+            if (!nonzeros) continue;
+
+            int *iptr = ind + outer[r];
+            float *vptr = vals + outer[r];
+
+            int *ciptr = iptr;
+            float *cvptr = vptr;
+
+            // Limit is number of frames we need to have for smoothing. 
+            //   This gets halved after each iteration (level). 
+            int limit = cols/2;
+            if (limit % 2)
+                limit -= 1;
+
+            
+            int index = 0;
+            int cnt = 0;
+            int i0, i1;
+            i0 = 0;
+
+            if (nonzeros == 1) {
+                iptr[index] = i0;
+                vptr[index] = (0.0 + *vptr)/2;
+                continue;
+            }
+
+            int inc;
+            while (i0 < limit && cnt < (nonzeros-1))
+            {   
+                i0 = *iptr/2;
+                i1 = *(iptr+1)/2;
+                
+                inc = 0;
+                if (i0 == i1)
+                {
+                    ciptr[index] = i0;
+                    cvptr[index] = (*vptr + *(vptr+1)) / 2.0f;
+                    inc = 2;
+                }
+                else
+                {
+                    ciptr[index] = i0;
+                    cvptr[index] = (*vptr + 0.0f) / 2.0f;
+                    inc = 1;
+                }
+
+                iptr += inc; vptr += inc; cnt += inc;
+                index++; 
+            }
+
+            // In case,we are left with one off element
+            if (i0 < limit)
+            {
+                ciptr[index] = i0;
+                cvptr[index] = (0.0f + *vptr) / 2.0f;
+            } 
+
         }
-
-        printf("\n");
-
-        
-        // #pragma omp parallel for num_threads(5) default(none) shared(mat, rows, cols)
-        // for (int r = 0; r < rows; r++)
-        // {
-
-        //     // SparseMatrix<float, RowMajor> c0 = mat.block(r, 0, 1, cols);
-        //     // SparseMatrix<float, RowMajor> c1 = mat.block(r, 1, 1, cols-1);
-        //     // printf("Thread # %d and sum %f, %f \n", omp_get_thread_num(), c0.sum(), c1.sum());
-        //     mat.row(r) = 0.5 * c0;
-        // }
-
+             
     }    
     // cout<<mat<<endl;
 }
