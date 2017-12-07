@@ -105,6 +105,7 @@ Eigen::MatrixXf Funcs::partitionMean(Eigen::Ref<Eigen::MatrixXf> pixelSum)
     map<int, map<int, vector<int>> > qbins = conf->getBinMaps();
 
     MatrixXf means(totalStaticPartns, partitions+1);
+    means.setZero(totalStaticPartns, partitions+1);
 
     int pixcount = 0;
     for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
@@ -141,8 +142,9 @@ MatrixXf Funcs::frameSum(SparseMatF pixelData) {
     MatrixXf fsum(frames, 2);
     for (int i = 0; i < pixelData.cols(); i++) {
         fsum(i) = i + 1;
-        fsum(i+frames) = pixelData.col(i).sum() / conf->getDetEfficiency() / 
-                                    conf->getDetAdhuPhot() / conf->getDetPreset();
+        fsum(i+frames) = pixelData.col(i).sum()/pixelData.rows();
+        //fsum(i+frames) = pixelData.col(i).sum() / conf->getDetEfficiency() / 
+        //                            conf->getDetAdhuPhot() / conf->getDetPreset();
     }
     return fsum;
 }
