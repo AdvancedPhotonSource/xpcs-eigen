@@ -73,6 +73,8 @@ using namespace std;
 namespace spd = spdlog; 
 
 DEFINE_string(imm, "", "The path to IMM file. By default the file specified in HDF5 metadata is used");
+DEFINE_string(inpath, "", "The path prefix to replace");
+DEFINE_string(outpath, "", "The path prefix to replace with");
 
 int main(int argc, char** argv)
 {
@@ -91,6 +93,21 @@ int main(int argc, char** argv)
 
     if (!FLAGS_imm.empty())
         conf->setIMMFilePath(FLAGS_imm);
+
+    if (!FLAGS_inpath.empty() and !FLAGS_outpath.empty())
+    {
+        std::string file = conf->getIMMFilePath();
+        std::string::size_type pos = file.find(FLAGS_inpath);
+
+        if (pos != std::string::npos)
+        {
+            file.replace(file.begin()+pos,
+                         file.end()-(strlen(file.c_str()) - strlen(FLAGS_inpath.c_str())),
+                         FLAGS_outpath.begin(), FLAGS_outpath.end());
+        }
+
+        conf->setIMMFilePath(file);
+    }
 
     console->info("Processing IMM file at path arg{}..", conf->getIMMFilePath().c_str());
 
