@@ -45,78 +45,69 @@ POSSIBILITY OF SUCH DAMAGE.
 
 **/
 
-
-#ifndef IMM_H
-#define IMM_H
-
-#include "immHeader.h"
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <string>
+#include <errno.h>
+#include <stdint.h>
+#include <memory>
+#include <map>
+#include <vector>
+#include <iostream>
+
+#include "hdf5.h"
+#include "imm.h"
+#include "corr.h"
+#include "configuration.h"
+#include "h5result.h"
+#include "funcs.h"
+#include "benchmark.h"
 
 #include "Eigen/Dense"
 #include "Eigen/SparseCore"
+
+#include "gflags/gflags.h"
 #include "spdlog/spdlog.h"
 
 using namespace Eigen;
+using namespace std;
+namespace spd = spdlog; 
 
-typedef Eigen::SparseMatrix<float> SparseMatF;
-typedef Eigen::SparseMatrix<float, RowMajor> SparseRMatF;
+DEFINE_string(imm, "", "The path to IMM file. By default the file specified in HDF5 metadata is used");
 
-class IMM
+int main(int argc, char** argv)
 {
-public:
-   IMM(const char* filename, int frameFrom, int frameTo, int pixels_per_frame);
-   
-   ~IMM();
 
-   Eigen::MatrixXf getPixelData();
-   
-   SparseRMatF getSparsePixelData();
+    gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-   bool getIsSparse();
+    if (argc < 2) {
+        fprintf(stderr, "Please specify a HDF5 metadata file");
+        return 1;
+    }
 
-   float* getTimestampClock();
-   float* getTimestampTick();
+    auto console = spd::stdout_color_mt("console");
 
-private:
+    Configuration *conf = Configuration::instance();
+    conf->init(argv[1]);
 
-    long m_frameStartTodo;
-    long m_frameEndTodo;
-    long m_pixelsPerFrame;
-    long m_frames;
-    
-    const char* m_filename;
-    IMMHeader *m_ptrHeader;
+    if (!FLAGS_imm.empty())
+        conf->setIMMFilePath(FLAGS_imm);
 
-    FILE *m_ptrFile;
+    console->info("Processing IMM file at path arg{}..", conf->getIMMFilePath().c_str());
 
-    // Internal data pointer for storing pixels. 
-    float *m_data;
-    float *m_timestampClock;
-    float *m_timestampTick;
+    int* dqmap = conf->getDQMap();
+    int *sqmap = conf->getSQMap();
 
-    MatrixXf m_pixelData;
-    SparseRMatF m_sparsePixelData;
-    
-    bool m_isSparse;
+    int frames = conf->getFrameTodoCount();
+    int frameFrom = conf->getFrameStartTodo();
+    int frameTo = conf->getFrameEndTodo();
 
-    // Initialize the file ptr and read-in file header. 
-    void init();
+    console->info("Data frames {0}..", frames);
+    console->debug("Frames count={0}, from={1}, todo={2}", frames, frameFrom, frameTo);
 
-    // Loads the sparse IMM file 
-    void load_sparse();
+    int pixels = conf->getFrameWidth() * conf->getFrameHeight();
+    int maxLevel = Corr::calculateLevelMax(frames, 4);
+    vector<std::tuple<int,int> > delays_per_level = Corr::delaysPerLevel(frames, 4, maxLevel);
 
-    // Loads the sparse IMM to internanl structures. Unlinke the load_sparse method
-    // it doesn't generate a matrix. 
-    void load_sparse2();
+    IMM imm(conf->getIMMFilePath().c_str(), frameFrom, frameTo, -1);
 
-    // Load non-sparse data. 
-    void load_nonsprase();
-
-
-    std::shared_ptr<spdlog::logger> _logger;
-};
-
-#endif
+}

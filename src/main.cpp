@@ -86,7 +86,7 @@ int main(int argc, char** argv)
 
     auto console = spd::stdout_color_mt("console");
 
-    // Eigen::initParallel();
+    Eigen::initParallel();
     
     
     Configuration *conf = Configuration::instance();

@@ -88,8 +88,8 @@ int main(int argc, char** argv)
 {
     srand (time(NULL));
 
-    int rows = 800000;
-    int cols = 500;
+    int rows = 10;
+    int cols = 5;
     // int rowno = atoi(argv[1]);
     // printf("Printing row # %d\n", rowno);
 
@@ -116,7 +116,7 @@ int main(int argc, char** argv)
     }
 
 
-    // cout<<mat<<endl;
+    cout<<mat<<endl;
     // MatrixXf result(rows, 2);
     {
         Benchmark b("Averaging out matrix");
@@ -182,14 +182,19 @@ int main(int argc, char** argv)
             }
 
             // In case,we are left with one off element
-            if (i0 < limit)
+            if (i0 != i1 && i1 < limit)
             {
-                ciptr[index] = i0;
+                ciptr[index] = i1;
                 cvptr[index] = (0.0f + *vptr) / 2.0f;
             } 
 
         }
              
     }    
-    // cout<<mat<<endl;
+    cout<<mat<<endl;
+
+    SparseMatrix<float, RowMajor> c0 = mat.block(0, 0, rows, cols-3);
+    cout<<c0<<endl;
+       //      const SparseMatrix<float, RowMajor> c1 = mat.block(0, tau, rows, cols-tau);
+
 }

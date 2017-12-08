@@ -215,6 +215,81 @@ void IMM::load_sparse()
 
     m_sparsePixelData = SparseMatF(m_pixelsPerFrame, m_frames);
     m_sparsePixelData.setFromTriplets(tripletList.begin(), tripletList.end());
+    m_sparsePixelData.makeCompressed();
+}
+
+void IMM::load_sparse2()
+{
+    //TODO:: Remove the dependence of IMM reader on configuration object. 
+    Configuration *conf = Configuration::instance();
+    short *pixelmask = conf->getPixelMask();
+    double *flatfield = conf->getFlatField();
+    m_timestampClock = new float[2*m_frames];
+    m_timestampTick = new float[2*m_frames];
+
+    rewind(m_ptrFile);
+
+    int fcount = 0;
+    int count = 0;
+
+    // Row/Cols large enough to hold the index buffer
+    // TODO: We can further reduce the memory requirement here 
+    // through a better allocation scheme. 
+    int* index = new int[m_pixelsPerFrame];
+    short* values = new short[m_pixelsPerFrame];
+
+    // Skip frames below start frame. 
+    while (fcount < m_frameStartTodo)
+    {
+        fread(m_ptrHeader, 1024, 1, m_ptrFile);
+        uint skip = m_ptrHeader->dlen;        
+        fseek(m_ptrFile, skip * 6, SEEK_CUR);
+        fcount++;
+    }
+
+    while ((fcount - m_frameStartTodo) < m_frames)
+    {
+        fread(m_ptrHeader, 1024, 1, m_ptrFile);
+
+        uint pixels = m_ptrHeader->dlen;        
+
+        m_timestampClock[count] = count + 1;
+        m_timestampClock[count+m_frames] = m_ptrHeader->elapsed;
+        m_timestampTick[count] = count + 1;
+        m_timestampTick[count+m_frames] = m_ptrHeader->corecotick;
+        count++;
+
+        uint skip = 0;
+        
+        if (pixels > m_pixelsPerFrame)
+            skip = pixels - m_pixelsPerFrame;
+
+        fread(index, pixels  * 4, 1, m_ptrFile);
+        if (skip > 0) fseek(m_ptrFile, skip * 4, SEEK_CUR);
+        fread(values, pixels * 2, 1, m_ptrFile);
+        if (skip > 0) fseek(m_ptrFile, skip * 2, SEEK_CUR);
+
+        // TODO insert assert statements
+        // /// - read pixels == requested pixels to read etc. 
+        int fnumber = fcount - m_frameStartTodo;
+        for (int i = 0; i < pixels; i++)
+        {
+            // We want the sparse pixel index to be less the number of pixels requested.
+            // if (index[i] >= m_pixelsPerFrame)
+            //     break;
+
+            if (pixelmask[index[i]] != 0) {                
+                // tripletList.push_back(Triplet(index[i], fnumber, values[i] *flatfield[index[i]]));       
+            }
+        }
+
+        fcount++;
+    }
+
+
+    // m_sparsePixelData = SparseMatF(m_pixelsPerFrame, m_frames);
+    // m_sparsePixelData.setFromTriplets(tripletList.begin(), tripletList.end());
+    // m_sparsePixelData.makeCompressed();
 }
 
 Eigen::MatrixXf IMM::getPixelData()

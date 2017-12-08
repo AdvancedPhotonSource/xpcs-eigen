@@ -198,10 +198,14 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
 
         if (ll != level)
         {
+
             // level change, smooth out intensities.
             if (lastframe % 2)
                 lastframe -= 1;
 
+            lastframe = lastframe / 2;
+
+            printf("Last frame %d\n", lastframe);
             // int ij = 0;
 
             // for (int k = 0; k < lastframe; k+=2) {
@@ -227,7 +231,7 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
                 int index = 0;
                 int cnt = 0;
                 int i0, i1;
-                i0 = 0;
+                i0 = *iptr/2;
 
                 if (nonzeros == 1) {
                     iptr[index] = i0;
@@ -260,38 +264,29 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
                 }
 
                 // In case,we are left with one off element
-                if (i0 < lastframe)
+                if (i0 != i1 && i1 < lastframe && cnt < nonzeros)
                 {
-                    ciptr[index] = i0;
+                    ciptr[index] = i1;
                     cvptr[index] = (0.0f + *vptr) / 2.0f;
+                    cnt++;
                 } 
 
             }
 
-            lastframe = lastframe / 2;
-
-            outer = pixelData.outerIndexPtr();
-
-            for (int r = 0; r < pixels; r++)
-            {
-                int nonzeros = outer[r+1] - outer[r];
-                printf("row = %d, nonzeros=%d\n", r, nonzeros);
-            }
 
         }
 
         if (level > 0)
             tau = tau / pow(2, level);
-        
-        printf("%d - %d\n", pixelData.rows(), pixelData.cols());
 
+        // cout<<pixelData.row(20).nonZeros()<<endl;
         // Get lastframe-tau number of cols starting at 0 for c0 and tau for c1. 
         const SparseMatrix<float, RowMajor> c0 = pixelData.block(0, 0, pixels, lastframe-tau);
         const SparseMatrix<float, RowMajor> c1 = pixelData.block(0, tau, pixels, lastframe-tau);
 
-        
+        printf("%d - %d\n", c0.cols(), c1.cols());
 
-        G2.col(i) = c0.cwiseProduct(c1) * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
+        // G2.col(i) = c0.cwiseProduct(c1) * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
         // IP.col(i) = c0 * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
         // IF.col(i) = c1 * (VectorXf::Ones(c1.cols()) * 1.0/c1.cols());
 
