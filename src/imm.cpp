@@ -77,7 +77,7 @@ IMM::IMM(const char* filename, int frameFrom, int frameTo, int pixelsPerFrame)
 
 
     if (m_ptrHeader->compression) {
-        load_sparse();
+        load_sparse2();
         m_isSparse = true;
     } 
     else {
@@ -224,6 +224,9 @@ void IMM::load_sparse2()
     Configuration *conf = Configuration::instance();
     short *pixelmask = conf->getPixelMask();
     double *flatfield = conf->getFlatField();
+    float eff = conf->getDetEfficiency();
+    float detAdhu = conf->getDetAdhuPhot();
+    float preset =  conf->getDetPreset();
     int x = conf->getFrameWidth();
     int y = conf->getFrameHeight();
 
@@ -300,7 +303,8 @@ void IMM::load_sparse2()
             }
         }
 
-        m_frameSums[fnumber] = fsum;
+        printf("eff=%f, detAdhu=%f, preset=%f\n", eff, detAdhu, preset);
+        m_frameSums[fnumber] = fsum / eff / detAdhu / preset;
         fcount++;
     }
 
@@ -333,4 +337,9 @@ float* IMM::getTimestampClock()
 float* IMM::getTimestampTick()
 {
     return m_timestampTick;
+}
+
+float* IMM::getFrameSums()
+{
+    return m_frameSums;
 }

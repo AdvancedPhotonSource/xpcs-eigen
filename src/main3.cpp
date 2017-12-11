@@ -110,4 +110,10 @@ int main(int argc, char** argv)
 
     IMM imm(conf->getIMMFilePath().c_str(), frameFrom, frameTo, -1);
 
+    {
+        Benchmark benchmark("Writing framesums");
+        float* fsum = imm.getFrameSums();
+        H5Result::write1DData(conf->getFilename(), "exchange", "frameSum", frames, fsum);
+    }
+
 }

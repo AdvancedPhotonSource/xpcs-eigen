@@ -80,6 +80,9 @@ public:
    float* getTimestampClock();
    float* getTimestampTick();
 
+   float* getFrameSums();
+   float* getPixelSums();
+
 private:
 
     long m_frameStartTodo;
