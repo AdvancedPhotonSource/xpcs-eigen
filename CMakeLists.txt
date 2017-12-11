@@ -12,6 +12,7 @@ set(sources
     src/h5result.cpp
     src/corr.cpp
     src/imm.cpp
+    src/sparsedata.cpp
     src/funcs.cpp
     src/main3.cpp)
 

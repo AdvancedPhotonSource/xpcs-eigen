@@ -224,6 +224,12 @@ void IMM::load_sparse2()
     Configuration *conf = Configuration::instance();
     short *pixelmask = conf->getPixelMask();
     double *flatfield = conf->getFlatField();
+    int x = conf->getFrameWidth();
+    int y = conf->getFrameHeight();
+
+    long pixels = x * y;
+    m_sdata = new SparseData(pixels);
+
     m_timestampClock = new float[2*m_frames];
     m_timestampTick = new float[2*m_frames];
 
@@ -237,6 +243,8 @@ void IMM::load_sparse2()
     // through a better allocation scheme. 
     int* index = new int[m_pixelsPerFrame];
     short* values = new short[m_pixelsPerFrame];
+    m_frameSums = new float[m_frames];
+    m_pixelSums = new float[pixels];
 
     // Skip frames below start frame. 
     while (fcount < m_frameStartTodo)
@@ -272,6 +280,7 @@ void IMM::load_sparse2()
         // TODO insert assert statements
         // /// - read pixels == requested pixels to read etc. 
         int fnumber = fcount - m_frameStartTodo;
+        float fsum = 0.0;
         for (int i = 0; i < pixels; i++)
         {
             // We want the sparse pixel index to be less the number of pixels requested.
@@ -280,9 +289,18 @@ void IMM::load_sparse2()
 
             if (pixelmask[index[i]] != 0) {                
                 // tripletList.push_back(Triplet(index[i], fnumber, values[i] *flatfield[index[i]]));       
+                int pix = index[i];
+                float val = values[i] * flatfield[i];
+
+                Row* ptr = m_sdata->get(pix);
+                ptr->indxPtr.push_back(pix);
+                ptr->valPtr.push_back(val);
+                fsum += val;
+                m_pixelSums[pix] += val;
             }
         }
 
+        m_frameSums[fnumber] = fsum;
         fcount++;
     }
 

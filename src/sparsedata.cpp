@@ -44,83 +44,36 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-
-
-#ifndef IMM_H
-#define IMM_H
-
-#include "immHeader.h"
 #include "sparsedata.h"
+#include "configuration.h"
+#include "benchmark.h"
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <string>
+#include <iostream>
 
-#include "Eigen/Dense"
-#include "Eigen/SparseCore"
-#include "spdlog/spdlog.h"
-
-using namespace Eigen;
-
-typedef Eigen::SparseMatrix<float> SparseMatF;
-typedef Eigen::SparseMatrix<float, RowMajor> SparseRMatF;
-
-class IMM
+SparseData::SparseData(int rows, int initialSize)
 {
-public:
-   IMM(const char* filename, int frameFrom, int frameTo, int pixels_per_frame);
-   
-   ~IMM();
+    m_rows = rows;
+    m_initSize = initialSize;
+    m_data = new Row*[rows];
 
-   Eigen::MatrixXf getPixelData();
-   
-   SparseRMatF getSparsePixelData();
+    for (int i = 0; i < m_rows; i++)
+        m_data[i] = NULL;
+}
 
-   bool getIsSparse();
+SparseData::~SparseData()
+{
+  //TODO
+}
 
-   float* getTimestampClock();
-   float* getTimestampTick();
+Row* SparseData::get(int index)
+{
+    assert(index < m_rows);
+    Row *r = m_data[index];
+    if (!r) {
+        r = new Row(m_initSize);
+        m_data[index] = r;
+    }
 
-private:
-
-    long m_frameStartTodo;
-    long m_frameEndTodo;
-    long m_pixelsPerFrame;
-    long m_frames;
-    
-    const char* m_filename;
-    IMMHeader *m_ptrHeader;
-
-    FILE *m_ptrFile;
-
-    // Internal data pointer for storing pixels. 
-    float *m_data;
-    float *m_timestampClock;
-    float *m_timestampTick;
-
-    MatrixXf m_pixelData;
-    SparseRMatF m_sparsePixelData;
-    
-    bool m_isSparse;
-
-    // Initialize the file ptr and read-in file header. 
-    void init();
-
-    // Loads the sparse IMM file 
-    void load_sparse();
-
-    // Loads the sparse IMM to internanl structures. Unlinke the load_sparse method
-    // it doesn't generate a matrix. 
-    void load_sparse2();
-
-    // Load non-sparse data. 
-    void load_nonsprase();
-
-    SparseData *m_sdata;
-
-    std::shared_ptr<spdlog::logger> _logger;
-
-    float* m_pixelSums;
-    float* m_frameSums;
-};
-
-#endif
+    return r;
+}
