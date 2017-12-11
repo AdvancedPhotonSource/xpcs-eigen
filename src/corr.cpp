@@ -296,6 +296,71 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
 
 }
 
+void Corr::multiTau2(SparseData* data)
+{
+    Configuration* conf = Configuration::instance();
+    int w = conf->getFrameWidth();
+    int h = conf->getFrameHeight();
+    int frames = conf->getFrameTodoCount();
+    int pixels = w * h;
+
+    int maxLevel = calculateLevelMax(frames, 4);
+
+    std::vector<int> validPixels = data->getValidPixels();
+
+    vector<std::tuple<int,int> > delays_per_level = delaysPerLevel(frames, 4, maxLevel);
+
+    float* G2s = new float[pixels * delays_per_level.size()];
+    for (int i = 0; i < validPixels.size(); i++)
+    {
+        Row *row = data->get(validPixels.at(i));
+
+        int ll = 0;
+
+        int lastframe = frames;
+        int tauIndex = 0;
+        int g2Index = 0;
+        for (std::vector<std::tuple<int, int> >::iterator it = delays_per_level.begin() ;
+                it != delays_per_level.end(); ++it)
+        {
+
+            // View of pixel data at two different tau values. 
+            std::tuple<int, int> tau_level = *it;
+            int level = std::get<0>(tau_level);
+            int tau = std::get<1>(tau_level);
+
+            if (ll != level)
+            {
+                break;
+            }
+
+            if (level > 0)
+                tau = tau / pow(2, level);
+
+            g2Index = i * delays_per_level.size() + tauIndex;
+            G2s[g2Index]  = 0;
+
+            for (int r = 0; r < row->indxPtr.size(); r++)
+            {
+                int src = row->indxPtr.at(r);
+                int dst = src;
+                int limit = min((int)row->indxPtr.size(), r+tau+1);
+
+                for (int j = r+1; j < limit; j++)
+                {
+                    dst = row->indxPtr.at(j);
+                    if (dst == (src+tau)) {
+                        G2s[g2Index] += row->valPtr.at(r) * row->valPtr.at(j);
+                    }
+                }
+            }
+
+            ll = level;
+            tauIndex++;
+        }
+    }
+}
+
 void Corr::twoTimesVec(Ref<MatrixXf> pixelData)
 {
 

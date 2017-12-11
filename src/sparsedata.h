@@ -49,6 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "row.h"
 
+#include <vector>
+
 class SparseData 
 {
 public:
@@ -58,10 +60,13 @@ public:
 
   Row* get(int index);
 
+  std::vector<int>& getValidPixels();
 private:
   Row** m_data;
   int m_rows;
   int m_initSize;
+
+  std::vector<int> m_validPixels;
 };
 
 #endif

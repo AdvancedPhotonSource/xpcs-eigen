@@ -83,6 +83,8 @@ public:
    float* getFrameSums();
    float* getPixelSums();
 
+   SparseData* getSparseData();
+
 private:
 
     long m_frameStartTodo;

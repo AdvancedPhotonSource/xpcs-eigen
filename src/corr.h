@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "Eigen/SparseCore"
 
 #include "imm.h"
+#include "sparsedata.h"
 
 
 class Corr {
@@ -87,6 +88,8 @@ public:
                             Eigen::Ref<Eigen::MatrixXf> G2, 
                             Eigen::Ref<Eigen::MatrixXf> IP, 
                             Eigen::Ref<Eigen::MatrixXf> IF);
+
+    static void multiTau2(SparseData *data);
 
     static void twoTimesVec(Eigen::Ref<Eigen::MatrixXf> pixelData);
 

@@ -111,9 +111,18 @@ int main(int argc, char** argv)
     IMM imm(conf->getIMMFilePath().c_str(), frameFrom, frameTo, -1);
 
     {
-        Benchmark benchmark("Writing framesums");
+        Benchmark benchmark("Writing frame-sums, pixel-sums");
         float* fsum = imm.getFrameSums();
-        H5Result::write1DData(conf->getFilename(), "exchange", "frameSum", frames, fsum);
+        H5Result::write2DData(conf->getFilename(), "exchange", "frameSum", 2, frames, fsum);
+        float* psum = imm.getPixelSums();
+        for (int i = 0 ; i < pixels; i++) {
+            psum[i] /= frames;
+        }
+
+        H5Result::write2DData(conf->getFilename(), "exchange", "pixelSum", conf->getFrameHeight(), conf->getFrameWidth(), psum);
     }
+
+    Benchmark benchmark("Computing G2");
+    Corr::multiTau2(imm.getSparseData());
 
 }

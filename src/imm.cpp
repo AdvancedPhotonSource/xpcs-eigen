@@ -230,8 +230,8 @@ void IMM::load_sparse2()
     int x = conf->getFrameWidth();
     int y = conf->getFrameHeight();
 
-    long pixels = x * y;
-    m_sdata = new SparseData(pixels);
+    int totalPixels = x * y;
+    m_sdata = new SparseData(totalPixels);
 
     m_timestampClock = new float[2*m_frames];
     m_timestampTick = new float[2*m_frames];
@@ -246,8 +246,11 @@ void IMM::load_sparse2()
     // through a better allocation scheme. 
     int* index = new int[m_pixelsPerFrame];
     short* values = new short[m_pixelsPerFrame];
-    m_frameSums = new float[m_frames];
-    m_pixelSums = new float[pixels];
+    m_frameSums = new float[2*m_frames];
+    m_pixelSums = new float[totalPixels];
+
+    for (int i = 0 ; i < totalPixels; i++)
+        m_pixelSums[i] = 0.0f;
 
     // Skip frames below start frame. 
     while (fcount < m_frameStartTodo)
@@ -296,15 +299,15 @@ void IMM::load_sparse2()
                 float val = values[i] * flatfield[i];
 
                 Row* ptr = m_sdata->get(pix);
-                ptr->indxPtr.push_back(pix);
+                ptr->indxPtr.push_back(fnumber);
                 ptr->valPtr.push_back(val);
                 fsum += val;
                 m_pixelSums[pix] += val;
             }
         }
 
-        printf("eff=%f, detAdhu=%f, preset=%f\n", eff, detAdhu, preset);
-        m_frameSums[fnumber] = fsum / eff / detAdhu / preset;
+        m_frameSums[fnumber] = fnumber + 1.0;
+        m_frameSums[fnumber+m_frames] = fsum / totalPixels;
         fcount++;
     }
 
@@ -342,4 +345,14 @@ float* IMM::getTimestampTick()
 float* IMM::getFrameSums()
 {
     return m_frameSums;
+}
+
+float* IMM::getPixelSums()
+{
+    return m_pixelSums;
+}
+
+SparseData* IMM::getSparseData()
+{
+    return m_sdata;
 }
