@@ -72,6 +72,7 @@ using namespace Eigen;
 using namespace std;
 namespace spd = spdlog; 
 
+DEFINE_bool(g2out, false, "Write intermediate output from G2 computation");
 DEFINE_string(imm, "", "The path to IMM file. By default the file specified in HDF5 metadata is used");
 DEFINE_string(inpath, "", "The path prefix to replace");
 DEFINE_string(outpath, "", "The path prefix to replace with");
@@ -182,9 +183,16 @@ int main(int argc, char** argv)
         // Corr::multiTauVec(pixelData, G2, IP, IF);
     }
 
-    // H5Result::write2DData(conf->getFilename(), "exchange", "G2", G2);
-    // H5Result::write2DData(conf->getFilename(), "exchange", "IP", IP);
-    // H5Result::write2DData(conf->getFilename(), "exchange", "IF", IF);
+
+    
+    if (FLAGS_g2out) {
+
+        Benchmark b("Writing G2s, IPs and IFs");
+
+        H5Result::write2DData(conf->getFilename(), "exchange", "G2", G2);
+        H5Result::write2DData(conf->getFilename(), "exchange", "IP", IP);
+        H5Result::write2DData(conf->getFilename(), "exchange", "IF", IF);    
+    }
 
     Benchmark b("Normalizing G2s");
     Corr::normalizeG2s(G2, IP, IF);
