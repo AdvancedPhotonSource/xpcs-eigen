@@ -311,6 +311,10 @@ void Corr::multiTau2(SparseData* data)
     vector<std::tuple<int,int> > delays_per_level = delaysPerLevel(frames, 4, maxLevel);
 
     float* G2s = new float[pixels * delays_per_level.size()];
+    float* IPs = new float[pixels * delays_per_level.size()];
+    float* IFs = new float[pixels * delays_per_level.size()];
+
+    // #pragma omp parallel for default(none) shared(validPixels, delays_per_level, frames, pixels, G2s, data)
     for (int i = 0; i < validPixels.size(); i++)
     {
         Row *row = data->get(validPixels.at(i));
@@ -328,10 +332,58 @@ void Corr::multiTau2(SparseData* data)
             std::tuple<int, int> tau_level = *it;
             int level = std::get<0>(tau_level);
             int tau = std::get<1>(tau_level);
+            int lastIndex = row->indxPtr.size();
 
             if (ll != level)
-            {
-                break;
+            {   
+                if (lastframe % 2)
+                    lastframe -= 1;
+
+                lastframe = lastframe / 2;
+
+                int index = 0;
+                int cnt = 0;
+                
+                int i0, i1;
+                i0 = row->indxPtr[cnt] / 2;
+
+                if (row->indxPtr.size() == 1) {
+                    row->indxPtr[index] = i0;
+                    row->valPtr[index] = row->valPtr[index]/2.0f;
+                }
+
+                int inc;
+                while (i0 < lastframe && cnt < row->indxPtr.size()-1)
+                {   
+                    i0 = row->indxPtr[cnt] / 2;
+                    i1 = row->indxPtr[cnt+1] / 2;
+                    
+                    inc = 0;
+                    if (i0 == i1)
+                    {
+                        row->indxPtr[index] = i0;
+                        row->valPtr[index] = 0.5 * row->valPtr[cnt] + row->valPtr[cnt+1];
+                        inc = 2;
+                    }
+                    else
+                    {
+                        row->indxPtr[index] = i0;
+                        row->valPtr[index] = row->valPtr[cnt] / 2.0f;
+                        inc = 1;
+                    }
+
+                    cnt += inc;
+                    index++; 
+                }
+
+                // In case,we are left with one off element
+                if (i0 != i1 && i1 < lastframe && cnt < row->indxPtr.size())
+                {
+                    row->indxPtr[index] = i1;
+                    row->valPtr[index] = row->valPtr[cnt] / 2.0f;
+                    cnt++;
+                }
+                lastIndex = index+1; 
             }
 
             if (level > 0)
@@ -340,20 +392,26 @@ void Corr::multiTau2(SparseData* data)
             g2Index = i * delays_per_level.size() + tauIndex;
             G2s[g2Index]  = 0;
 
-            for (int r = 0; r < row->indxPtr.size(); r++)
+            for (int r = 0; r < lastIndex; r++)
             {
                 int src = row->indxPtr.at(r);
                 int dst = src;
-                int limit = min((int)row->indxPtr.size(), r+tau+1);
+                int limit = min(lastIndex, r+tau+1);
 
                 for (int j = r+1; j < limit; j++)
                 {
                     dst = row->indxPtr.at(j);
                     if (dst == (src+tau)) {
                         G2s[g2Index] += row->valPtr.at(r) * row->valPtr.at(j);
+                        IPs[g2Index] += row->valPtr.at(r);
+                        IFs[g2Index] += row->valPtr.at(j);
                     }
                 }
             }
+
+            G2s[g2Index] /= frames;
+            IPs[g2Index] /= frames;
+            IFs[g2Index] /= frames;
 
             ll = level;
             tauIndex++;
