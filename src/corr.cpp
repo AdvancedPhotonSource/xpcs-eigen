@@ -332,10 +332,17 @@ void Corr::multiTau2(SparseData* data)
             std::tuple<int, int> tau_level = *it;
             int level = std::get<0>(tau_level);
             int tau = std::get<1>(tau_level);
-            int lastIndex = row->indxPtr.size();
+            int lastIndex;
+
+            if (level == 0)
+                lastIndex = row->indxPtr.size();
 
             if (ll != level)
             {   
+                if (level == 8 and validPixels.at(i) == 94045)
+                {
+                    printf ("...");
+                }
                 if (lastframe % 2)
                     lastframe -= 1;
 
@@ -362,7 +369,7 @@ void Corr::multiTau2(SparseData* data)
                     if (i0 == i1)
                     {
                         row->indxPtr[index] = i0;
-                        row->valPtr[index] = 0.5 * row->valPtr[cnt] + row->valPtr[cnt+1];
+                        row->valPtr[index] = (row->valPtr[cnt] + row->valPtr[cnt+1]) / 2.0f;
                         inc = 2;
                     }
                     else
@@ -374,6 +381,8 @@ void Corr::multiTau2(SparseData* data)
 
                     cnt += inc;
                     index++; 
+                    lastIndex = index;
+
                 }
 
                 // In case,we are left with one off element
@@ -381,42 +390,70 @@ void Corr::multiTau2(SparseData* data)
                 {
                     row->indxPtr[index] = i1;
                     row->valPtr[index] = row->valPtr[cnt] / 2.0f;
-                    cnt++;
+                    lastIndex = index+1;
                 }
-                lastIndex = index+1; 
+                
+
+                if (validPixels.at(i) == 94045) {
+                    printf("level = %d, lastframe = %d\n", level, lastframe);
+                    for (int ii = 0; ii < lastIndex; ii++) {
+                        printf("%d -> %f\n", row->indxPtr[ii], row->valPtr[ii]);
+                    }
+                    printf("\n");
+                }
             }
 
             if (level > 0)
                 tau = tau / pow(2, level);
 
-            g2Index = i * delays_per_level.size() + tauIndex;
-            G2s[g2Index]  = 0;
+            g2Index = tauIndex * pixels + validPixels[i]; // * delays_per_level.size() + tauIndex;
+            G2s[g2Index]  = 0.0;
+            IFs[g2Index]  = 0.0;
+            IPs[g2Index]  = 0.0;
+
+            if (validPixels.at(i) == 94045) {
+                printf("last index %d\n", lastIndex);
+            }
 
             for (int r = 0; r < lastIndex; r++)
             {
                 int src = row->indxPtr.at(r);
                 int dst = src;
-                int limit = min(lastIndex, r+tau+1);
-
-                for (int j = r+1; j < limit; j++)
-                {
-                    dst = row->indxPtr.at(j);
-                    if (dst == (src+tau)) {
-                        G2s[g2Index] += row->valPtr.at(r) * row->valPtr.at(j);
-                        IPs[g2Index] += row->valPtr.at(r);
-                        IFs[g2Index] += row->valPtr.at(j);
+                
+                if (src < (lastframe-tau)) {
+                    IPs[g2Index] += row->valPtr.at(r);
+                    int limit = min(lastIndex, src+tau+1);
+                    
+                    for (int j = r+1; j < limit; j++)
+                    {
+                        dst = row->indxPtr.at(j);
+                        if (dst == (src+tau)) {
+                            G2s[g2Index] += row->valPtr.at(r) * row->valPtr.at(j);
+                        }
                     }
                 }
+
+                if (src >= tau)
+                    IFs[g2Index] += row->valPtr.at(r);
+
             }
 
-            G2s[g2Index] /= frames;
-            IPs[g2Index] /= frames;
-            IFs[g2Index] /= frames;
+            G2s[g2Index] /= (lastframe-tau);
+            IPs[g2Index] /= (lastframe-tau);
+            IFs[g2Index] /= (lastframe-tau);
+
+            // if (validPixels.at(i) >= 94045 and validPixels.at(i) <= 94048) {
+            //     printf("%d, g2Index=%d, tau=%d, IP=%f\n", validPixels[i], g2Index, tauIndex, IPs[g2Index]);
+            // }
 
             ll = level;
             tauIndex++;
         }
     }
+
+    H5Result::write2DData(conf->getFilename(), "exchange", "G2", delays_per_level.size(), pixels, G2s);
+    H5Result::write2DData(conf->getFilename(), "exchange", "IP", delays_per_level.size(), pixels, IPs);
+    H5Result::write2DData(conf->getFilename(), "exchange", "IF", delays_per_level.size(), pixels, IFs);
 }
 
 void Corr::twoTimesVec(Ref<MatrixXf> pixelData)

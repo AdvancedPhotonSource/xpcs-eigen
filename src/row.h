@@ -59,8 +59,8 @@ public:
     }
     Row(int size)
     {
-        indxPtr.resize(size);
-        valPtr.resize(size);
+        indxPtr.reserve(size);
+        valPtr.reserve(size);
     }
     ~Row()
     {
