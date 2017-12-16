@@ -293,9 +293,6 @@ void IMM::load_sparse2()
             // if (index[i] >= m_pixelsPerFrame)
             //     break;
 
-            if (index[i] == 94046) 
-                printf("HERE\n");
-
             if (pixelmask[index[i]] != 0) {                
                 // tripletList.push_back(Triplet(index[i], fnumber, values[i] *flatfield[index[i]]));       
                 int pix = index[i];
