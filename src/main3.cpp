@@ -92,7 +92,7 @@ int main(int argc, char** argv)
     if (!FLAGS_imm.empty())
         conf->setIMMFilePath(FLAGS_imm);
 
-    console->info("Processing IMM file at path arg{}..", conf->getIMMFilePath().c_str());
+    console->info("Processing IMM file at path {0}..", conf->getIMMFilePath().c_str());
 
     int* dqmap = conf->getDQMap();
     int *sqmap = conf->getSQMap();
@@ -108,6 +108,10 @@ int main(int argc, char** argv)
     int maxLevel = Corr::calculateLevelMax(frames, 4);
     vector<std::tuple<int,int> > delays_per_level = Corr::delaysPerLevel(frames, 4, maxLevel);
 
+    float* g2s = new float[pixels * delays_per_level.size()];
+    float* ips = new float[pixels * delays_per_level.size()];
+    float* ifs = new float[pixels * delays_per_level.size()];
+
     IMM imm(conf->getIMMFilePath().c_str(), frameFrom, frameTo, -1);
 
     {
@@ -122,7 +126,17 @@ int main(int argc, char** argv)
         H5Result::write2DData(conf->getFilename(), "exchange", "pixelSum", conf->getFrameHeight(), conf->getFrameWidth(), psum);
     }
 
-    Benchmark benchmark("Computing G2");
-    Corr::multiTau2(imm.getSparseData());
+    {
+        Benchmark benchmark("Computing G2");
+        Corr::multiTau2(imm.getSparseData(), g2s, ips, ifs);
+    }
+
+    Benchmark benchmark("Normalizing G2");
+    MatrixXf G2s = Map<MatrixXf>(g2s, pixels, delays_per_level.size());
+    MatrixXf IPs = Map<MatrixXf>(ips, pixels, delays_per_level.size());
+    MatrixXf IFs = Map<MatrixXf>(ifs, pixels, delays_per_level.size());
+
+    // cout << IPs.row(94044)<<endl;
+    Corr::normalizeG2s(G2s, IPs, IFs);
 
 }

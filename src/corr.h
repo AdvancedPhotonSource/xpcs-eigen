@@ -89,7 +89,7 @@ public:
                             Eigen::Ref<Eigen::MatrixXf> IP, 
                             Eigen::Ref<Eigen::MatrixXf> IF);
 
-    static void multiTau2(SparseData *data);
+    static void multiTau2(SparseData *data, float* G2, float* IP, float* IF);
 
     static void twoTimesVec(Eigen::Ref<Eigen::MatrixXf> pixelData);
 

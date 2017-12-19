@@ -296,7 +296,7 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
 
 }
 
-void Corr::multiTau2(SparseData* data)
+void Corr::multiTau2(SparseData* data, float* G2s, float* IPs, float* IFs)
 {
     Configuration* conf = Configuration::instance();
     int w = conf->getFrameWidth();
@@ -310,11 +310,7 @@ void Corr::multiTau2(SparseData* data)
 
     vector<std::tuple<int,int> > delays_per_level = delaysPerLevel(frames, 4, maxLevel);
 
-    float* G2s = new float[pixels * delays_per_level.size()];
-    float* IPs = new float[pixels * delays_per_level.size()];
-    float* IFs = new float[pixels * delays_per_level.size()];
-
-    #pragma omp parallel for default(none) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
+    // #pragma omp parallel for default(none) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
     for (int i = 0; i < validPixels.size(); i++)
     {
         Row *row = data->get(validPixels.at(i));
@@ -339,7 +335,7 @@ void Corr::multiTau2(SparseData* data)
 
             if (ll != level)
             {   
-                if (level == 8 and validPixels.at(i) == 94045)
+                if (level == 7 and validPixels.at(i) == 355517)
                 {
                     printf ("...");
                 }
@@ -353,6 +349,7 @@ void Corr::multiTau2(SparseData* data)
                 
                 int i0, i1;
                 i0 = row->indxPtr[cnt] / 2;
+                i1 = i0;
 
                 if (row->indxPtr.size() == 1) {
                     row->indxPtr[index] = i0;
@@ -360,7 +357,7 @@ void Corr::multiTau2(SparseData* data)
                 }
 
                 int inc;
-                while (i0 < lastframe && cnt < row->indxPtr.size()-1)
+                while (i1 < lastframe && cnt < row->indxPtr.size()-1)
                 {   
                     i0 = row->indxPtr[cnt] / 2;
                     i1 = row->indxPtr[cnt+1] / 2;
@@ -394,13 +391,15 @@ void Corr::multiTau2(SparseData* data)
                 }
                 
 
-                /*if (validPixels.at(i) == 94045) {
+                if (validPixels.at(i) == 355517) {
                     printf("level = %d, lastframe = %d\n", level, lastframe);
-                    for (int ii = 0; ii < lastIndex; ii++) {
+                    for (int ii = 0; ii < row->indxPtr.size(); ii++) {
+                        if (row->indxPtr[ii] >= lastframe)
+                            break;
                         printf("%d -> %f\n", row->indxPtr[ii], row->valPtr[ii]);
                     }
                     printf("\n");
-                }*/
+                }
             }
 
             if (level > 0)
@@ -411,9 +410,9 @@ void Corr::multiTau2(SparseData* data)
             IFs[g2Index]  = 0.0;
             IPs[g2Index]  = 0.0;
 
-            /*if (validPixels.at(i) == 94045) {
+            if (validPixels.at(i) == 355517 && lastframe == 7) {
                 printf("last index %d\n", lastIndex);
-            }*/
+            }
 
             for (int r = 0; r < lastIndex; r++)
             {
@@ -438,10 +437,12 @@ void Corr::multiTau2(SparseData* data)
 
             }
 
-            G2s[g2Index] /= (lastframe-tau);
-            IPs[g2Index] /= (lastframe-tau);
-            IFs[g2Index] /= (lastframe-tau);
-
+            if ( (lastframe - tau) > 0) {
+                G2s[g2Index] /= (lastframe-tau);
+                IPs[g2Index] /= (lastframe-tau);
+                IFs[g2Index] /= (lastframe-tau);
+            }
+            
             // if (validPixels.at(i) >= 94045 and validPixels.at(i) <= 94048) {
             //     printf("%d, g2Index=%d, tau=%d, IP=%f\n", validPixels[i], g2Index, tauIndex, IPs[g2Index]);
             // }

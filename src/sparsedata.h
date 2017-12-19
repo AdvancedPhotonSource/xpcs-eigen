@@ -61,6 +61,7 @@ public:
   Row* get(int index);
 
   std::vector<int>& getValidPixels();
+
 private:
   Row** m_data;
   int m_rows;
