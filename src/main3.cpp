@@ -77,6 +77,7 @@ DEFINE_string(imm, "", "The path to IMM file. By default the file specified in H
 int main(int argc, char** argv)
 {
 
+    Benchmark total("Total");
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     if (argc < 2) {
@@ -100,6 +101,7 @@ int main(int argc, char** argv)
     int frames = conf->getFrameTodoCount();
     int frameFrom = conf->getFrameStartTodo();
     int frameTo = conf->getFrameEndTodo();
+    int swindow = conf->getStaticWindowSize();
 
     console->info("Data frames {0}..", frames);
     console->debug("Frames count={0}, from={1}, todo={2}", frames, frameFrom, frameTo);
@@ -115,7 +117,7 @@ int main(int argc, char** argv)
     IMM imm(conf->getIMMFilePath().c_str(), frameFrom, frameTo, -1);
 
     {
-        Benchmark benchmark("Writing frame-sums, pixel-sums");
+        Benchmark benchmark("Writing frame-sums, pixel-sums, partition-means");
         float* fsum = imm.getFrameSums();
         H5Result::write2DData(conf->getFilename(), "exchange", "frameSum", 2, frames, fsum);
         float* psum = imm.getPixelSums();
@@ -124,8 +126,32 @@ int main(int argc, char** argv)
         }
 
         H5Result::write2DData(conf->getFilename(), "exchange", "pixelSum", conf->getFrameHeight(), conf->getFrameWidth(), psum);
+        int totalStaticPartns = conf->getTotalStaticPartitions();
+        float* totalPartmean = imm.getTotalPartitionMean();
+        float* partialPartmean = imm.getPartialPartitionMean();
+        int partitions = (int) ceil((double)frames/swindow);
+
+        H5Result::write1DData(conf->getFilename(), "exchange", "partition-mean-total", totalStaticPartns, totalPartmean);
+        H5Result::write2DData(conf->getFilename(), "exchange", "partition-mean-partial", partitions, totalStaticPartns, partialPartmean);
     }
 
+    {
+        Benchmark b("Writing timestamps and taus");
+        float* tclock = imm.getTimestampClock();
+        float* ttick = imm.getTimestampTick();
+
+        H5Result::write2DData(conf->getFilename(), "exchange", "timestamp_clock", 2, frames, tclock);
+        H5Result::write2DData(conf->getFilename(), "exchange", "timestamp_tick", 2, frames, ttick);
+
+        float *tau = new float[delays_per_level.size()];
+        for (int x = 0 ; x < delays_per_level.size(); x++)
+        {   
+            std::tuple<int, int> value = delays_per_level[x];
+            tau[x] = std::get<1>(value);
+        }
+        H5Result::write1DData(conf->getFilename(), "exchange", "tau", (int)delays_per_level.size(), tau);
+    }
+        
     {
         Benchmark benchmark("Computing G2");
         Corr::multiTau2(imm.getSparseData(), g2s, ips, ifs);

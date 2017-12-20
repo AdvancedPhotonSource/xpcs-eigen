@@ -83,6 +83,9 @@ public:
    float* getFrameSums();
    float* getPixelSums();
 
+   float* getTotalPartitionMean();
+   float* getPartialPartitionMean();
+
    SparseData* getSparseData();
 
 private:
@@ -126,6 +129,8 @@ private:
 
     float* m_pixelSums;
     float* m_frameSums;
+    float* m_partialPartitionMean;
+    float* m_totalPartitionMean;
 };
 
 #endif

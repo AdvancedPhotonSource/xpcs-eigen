@@ -310,6 +310,8 @@ void Corr::multiTau2(SparseData* data, float* G2s, float* IPs, float* IFs)
 
     vector<std::tuple<int,int> > delays_per_level = delaysPerLevel(frames, 4, maxLevel);
 
+    int pix = 355517;
+
     // #pragma omp parallel for default(none) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
     for (int i = 0; i < validPixels.size(); i++)
     {
@@ -318,8 +320,13 @@ void Corr::multiTau2(SparseData* data, float* G2s, float* IPs, float* IFs)
         int ll = 0;
 
         int lastframe = frames;
+        int lastIndex = row->indxPtr.size();
         int tauIndex = 0;
         int g2Index = 0;
+        // if (validPixels.at(i) == pix) {
+        //     printf("Last Index %d\n", lastIndex);
+        // }
+
         for (std::vector<std::tuple<int, int> >::iterator it = delays_per_level.begin() ;
                 it != delays_per_level.end(); ++it)
         {
@@ -328,17 +335,17 @@ void Corr::multiTau2(SparseData* data, float* G2s, float* IPs, float* IFs)
             std::tuple<int, int> tau_level = *it;
             int level = std::get<0>(tau_level);
             int tau = std::get<1>(tau_level);
-            int lastIndex;
+            // int lastIndex;
 
-            if (level == 0)
-                lastIndex = row->indxPtr.size();
+            // if (level == 0)
+            //     lastIndex = row->indxPtr.size();
 
             if (ll != level)
             {   
-                if (level == 7 and validPixels.at(i) == 355517)
-                {
-                    printf ("...");
-                }
+                // if (level == 7 and validPixels.at(i) == pix)
+                // {
+                //     printf ("...");
+                // }
                 if (lastframe % 2)
                     lastframe -= 1;
 
@@ -348,58 +355,87 @@ void Corr::multiTau2(SparseData* data, float* G2s, float* IPs, float* IFs)
                 int cnt = 0;
                 
                 int i0, i1;
-                i0 = row->indxPtr[cnt] / 2;
-                i1 = i0;
+                i0 = row->indxPtr[cnt] / 2.0;
 
-                if (row->indxPtr.size() == 1) {
+                if (lastIndex > 0 && i0 < lastframe) {
                     row->indxPtr[index] = i0;
-                    row->valPtr[index] = row->valPtr[index]/2.0f;
+                    cnt = 1;
                 }
 
-                int inc;
-                while (i1 < lastframe && cnt < row->indxPtr.size()-1)
-                {   
-                    i0 = row->indxPtr[cnt] / 2;
-                    i1 = row->indxPtr[cnt+1] / 2;
-                    
-                    inc = 0;
-                    if (i0 == i1)
-                    {
-                        row->indxPtr[index] = i0;
-                        row->valPtr[index] = (row->valPtr[cnt] + row->valPtr[cnt+1]) / 2.0f;
-                        inc = 2;
-                    }
-                    else
-                    {
-                        row->indxPtr[index] = i0;
-                        row->valPtr[index] = row->valPtr[cnt] / 2.0f;
-                        inc = 1;
-                    }
-
-                    cnt += inc;
-                    index++; 
-                    lastIndex = index;
-
-                }
-
-                // In case,we are left with one off element
-                if (i0 != i1 && i1 < lastframe && cnt < row->indxPtr.size())
+                while (cnt < lastIndex) 
                 {
-                    row->indxPtr[index] = i1;
-                    row->valPtr[index] = row->valPtr[cnt] / 2.0f;
-                    lastIndex = index+1;
+                    i1 = row->indxPtr[cnt] / 2.0;
+                    if (i1 >= lastframe) break;
+
+                    if (i1 == i0) 
+                    {
+                        row->valPtr[index] += row->valPtr[cnt]; 
+                    }
+                    else 
+                    {
+                        row->indxPtr[++index] = i1;
+                        row->valPtr[index] = row->valPtr[cnt];
+                    }
+
+                    i0 = i1;
+                    cnt++;
                 }
+
+                lastIndex = index+1;
+
+                for (int i = 0 ; i < lastIndex; i++) 
+                    row->valPtr[i] /= 2.0f;
+
+
+
+                // if (row->indxPtr.size() == 1) {
+                //     row->indxPtr[index] = i0;
+                //     row->valPtr[index] = row->valPtr[index]/2.0f;
+                // }
+
+                // int inc;
+                // while (i1 < lastframe && cnt < lastIndex-1)
+                // {   
+                //     i0 = row->indxPtr[cnt] / 2;
+                //     i1 = row->indxPtr[cnt+1] / 2;
+                    
+                //     inc = 0;
+                //     if (i0 == i1)
+                //     {
+                //         row->indxPtr[index] = i0;
+                //         row->valPtr[index] = (row->valPtr[cnt] + row->valPtr[cnt+1]) / 2.0f;
+                //         inc = 2;
+                //     }
+                //     else
+                //     {
+                //         row->indxPtr[index] = i0;
+                //         row->valPtr[index] = row->valPtr[cnt] / 2.0f;
+                //         inc = 1;
+                //     }
+
+                //     cnt += inc;
+                //     index++; 
+
+                // }
+
+                // // In case,we are left with one off element
+                // if (i0 != i1 && i1 < lastframe && cnt < lastIndex)
+                // {
+                //     row->indxPtr[index] = i1;
+                //     row->valPtr[index] = row->valPtr[cnt] / 2.0f;
+                //     index++;
+                // }
+
+                // lastIndex = index;
                 
 
-                if (validPixels.at(i) == 355517) {
-                    printf("level = %d, lastframe = %d\n", level, lastframe);
-                    for (int ii = 0; ii < row->indxPtr.size(); ii++) {
-                        if (row->indxPtr[ii] >= lastframe)
-                            break;
-                        printf("%d -> %f\n", row->indxPtr[ii], row->valPtr[ii]);
-                    }
-                    printf("\n");
-                }
+                // if (validPixels.at(i) == pix) {
+                //     printf("level = %d, lastframe = %d, lastIndex = %d\n", level, lastframe, lastIndex);
+                //     for (int ii = 0; ii < lastIndex; ii++) {
+                //         printf("%d -> %f\n", row->indxPtr[ii], row->valPtr[ii]);
+                //     }
+                //     printf("\n");
+                // }
             }
 
             if (level > 0)
@@ -410,9 +446,9 @@ void Corr::multiTau2(SparseData* data, float* G2s, float* IPs, float* IFs)
             IFs[g2Index]  = 0.0;
             IPs[g2Index]  = 0.0;
 
-            if (validPixels.at(i) == 355517 && lastframe == 7) {
-                printf("last index %d\n", lastIndex);
-            }
+            // if (validPixels.at(i) == pix && lastframe == 7) {
+            //     printf("last index %d\n", lastIndex);
+            // }
 
             for (int r = 0; r < lastIndex; r++)
             {
@@ -452,9 +488,9 @@ void Corr::multiTau2(SparseData* data, float* G2s, float* IPs, float* IFs)
         }
     }
 
-    H5Result::write2DData(conf->getFilename(), "exchange", "G2", delays_per_level.size(), pixels, G2s);
-    H5Result::write2DData(conf->getFilename(), "exchange", "IP", delays_per_level.size(), pixels, IPs);
-    H5Result::write2DData(conf->getFilename(), "exchange", "IF", delays_per_level.size(), pixels, IFs);
+    // H5Result::write2DData(conf->getFilename(), "exchange", "G2", delays_per_level.size(), pixels, G2s);
+    // H5Result::write2DData(conf->getFilename(), "exchange", "IP", delays_per_level.size(), pixels, IPs);
+    // H5Result::write2DData(conf->getFilename(), "exchange", "IF", delays_per_level.size(), pixels, IFs);
 }
 
 void Corr::twoTimesVec(Ref<MatrixXf> pixelData)

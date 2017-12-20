@@ -223,12 +223,20 @@ void IMM::load_sparse2()
     //TODO:: Remove the dependence of IMM reader on configuration object. 
     Configuration *conf = Configuration::instance();
     short *pixelmask = conf->getPixelMask();
+    int* sbinmask = conf->getSbinMask();
     double *flatfield = conf->getFlatField();
     float eff = conf->getDetEfficiency();
     float detAdhu = conf->getDetAdhuPhot();
     float preset =  conf->getDetPreset();
     int x = conf->getFrameWidth();
     int y = conf->getFrameHeight();
+
+    float normFactor = conf->getNormFactor();
+
+    int framesTodo = conf->getFrameTodoCount();
+    int swindow = conf->getStaticWindowSize();
+    int totalStaticPartns = conf->getTotalStaticPartitions();
+    int partitions = (int) ceil((double)framesTodo/swindow);
 
     int totalPixels = x * y;
     m_sdata = new SparseData(totalPixels);
@@ -248,6 +256,24 @@ void IMM::load_sparse2()
     short* values = new short[m_pixelsPerFrame];
     m_frameSums = new float[2*m_frames];
     m_pixelSums = new float[totalPixels];
+    m_partialPartitionMean = new float[totalStaticPartns * partitions];
+    m_totalPartitionMean = new float[totalStaticPartns];
+    float *pixcount = new float[totalStaticPartns];
+
+    for (int i = 0; i < totalStaticPartns; i++)
+    {
+        pixcount[i] = 0.0;
+        m_totalPartitionMean[i] = 0.0;
+    }
+
+    for (int i = 0; i < totalStaticPartns * partitions; i++)
+        m_partialPartitionMean[i] = 0.0;
+
+    for (int i = 0; i < totalPixels; i++)
+    {
+        pixcount[sbinmask[i] - 1]++;
+    }
+
 
     for (int i = 0 ; i < totalPixels; i++)
         m_pixelSums[i] = 0.0f;
@@ -261,6 +287,7 @@ void IMM::load_sparse2()
         fcount++;
     }
 
+    int partno = 0;
     while ((fcount - m_frameStartTodo) < m_frames)
     {
         fread(m_ptrHeader, 1024, 1, m_ptrFile);
@@ -286,6 +313,9 @@ void IMM::load_sparse2()
         // TODO insert assert statements
         // /// - read pixels == requested pixels to read etc. 
         int fnumber = fcount - m_frameStartTodo;
+        if (fnumber > 0 && (fnumber % swindow) == 0)
+            partno++;
+
         float fsum = 0.0;
         for (int i = 0; i < pixels; i++)
         {
@@ -303,6 +333,10 @@ void IMM::load_sparse2()
                 ptr->valPtr.push_back(val);
                 fsum += val;
                 m_pixelSums[pix] += val;
+
+                int sbin = sbinmask[pix] - 1;
+                m_totalPartitionMean[sbin] += val; 
+                m_partialPartitionMean[partno * totalStaticPartns + sbin] += val;
             }
         }
 
@@ -311,10 +345,21 @@ void IMM::load_sparse2()
         fcount++;
     }
 
+    float denom = 1.0;
+    for (int i = 0; i < totalStaticPartns; i++)
+    {
+        for (int j = 0; j < partitions; j++)
+        {   
+            denom = pixcount[i] * swindow * normFactor;
+            m_partialPartitionMean[j*totalStaticPartns + i] /= denom;
+        }
+    }
+    for (int  i = 0; i < totalStaticPartns; i++) 
+    {
+        denom = pixcount[i] * framesTodo * normFactor;
+        m_totalPartitionMean[i] /= denom;
+    }
 
-    // m_sparsePixelData = SparseMatF(m_pixelsPerFrame, m_frames);
-    // m_sparsePixelData.setFromTriplets(tripletList.begin(), tripletList.end());
-    // m_sparsePixelData.makeCompressed();
 }
 
 Eigen::MatrixXf IMM::getPixelData()
@@ -355,4 +400,14 @@ float* IMM::getPixelSums()
 SparseData* IMM::getSparseData()
 {
     return m_sdata;
+}
+
+float* IMM::getTotalPartitionMean()
+{
+    return m_totalPartitionMean;
+}
+
+float* IMM::getPartialPartitionMean()
+{
+    return m_partialPartitionMean;
 }
