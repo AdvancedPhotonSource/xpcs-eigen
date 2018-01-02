@@ -64,6 +64,19 @@ public:
                         const std::string &nodename,
                         Eigen::Ref<Eigen::VectorXf> mat);
 
+    static void write1DData(const std::string &file,  
+                        const std::string &grpname,
+                        const std::string &nodename,
+                        int size,
+                        float *data);
+
+    static void write2DData(const std::string &file, 
+                        const std::string &grpname,
+                        const std::string &nodename,
+                        int size0,
+                        int size1,
+                        float* data);
+
     static void writePixelSum(const std::string &file, 
                               const std::string &grpname,
                               Eigen::Ref<Eigen::VectorXf> pixelSum);

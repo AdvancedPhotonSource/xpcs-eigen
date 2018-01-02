@@ -87,6 +87,45 @@ void H5Result::write2DData(const std::string &file,
     H5Fclose(file_id);    
 }
 
+void H5Result::write2DData(const std::string &file, 
+                           const std::string &grpname,
+                           const std::string &nodename,
+                           int size0,
+                           int size1,
+                           float* data)
+{
+    hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
+    hsize_t dims[2];
+
+    file_id = H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+    // Disable hdf std err printout for opening an non-existing group.
+    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    exchange_grp_id = H5Gopen2(file_id, grpname.c_str(), H5P_DEFAULT);
+    if (exchange_grp_id < 0) {
+        exchange_grp_id = H5Gcreate(file_id, grpname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
+
+    //TODO :: Log error if the grp creation fail. 
+
+    dataset_id = H5Dopen2(exchange_grp_id, nodename.c_str(), H5P_DEFAULT);
+
+    if (dataset_id < 0) {
+
+        dims[0] = size0;
+        dims[1] = size1;
+
+        dataspace_id = H5Screate_simple(2, dims, NULL);
+        dataset_id = H5Dcreate(exchange_grp_id, nodename.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
+
+    hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+
+    H5Dclose(dataset_id);
+    if (dataspace_id) H5Sclose(dataspace_id);
+    H5Gclose(exchange_grp_id);
+    H5Fclose(file_id);    
+}
+
 void H5Result::write1DData(const std::string &file, 
                            const std::string &grpname,
                            const std::string &nodename,
@@ -123,6 +162,46 @@ void H5Result::write1DData(const std::string &file,
     H5Gclose(exchange_grp_id);
     H5Fclose(file_id);    
 }
+
+
+void H5Result::write1DData(const std::string &file, 
+                           const std::string &grpname,
+                           const std::string &nodename,
+                           int size,
+                           float* data)
+{
+    hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
+    hsize_t dims[2];
+
+    file_id = H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+    // Disable hdf std err printout for opening an non-existing group.
+    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    exchange_grp_id = H5Gopen2(file_id, grpname.c_str(), H5P_DEFAULT);
+    if (exchange_grp_id < 0) {
+        exchange_grp_id = H5Gcreate(file_id, grpname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
+
+    //TODO :: Log error if the grp creation fail. 
+
+    dataset_id = H5Dopen2(exchange_grp_id, nodename.c_str(), H5P_DEFAULT);
+
+    if (dataset_id < 0) {
+
+        dims[0] = 1;
+        dims[1] = size;
+
+        dataspace_id = H5Screate_simple(2, dims, NULL);
+        dataset_id = H5Dcreate(exchange_grp_id, nodename.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
+
+    hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+
+    H5Dclose(dataset_id);
+    if (dataspace_id) H5Sclose(dataspace_id);
+    H5Gclose(exchange_grp_id);
+    H5Fclose(file_id);    
+}
+
 
 void H5Result::writePixelSum(const std::string &file, 
                    const std::string &grpname,

@@ -44,65 +44,30 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#ifndef CORR_H
-#define CORR_H
+#ifndef SPARSEDATA_H
+#define SPARSEDATA_H
+
+#include "row.h"
 
 #include <vector>
-#include <tuple>
 
-#include "Eigen/Dense"
-#include "Eigen/SparseCore"
-
-#include "imm.h"
-#include "sparsedata.h"
-
-
-class Corr {
-
+class SparseData 
+{
 public:
-    static int calculateDelayCount(int dpl, int level);
 
-    static int calculateLevelMax(int frameCount, int dpl);
+  SparseData(int rows, int initalSize=10);
+  ~SparseData();
 
-    static std::vector< std::tuple<int, int> > delaysPerLevel(int frameCount, int dpl, int maxDelay);
+  Row* get(int index);
 
+  std::vector<int>& getValidPixels();
 
-    /**
-     * Non vectorized version of G2 calcuation, here only for reference. 
-     * I will delete it from the source soon. 
-     */
-    static void multiTau(const Eigen::MatrixXf &pixelData, int pix);
+private:
+  Row** m_data;
+  int m_rows;
+  int m_initSize;
 
-    /**
-     *  Compute G2,IP, and IF from a Dense matrix. 
-     */
-    static void multiTauVec(Eigen::Ref<Eigen::MatrixXf> pixelData, 
-                            Eigen::Ref<Eigen::MatrixXf> G2, 
-                            Eigen::Ref<Eigen::MatrixXf> IP, 
-                            Eigen::Ref<Eigen::MatrixXf> IF);
-
-    /**
-     *  Compute G2,IP, and IF from a Sparse Matrix. 
-     */
-    static void multiTauVec(SparseRMatF& pixelData,
-                            Eigen::Ref<Eigen::MatrixXf> G2, 
-                            Eigen::Ref<Eigen::MatrixXf> IP, 
-                            Eigen::Ref<Eigen::MatrixXf> IF);
-
-    static void multiTau2(SparseData *data, float* G2, float* IP, float* IF);
-
-    static void twoTimesVec(Eigen::Ref<Eigen::MatrixXf> pixelData);
-
-    static void normalizeG2s(Eigen::Ref<Eigen::MatrixXf> g2,
-                      Eigen::Ref<Eigen::MatrixXf> IP, 
-                      Eigen::Ref<Eigen::MatrixXf> IF);
-
-    static double* computeG2Levels(const Eigen::MatrixXf &pixelData, 
-                                int pixel,
-                                int frameCount, 
-                                int tau, 
-                                int level);
-
+  std::vector<int> m_validPixels;
 };
 
 #endif

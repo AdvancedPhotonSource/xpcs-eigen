@@ -87,6 +87,7 @@ public:
     void setIMMFilePath(std::string& str);
 
     short* getPixelMask();
+    int* getSbinMask();
 
     float getDetDpixX();
     float getDetDpixY();
@@ -118,6 +119,7 @@ private:
 
     // Valid pixel mask - mark an entry as 1 in an array if the pixel is contained in any of the bins.
     short* m_validPixelMask;
+    int* m_sbin;
 
     int m_totalStaticPartitions;
     int m_totalDynamicPartitions;

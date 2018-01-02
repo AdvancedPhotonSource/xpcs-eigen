@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define IMM_H
 
 #include "immHeader.h"
-
+#include "sparsedata.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace Eigen;
 
 typedef Eigen::SparseMatrix<float> SparseMatF;
+typedef Eigen::SparseMatrix<float, RowMajor> SparseRMatF;
 
 class IMM
 {
@@ -72,12 +73,20 @@ public:
 
    Eigen::MatrixXf getPixelData();
    
-   SparseMatF getSparsePixelData();
+   SparseRMatF getSparsePixelData();
 
    bool getIsSparse();
 
    float* getTimestampClock();
    float* getTimestampTick();
+
+   float* getFrameSums();
+   float* getPixelSums();
+
+   float* getTotalPartitionMean();
+   float* getPartialPartitionMean();
+
+   SparseData* getSparseData();
 
 private:
 
@@ -97,7 +106,7 @@ private:
     float *m_timestampTick;
 
     MatrixXf m_pixelData;
-    SparseMatF m_sparsePixelData;
+    SparseRMatF m_sparsePixelData;
     
     bool m_isSparse;
 
@@ -107,10 +116,21 @@ private:
     // Loads the sparse IMM file 
     void load_sparse();
 
+    // Loads the sparse IMM to internanl structures. Unlinke the load_sparse method
+    // it doesn't generate a matrix. 
+    void load_sparse2();
+
     // Load non-sparse data. 
     void load_nonsprase();
 
+    SparseData *m_sdata;
+
     std::shared_ptr<spdlog::logger> _logger;
+
+    float* m_pixelSums;
+    float* m_frameSums;
+    float* m_partialPartitionMean;
+    float* m_totalPartitionMean;
 };
 
 #endif

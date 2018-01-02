@@ -44,65 +44,42 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#ifndef CORR_H
-#define CORR_H
-
-#include <vector>
-#include <tuple>
-
-#include "Eigen/Dense"
-#include "Eigen/SparseCore"
-
-#include "imm.h"
 #include "sparsedata.h"
+#include "configuration.h"
+#include "benchmark.h"
 
+#include <stdio.h>
+#include <iostream>
 
-class Corr {
+SparseData::SparseData(int rows, int initialSize)
+{
+    m_rows = rows;
+    m_initSize = initialSize;
+    m_data = new Row*[rows];
 
-public:
-    static int calculateDelayCount(int dpl, int level);
+    for (int i = 0; i < m_rows; i++)
+        m_data[i] = NULL;
+}
 
-    static int calculateLevelMax(int frameCount, int dpl);
+SparseData::~SparseData()
+{
+  //TODO
+}
 
-    static std::vector< std::tuple<int, int> > delaysPerLevel(int frameCount, int dpl, int maxDelay);
+Row* SparseData::get(int index)
+{
+    assert(index < m_rows);
+    Row *r = m_data[index];
+    if (!r) {
+        r = new Row(m_initSize);
+        m_data[index] = r;
+        m_validPixels.push_back(index);
+    }
 
+    return r;
+}
 
-    /**
-     * Non vectorized version of G2 calcuation, here only for reference. 
-     * I will delete it from the source soon. 
-     */
-    static void multiTau(const Eigen::MatrixXf &pixelData, int pix);
-
-    /**
-     *  Compute G2,IP, and IF from a Dense matrix. 
-     */
-    static void multiTauVec(Eigen::Ref<Eigen::MatrixXf> pixelData, 
-                            Eigen::Ref<Eigen::MatrixXf> G2, 
-                            Eigen::Ref<Eigen::MatrixXf> IP, 
-                            Eigen::Ref<Eigen::MatrixXf> IF);
-
-    /**
-     *  Compute G2,IP, and IF from a Sparse Matrix. 
-     */
-    static void multiTauVec(SparseRMatF& pixelData,
-                            Eigen::Ref<Eigen::MatrixXf> G2, 
-                            Eigen::Ref<Eigen::MatrixXf> IP, 
-                            Eigen::Ref<Eigen::MatrixXf> IF);
-
-    static void multiTau2(SparseData *data, float* G2, float* IP, float* IF);
-
-    static void twoTimesVec(Eigen::Ref<Eigen::MatrixXf> pixelData);
-
-    static void normalizeG2s(Eigen::Ref<Eigen::MatrixXf> g2,
-                      Eigen::Ref<Eigen::MatrixXf> IP, 
-                      Eigen::Ref<Eigen::MatrixXf> IF);
-
-    static double* computeG2Levels(const Eigen::MatrixXf &pixelData, 
-                                int pixel,
-                                int frameCount, 
-                                int tau, 
-                                int level);
-
-};
-
-#endif
+std::vector<int>& SparseData::getValidPixels()
+{
+    return m_validPixels;
+}

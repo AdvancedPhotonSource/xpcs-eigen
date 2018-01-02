@@ -132,12 +132,15 @@ void Configuration::init(const string &path)
     m_immFile = getString("/xpcs/input_file_local");
     
     this->m_validPixelMask = new short[this->xdim * this->ydim];
+    m_sbin = new int[this->xdim * this->ydim];
+
     // Build mapping from q-bin to s-bins and from s-bins to pixels. 
     for (int i=0; i<(xdim*ydim); i++) {
         if (dqmap[i] < 1 || sqmap[i] < 1) continue;
 
         // Mark this pixel to be part of a valid mask. 
         m_validPixelMask[i] = 1;
+        m_sbin[i] = sqmap[i];
 
         map<int, map<int, vector<int>> >::iterator it = m_mapping.find(dqmap[i]);
 
@@ -362,6 +365,11 @@ std::string Configuration::getFilename()
 short* Configuration::getPixelMask()
 {
     return this->m_validPixelMask;
+}
+
+int* Configuration::getSbinMask()
+{
+    return this->m_sbin;
 }
 
 float Configuration::getDetDpixX()
