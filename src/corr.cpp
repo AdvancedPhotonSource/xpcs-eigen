@@ -487,10 +487,6 @@ void Corr::multiTau2(SparseData* data, float* G2s, float* IPs, float* IFs)
             tauIndex++;
         }
     }
-
-    // H5Result::write2DData(conf->getFilename(), "exchange", "G2", delays_per_level.size(), pixels, G2s);
-    // H5Result::write2DData(conf->getFilename(), "exchange", "IP", delays_per_level.size(), pixels, IPs);
-    // H5Result::write2DData(conf->getFilename(), "exchange", "IF", delays_per_level.size(), pixels, IFs);
 }
 
 void Corr::twoTimesVec(Ref<MatrixXf> pixelData)

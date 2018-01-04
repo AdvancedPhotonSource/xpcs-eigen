@@ -14,7 +14,7 @@ set(sources
     src/imm.cpp
     src/sparsedata.cpp
     src/funcs.cpp
-    src/main3.cpp)
+    src/main.cpp)
 
 
 find_package(OpenMP)

@@ -59,16 +59,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "corr.h"
 #include "configuration.h"
 #include "h5result.h"
-#include "funcs.h"
 #include "benchmark.h"
-
-#include "Eigen/Dense"
-#include "Eigen/SparseCore"
 
 #include "gflags/gflags.h"
 #include "spdlog/spdlog.h"
 
-using namespace Eigen;
 using namespace std;
 namespace spd = spdlog; 
 
@@ -121,6 +116,7 @@ int main(int argc, char** argv)
     int frames = conf->getFrameTodoCount();
     int frameFrom = conf->getFrameStartTodo();
     int frameTo = conf->getFrameEndTodo();
+    int swindow = conf->getStaticWindowSize();
 
     console->info("Data frames {0}..", frames);
     console->debug("Frames count={0}, from={1}, todo={2}", frames, frameFrom, frameTo);
@@ -129,75 +125,70 @@ int main(int argc, char** argv)
     int maxLevel = Corr::calculateLevelMax(frames, 4);
     vector<std::tuple<int,int> > delays_per_level = Corr::delaysPerLevel(frames, 4, maxLevel);
 
+    float* g2s = new float[pixels * delays_per_level.size()];
+    float* ips = new float[pixels * delays_per_level.size()];
+    float* ifs = new float[pixels * delays_per_level.size()];
+
     IMM imm(conf->getIMMFilePath().c_str(), frameFrom, frameTo, -1);
 
     MatrixXf G2(pixels, delays_per_level.size());
     MatrixXf IP(pixels, delays_per_level.size());
     MatrixXf IF(pixels, delays_per_level.size());
 
-    Funcs funcs;
-    if (imm.getIsSparse()) {
-        SparseRMatF mat = imm.getSparsePixelData();
+    {
+        Benchmark benchmark("Writing frame-sums, pixel-sums, partition-means");
+        float* fsum = imm.getFrameSums();
+        H5Result::write2DData(conf->getFilename(), "exchange", "frameSum", 2, frames, fsum);
+        float* psum = imm.getPixelSums();
+        for (int i = 0 ; i < pixels; i++) {
+            psum[i] /= frames;
+        }
 
-        // {
-        //     Benchmark b("Computing framesums, pixelsums and partition-means");
-        //     MatrixXf frameSum = funcs.frameSum(mat);
-        //     H5Result::write2DData(conf->getFilename(), "exchange", "frameSum", frameSum);        
+        H5Result::write2DData(conf->getFilename(), "exchange", "pixelSum", conf->getFrameHeight(), conf->getFrameWidth(), psum);
+        int totalStaticPartns = conf->getTotalStaticPartitions();
+        float* totalPartmean = imm.getTotalPartitionMean();
+        float* partialPartmean = imm.getPartialPartitionMean();
+        int partitions = (int) ceil((double)frames/swindow);
 
-        //     MatrixXf pixelSum = funcs.pixelWindowSum(mat);
-        //     MatrixXf pmean = funcs.partitionMean(pixelSum);
-        //     VectorXf pixelSumV = pixelSum.col(0).array() / frames;
-
-        //     H5Result::writePixelSum(conf->getFilename(), "exchange", pixelSumV);        
-        //     H5Result::write1DData(conf->getFilename(), "exchange", "partition-mean-total", pmean.col(0));
-        //     H5Result::write2DData(conf->getFilename(), "exchange", "partition-mean-partial", pmean.rightCols(pmean.cols()-1));
-        // }
-
-        // {
-        //     Benchmark b("Writing timestamps and taus");
-        //     float* tclock = imm.getTimestampClock();
-        //     float* ttick = imm.getTimestampTick();
-
-        //     MatrixXf c = Map<MatrixXf>(tclock, frames, 2);
-        //     H5Result::write2DData(conf->getFilename(), "exchange", "timestamp_clock", c);
-
-        //     c = Map<MatrixXf>(ttick, frames, 2);
-        //     H5Result::write2DData(conf->getFilename(), "exchange", "timestamp_tick", c);
-
-        //     VectorXf tau(delays_per_level.size());
-        //     for (int x = 0 ; x < delays_per_level.size(); x++)
-        //     {   
-        //         std::tuple<int, int> value = delays_per_level[x];
-        //         // printf("%d - %d\n", std::get<0>(value), std::get<1>(value));   
-        //         tau[x] = std::get<1>(value);
-        //     }
-
-        //     H5Result::write2DData(conf->getFilename(), "exchange", "tau", tau);
-
-        // }
-
-        Benchmark b("Computing G2");
-        Corr::multiTauVec(mat, G2, IP, IF);
-        
-    } else {
-        MatrixXf pixelData = imm.getPixelData();
-        VectorXf pixelSum = funcs.pixelSum(pixelData);
-        H5Result::writePixelSum(conf->getFilename(), "exchange", pixelSum);
-        // Corr::multiTauVec(pixelData, G2, IP, IF);
+        H5Result::write1DData(conf->getFilename(), "exchange", "partition-mean-total", totalStaticPartns, totalPartmean);
+        H5Result::write2DData(conf->getFilename(), "exchange", "partition-mean-partial", partitions, totalStaticPartns, partialPartmean);
     }
 
+    {
+        Benchmark b("Writing timestamps and taus");
+        float* tclock = imm.getTimestampClock();
+        float* ttick = imm.getTimestampTick();
 
+        H5Result::write2DData(conf->getFilename(), "exchange", "timestamp_clock", 2, frames, tclock);
+        H5Result::write2DData(conf->getFilename(), "exchange", "timestamp_tick", 2, frames, ttick);
+
+        float *tau = new float[delays_per_level.size()];
+        for (int x = 0 ; x < delays_per_level.size(); x++)
+        {   
+            std::tuple<int, int> value = delays_per_level[x];
+            tau[x] = std::get<1>(value);
+        }
+        H5Result::write1DData(conf->getFilename(), "exchange", "tau", (int)delays_per_level.size(), tau);
+    }
+        
+    {
+        Benchmark benchmark("Computing G2");
+        Corr::multiTau2(imm.getSparseData(), g2s, ips, ifs);
+    }
+
+    Benchmark benchmark("Normalizing G2");
+    MatrixXf G2s = Map<MatrixXf>(g2s, pixels, delays_per_level.size());
+    MatrixXf IPs = Map<MatrixXf>(ips, pixels, delays_per_level.size());
+    MatrixXf IFs = Map<MatrixXf>(ifs, pixels, delays_per_level.size());
+
+    Corr::normalizeG2s(G2s, IPs, IFs);
     
     if (FLAGS_g2out) {
 
         Benchmark b("Writing G2s, IPs and IFs");
-
-        H5Result::write2DData(conf->getFilename(), "exchange", "G2", G2);
-        H5Result::write2DData(conf->getFilename(), "exchange", "IP", IP);
-        H5Result::write2DData(conf->getFilename(), "exchange", "IF", IF);    
+        H5Result::write2DData(conf->getFilename(), "exchange", "G2", pixels, delays_per_level.size(), g2s);
+        H5Result::write2DData(conf->getFilename(), "exchange", "IP", pixels, delays_per_level.size(), ips);
+        H5Result::write2DData(conf->getFilename(), "exchange", "IF", pixels, delays_per_level.size(), ifs);
     }
 
-    // Benchmark b("Normalizing G2s");
-    // Corr::normalizeG2s(G2, IP, IF);
-    // Corr::twoTimesVec(imm.getPixelData());
 }
