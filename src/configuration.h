@@ -73,6 +73,9 @@ public:
     int getFrameEnd();
     int getFrameTodoCount();
     int getFrameCount();
+    int getDarkFrameStart();
+    int getDarkFrameEnd();
+    int getDarkFrames();
     
     void init(const std::string &path);
 
@@ -95,6 +98,9 @@ public:
     float getDetPreset();
     float getDetEfficiency();
     float getNormFactor();
+
+    float getDarkThreshold();
+    float getDarkSigma();
 
     bool getIsFlatFieldEnabled();
     double* getFlatField();
@@ -135,6 +141,8 @@ private:
     int frameEnd;
     int frameStartTodo;
     int frameEndTodo;
+    int darkFrameStart;
+    int darkFrameEnd;
     int m_staticWindow;
 
     float m_detDpixX;
@@ -143,6 +151,9 @@ private:
     float m_detPreset;
     float m_detEfficiency;
     float m_normFactor;
+
+    float darkThreshold;
+    float darkSigma;
 
     hid_t file_id;
 

@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "imm.h"
 #include "configuration.h"
 #include "benchmark.h"
+#include "darkImage.h"
 
 #include <stdio.h>
 #include <iostream>
@@ -81,7 +82,7 @@ IMM::IMM(const char* filename, int frameFrom, int frameTo, int pixelsPerFrame)
         m_isSparse = true;
     } 
     else {
-        load_nonsprase();
+        load_nonsprase2();
         m_isSparse = false;
     }
 
@@ -136,6 +137,179 @@ void IMM::load_nonsprase()
     m_pixelData = Map<MatrixXf>(m_data, m_pixelsPerFrame, m_frames);
 
     delete(buffer);
+}
+
+
+void IMM::load_nonsprase2()
+{
+    Configuration *conf = Configuration::instance();
+
+    short *pixelmask = conf->getPixelMask();
+    int* sbinmask = conf->getSbinMask();
+    double *flatfield = conf->getFlatField();
+    float eff = conf->getDetEfficiency();
+    float detAdhu = conf->getDetAdhuPhot();
+    float preset =  conf->getDetPreset();
+    int x = conf->getFrameWidth();
+    int y = conf->getFrameHeight();
+
+    float normFactor = conf->getNormFactor();
+
+    int framesTodo = conf->getFrameTodoCount();
+    int swindow = conf->getStaticWindowSize();
+    int totalStaticPartns = conf->getTotalStaticPartitions();
+    int partitions = (int) ceil((double)framesTodo/swindow);
+    int darkStart = conf->getDarkFrameStart();
+    int darkEnd = conf->getDarkFrameEnd();
+    int darkFrames = conf->getDarkFrames();
+
+    float threshold = conf->getDarkThreshold();
+    float sigma = conf->getDarkSigma();
+
+    int totalPixels = x * y;
+    m_sdata = new SparseData(totalPixels);
+
+    m_timestampClock = new float[2*m_frames];
+    m_timestampTick = new float[2*m_frames];
+
+    rewind(m_ptrFile);
+
+     // Row/Cols large enough to hold the index buffer
+    // TODO: We can further reduce the memory requirement here 
+    // through a better allocation scheme. 
+    short* values = new short[m_pixelsPerFrame];
+    m_frameSums = new float[2*m_frames];
+    m_pixelSums = new float[totalPixels];
+    m_partialPartitionMean = new float[totalStaticPartns * partitions];
+    m_totalPartitionMean = new float[totalStaticPartns];
+    float *pixcount = new float[totalStaticPartns];
+
+    for (int i = 0; i < totalStaticPartns; i++)
+    {
+        pixcount[i] = 0.0;
+        m_totalPartitionMean[i] = 0.0;
+    }
+
+    for (int i = 0; i < totalStaticPartns * partitions; i++)
+        m_partialPartitionMean[i] = 0.0;
+
+    for (int i = 0; i < totalPixels; i++)
+    {
+        pixcount[sbinmask[i] - 1]++;
+    }
+
+    for (int i = 0 ; i < totalPixels; i++)
+        m_pixelSums[i] = 0.0f;
+
+    int fcount = 0;
+    int count = 0;
+
+    // Skip frames below start frame. 
+    while (fcount < darkStart)
+    {
+        fread(m_ptrHeader, 1024, 1, m_ptrFile);
+        uint skip = m_ptrHeader->dlen;        
+        fseek(m_ptrFile, skip * 2, SEEK_CUR);
+        fcount++;
+    }
+
+    short** darkPixels = new short*[darkFrames];
+    int darkIndex = 0;
+
+    while (fcount < darkEnd)
+    {
+        fread(m_ptrHeader, 1024, 1, m_ptrFile);
+        uint pixels = m_ptrHeader->dlen;        
+        darkPixels[darkIndex] = new short[m_pixelsPerFrame];
+        fread(darkPixels[darkIndex], pixels * 2, 1, m_ptrFile);
+        fcount++;
+    }
+
+    DarkImage darkImage(darkPixels, darkFrames, m_pixelsPerFrame);
+    double* darkAvg = darkImage.getDarkAvg();
+    double* darkStd = darkImage.getDarkStd();
+
+        // Skip frames below start frame. 
+    while (fcount < m_frameStartTodo)
+    {
+        fread(m_ptrHeader, 1024, 1, m_ptrFile);
+        uint skip = m_ptrHeader->dlen;        
+        fseek(m_ptrFile, skip * 2, SEEK_CUR);
+        fcount++;
+    }
+
+    int partno = 0;
+    while ((fcount - m_frameStartTodo) < m_frames)
+    {
+        fread(m_ptrHeader, 1024, 1, m_ptrFile);
+
+        uint pixels = m_ptrHeader->dlen;        
+
+        m_timestampClock[count] = count + 1;
+        m_timestampClock[count+m_frames] = m_ptrHeader->elapsed;
+        m_timestampTick[count] = count + 1;
+        m_timestampTick[count+m_frames] = m_ptrHeader->corecotick;
+        count++;
+
+        fread(values, pixels * 2, 1, m_ptrFile);
+
+        // TODO insert assert statements
+        // /// - read pixels == requested pixels to read etc. 
+        int fnumber = fcount - m_frameStartTodo;
+        if (fnumber > 0 && (fnumber % swindow) == 0)
+            partno++;
+
+        float fsum = 0.0;
+        for (int i = 0; i < pixels; i++)
+        {
+            // We want the sparse pixel index to be less the number of pixels requested.
+            // if (index[i] >= m_pixelsPerFrame)
+            //     break;
+
+            if (pixelmask[i] != 0) {                
+                // tripletList.push_back(Triplet(index[i], fnumber, values[i] *flatfield[index[i]]));       
+                int pix = i;
+                double val = (double)values[i] - darkAvg[i];
+                val = max(val, 0);
+
+                double thresh = threshold + sigma * darkStd[i];
+
+                if (val <= thres) continue; 
+
+                float val2 = (float)(val * flatfield[index[i]]);
+
+                Row* ptr = m_sdata->get(pix);
+                ptr->indxPtr.push_back(fnumber);
+                ptr->valPtr.push_back(val2);
+                fsum += val2;
+                m_pixelSums[pix] += val2;
+
+                int sbin = sbinmask[pix] - 1;
+                m_totalPartitionMean[sbin] += val2; 
+                m_partialPartitionMean[partno * totalStaticPartns + sbin] += val2;
+            }
+        }
+
+        m_frameSums[fnumber] = fnumber + 1.0;
+        m_frameSums[fnumber+m_frames] = fsum / totalPixels;
+        fcount++;
+    }
+
+    float denom = 1.0;
+    for (int i = 0; i < totalStaticPartns; i++)
+    {
+        for (int j = 0; j < partitions; j++)
+        {   
+            denom = pixcount[i] * swindow * normFactor;
+            m_partialPartitionMean[j*totalStaticPartns + i] /= denom;
+        }
+    }
+    for (int  i = 0; i < totalStaticPartns; i++) 
+    {
+        denom = pixcount[i] * framesTodo * normFactor;
+        m_totalPartitionMean[i] /= denom;
+    }
+
 }
 
 void IMM::load_sparse()

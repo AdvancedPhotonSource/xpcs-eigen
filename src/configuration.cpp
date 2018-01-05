@@ -98,6 +98,11 @@ void Configuration::init(const string &path)
     this->frameStartTodo = getInteger("/xpcs/data_begin_todo");
     this->frameEndTodo = getInteger("/xpcs/data_end_todo");
 
+    darkFrameStart = getInteger("/xpcs/dark_begin_todo");
+    darkFrameEnd = getInteger("/xpcs/dark_end_todo");
+    darkThreshold = getFloat("/xpcs/lld");
+    darkSigms = getFloat("/xpcs/sigma");
+
     this->m_totalStaticPartitions = 0;
     this->m_totalDynamicPartitions = 0;
 
@@ -425,4 +430,30 @@ void Configuration::setIMMFilePath(std::string& path)
 std::string& Configuration::getIMMFilePath()
 {
     return m_immFile;
+}
+
+int Configuration::getDarkFrameStart()
+{
+    // The dark frame index start with 1 in HDF5 file. 
+    return darkFrameStart - 1;
+}
+
+int Configuration::getDarkFrameEnd()
+{
+    return darkFrameEnd - 1;
+}
+
+int Configuration::getDarkFrames()
+{
+    return darkFrameEnd - darkFrameStart + 1;
+}
+
+float Configuration::getDarkThreshold()
+{
+    return darkThreshold;
+}
+
+float Configuration::getDarkSigma()
+{
+    return darkSigma;
 }

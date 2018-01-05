@@ -122,6 +122,7 @@ private:
 
     // Load non-sparse data. 
     void load_nonsprase();
+    void load_nonsparse2();
 
     SparseData *m_sdata;
 
