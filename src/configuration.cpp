@@ -100,8 +100,22 @@ void Configuration::init(const string &path)
 
     darkFrameStart = getInteger("/xpcs/dark_begin_todo");
     darkFrameEnd = getInteger("/xpcs/dark_end_todo");
+
+    if (darkFrameStart == darkFrameEnd || darkFrameEnd == 0)
+    {
+        darkFrameStart = 0;
+        darkFrameEnd = 0;
+        darkFrames  = 0;
+    }
+    else
+    {
+        darkFrameStart = darkFrameStart - 1;
+        darkFrameEnd = darkFrameEnd - 1;
+        darkFrames = darkFrameEnd - darkFrameStart + 1;
+    }
+
     darkThreshold = getFloat("/xpcs/lld");
-    darkSigms = getFloat("/xpcs/sigma");
+    darkSigma = getFloat("/xpcs/sigma");
 
     this->m_totalStaticPartitions = 0;
     this->m_totalDynamicPartitions = 0;
@@ -132,7 +146,11 @@ void Configuration::init(const string &path)
 
     if (this->flatfieldEnabled) 
         this->flatfield = get2DTableD("/measurement/instrument/detector/flatfield");
-
+    else {
+        flatfield = new double[xdim*ydim];
+        for (int i = 0; i < (xdim*ydim); i++)
+            flatfield[i] = 1.0;
+    }
 
     m_immFile = getString("/xpcs/input_file_local");
     
@@ -435,17 +453,17 @@ std::string& Configuration::getIMMFilePath()
 int Configuration::getDarkFrameStart()
 {
     // The dark frame index start with 1 in HDF5 file. 
-    return darkFrameStart - 1;
+    return darkFrameStart;
 }
 
 int Configuration::getDarkFrameEnd()
 {
-    return darkFrameEnd - 1;
+    return darkFrameEnd;
 }
 
 int Configuration::getDarkFrames()
 {
-    return darkFrameEnd - darkFrameStart + 1;
+    return darkFrames;
 }
 
 float Configuration::getDarkThreshold()

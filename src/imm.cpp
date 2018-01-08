@@ -82,7 +82,7 @@ IMM::IMM(const char* filename, int frameFrom, int frameTo, int pixelsPerFrame)
         m_isSparse = true;
     } 
     else {
-        load_nonsprase2();
+        load_nonsparse2();
         m_isSparse = false;
     }
 
@@ -104,7 +104,7 @@ void IMM::init()
 
 }
 
-void IMM::load_nonsprase()
+void IMM::load_nonsparse()
 {
     short* buffer = new short[m_pixelsPerFrame];
     m_data = new float[m_frames * m_pixelsPerFrame];
@@ -140,7 +140,7 @@ void IMM::load_nonsprase()
 }
 
 
-void IMM::load_nonsprase2()
+void IMM::load_nonsparse2()
 {
     Configuration *conf = Configuration::instance();
 
@@ -213,23 +213,33 @@ void IMM::load_nonsprase2()
         fcount++;
     }
 
-    short** darkPixels = new short*[darkFrames];
+    short** darkPixels = 0;
+    if (darkFrames > 0)
+        darkPixels = new short*[darkFrames];
+
     int darkIndex = 0;
 
-    while (fcount < darkEnd)
+    while (fcount < darkFrames)
     {
         fread(m_ptrHeader, 1024, 1, m_ptrFile);
         uint pixels = m_ptrHeader->dlen;        
         darkPixels[darkIndex] = new short[m_pixelsPerFrame];
         fread(darkPixels[darkIndex], pixels * 2, 1, m_ptrFile);
+        darkIndex++;
         fcount++;
     }
 
-    DarkImage darkImage(darkPixels, darkFrames, m_pixelsPerFrame);
-    double* darkAvg = darkImage.getDarkAvg();
-    double* darkStd = darkImage.getDarkStd();
+    double* darkAvg =  NULL;
+    double * darkStd = NULL;
 
-        // Skip frames below start frame. 
+    if (darkFrames > 0) 
+    {
+        DarkImage darkImage(darkPixels, darkFrames, m_pixelsPerFrame, flatfield);
+        darkAvg = darkImage.getDarkAvg();
+        darkStd = darkImage.getDarkStd();    
+    }
+
+    // Skip frames below start frame. 
     while (fcount < m_frameStartTodo)
     {
         fread(m_ptrHeader, 1024, 1, m_ptrFile);
@@ -239,6 +249,7 @@ void IMM::load_nonsprase2()
     }
 
     int partno = 0;
+    int totalNonZeroPixles = 0;
     while ((fcount - m_frameStartTodo) < m_frames)
     {
         fread(m_ptrHeader, 1024, 1, m_ptrFile);
@@ -260,6 +271,7 @@ void IMM::load_nonsprase2()
             partno++;
 
         float fsum = 0.0;
+        totalNonZeroPixles = 0;
         for (int i = 0; i < pixels; i++)
         {
             // We want the sparse pixel index to be less the number of pixels requested.
@@ -269,29 +281,36 @@ void IMM::load_nonsprase2()
             if (pixelmask[i] != 0) {                
                 // tripletList.push_back(Triplet(index[i], fnumber, values[i] *flatfield[index[i]]));       
                 int pix = i;
-                double val = (double)values[i] - darkAvg[i];
-                val = max(val, 0);
 
-                double thresh = threshold + sigma * darkStd[i];
+                float val = values[i];
+                float thresh = 0.0;
 
-                if (val <= thres) continue; 
+                if (darkAvg != NULL) {
+                    val = values[i] - darkAvg[i];
+                    val = max(val, 0.0f);
+                    thresh = threshold + sigma * darkStd[i];
+                }
+                
+                if (val <= thresh) continue; 
 
-                float val2 = (float)(val * flatfield[index[i]]);
+                val = val * (float) flatfield[i];    
+
+                totalNonZeroPixles++;
 
                 Row* ptr = m_sdata->get(pix);
                 ptr->indxPtr.push_back(fnumber);
-                ptr->valPtr.push_back(val2);
-                fsum += val2;
-                m_pixelSums[pix] += val2;
+                ptr->valPtr.push_back(val);
+                fsum += val;
+                m_pixelSums[pix] += val;
 
                 int sbin = sbinmask[pix] - 1;
-                m_totalPartitionMean[sbin] += val2; 
-                m_partialPartitionMean[partno * totalStaticPartns + sbin] += val2;
+                m_totalPartitionMean[sbin] += val; 
+                m_partialPartitionMean[partno * totalStaticPartns + sbin] += val;
             }
         }
 
         m_frameSums[fnumber] = fnumber + 1.0;
-        m_frameSums[fnumber+m_frames] = fsum / totalPixels;
+        m_frameSums[fnumber+m_frames] = fsum / totalNonZeroPixles;
         fcount++;
     }
 
@@ -423,6 +442,13 @@ void IMM::load_sparse2()
 
     int fcount = 0;
     int count = 0;
+
+    if (flatfield == NULL)
+    {
+        for (int i = 0; i < m_pixelsPerFrame; i++)
+            flatfield[i] = 1.0;
+    }
+
 
     // Row/Cols large enough to hold the index buffer
     // TODO: We can further reduce the memory requirement here 

@@ -143,6 +143,7 @@ private:
     int frameEndTodo;
     int darkFrameStart;
     int darkFrameEnd;
+    int darkFrames;
     int m_staticWindow;
 
     float m_detDpixX;

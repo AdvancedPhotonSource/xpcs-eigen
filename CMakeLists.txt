@@ -14,6 +14,7 @@ set(sources
     src/imm.cpp
     src/sparsedata.cpp
     src/funcs.cpp
+    src/darkImage.cpp
     src/main.cpp)
 
 

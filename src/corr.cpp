@@ -312,7 +312,7 @@ void Corr::multiTau2(SparseData* data, float* G2s, float* IPs, float* IFs)
 
     int pix = 355517;
 
-    // #pragma omp parallel for default(none) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
+    #pragma omp parallel for default(none) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
     for (int i = 0; i < validPixels.size(); i++)
     {
         Row *row = data->get(validPixels.at(i));

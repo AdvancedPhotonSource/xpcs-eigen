@@ -45,93 +45,60 @@ POSSIBILITY OF SUCH DAMAGE.
 
 **/
 
+#include "darkImage.h"
+#include "configuration.h"
 
-#ifndef IMM_H
-#define IMM_H
+#include <math.h>
 
-#include "immHeader.h"
-#include "sparsedata.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string>
-
-#include "Eigen/Dense"
-#include "Eigen/SparseCore"
-#include "spdlog/spdlog.h"
-
-using namespace Eigen;
-
-typedef Eigen::SparseMatrix<float> SparseMatF;
-typedef Eigen::SparseMatrix<float, RowMajor> SparseRMatF;
-
-class IMM
+DarkImage::DarkImage(short** data, int frames, int pixelPerFrame, double* flatfield)
 {
-public:
-   IMM(const char* filename, int frameFrom, int frameTo, int pixels_per_frame);
-   
-   ~IMM();
+ 
+    darkAvg = new double[pixelPerFrame];
+    darkStd = new double[pixelPerFrame];
 
-   Eigen::MatrixXf getPixelData();
-   
-   SparseRMatF getSparsePixelData();
+    computeDarkStats(data, frames, pixelPerFrame, flatfield);
+}
 
-   bool getIsSparse();
+DarkImage::~DarkImage()
+{
+    //TODO
+}
 
-   float* getTimestampClock();
-   float* getTimestampTick();
+double* DarkImage::getDarkAvg() 
+{
+    return darkAvg;
+}
 
-   float* getFrameSums();
-   float* getPixelSums();
+double* DarkImage::getDarkStd() 
+{
+    return darkStd;
+}
 
-   float* getTotalPartitionMean();
-   float* getPartialPartitionMean();
+void DarkImage::computeDarkStats(short** data, int frames, int pixels, double* flatfield)
+{
 
-   SparseData* getSparseData();
+    for (int i = 0 ; i < pixels; i++)
+    {
+        darkAvg[i] = 0.0;
+        darkStd[i] = 0.0;
+    }
 
-private:
+    for (int i = 0; i < frames; i++)
+    {
+        for (int j = 0; j < pixels; j++)
+        {
+            double tmp = darkAvg[j];
+            double pix = (double)data[i][j] * flatfield[j];
+            
+            darkAvg[j] += ((pix - darkAvg[j]) / (double)(i+1));
+            darkStd[j] += ((pix - tmp) * (pix - darkAvg[j]));
 
-    long m_frameStartTodo;
-    long m_frameEndTodo;
-    long m_pixelsPerFrame;
-    long m_frames;
-    
-    const char* m_filename;
-    IMMHeader *m_ptrHeader;
+        }
+    }
 
-    FILE *m_ptrFile;
+    for (int j = 0; j < pixels; j++)
+        darkStd[j] = sqrt(darkStd[j] / frames);
 
-    // Internal data pointer for storing pixels. 
-    float *m_data;
-    float *m_timestampClock;
-    float *m_timestampTick;
 
-    MatrixXf m_pixelData;
-    SparseRMatF m_sparsePixelData;
-    
-    bool m_isSparse;
+}
 
-    // Initialize the file ptr and read-in file header. 
-    void init();
-
-    // Loads the sparse IMM file 
-    void load_sparse();
-
-    // Loads the sparse IMM to internanl structures. Unlinke the load_sparse method
-    // it doesn't generate a matrix. 
-    void load_sparse2();
-
-    // Load non-sparse data. 
-    void load_nonsparse();
-    void load_nonsparse2();
-
-    SparseData *m_sdata;
-
-    std::shared_ptr<spdlog::logger> _logger;
-
-    float* m_pixelSums;
-    float* m_frameSums;
-    float* m_partialPartitionMean;
-    float* m_totalPartitionMean;
-};
-
-#endif
