@@ -77,7 +77,7 @@ public:
     int getDarkFrameEnd();
     int getDarkFrames();
     
-    void init(const std::string &path);
+    void init(const std::string &path, const std::string &entry);
 
     std::map<int, std::map<int, std::vector<int>> > getBinMaps();
 

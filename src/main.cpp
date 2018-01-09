@@ -71,6 +71,7 @@ DEFINE_bool(g2out, false, "Write intermediate output from G2 computation");
 DEFINE_string(imm, "", "The path to IMM file. By default the file specified in HDF5 metadata is used");
 DEFINE_string(inpath, "", "The path prefix to replace");
 DEFINE_string(outpath, "", "The path prefix to replace with");
+DEFINE_string(entry, "", "The metadata path in HDF5 file");
 
 int main(int argc, char** argv)
 {
@@ -86,9 +87,15 @@ int main(int argc, char** argv)
 
     Eigen::initParallel();
     
-    
+    std::string entry = "/xpcs";
+
+    if (!FLAGS_entry.empty())
+        entry = FLAGS_entry;
+
+    console->info("H5 metadata path {}", entry.c_str());
+
     Configuration *conf = Configuration::instance();
-    conf->init(argv[1]);
+    conf->init(argv[1], entry);
 
     if (!FLAGS_imm.empty())
         conf->setIMMFilePath(FLAGS_imm);
@@ -108,7 +115,7 @@ int main(int argc, char** argv)
         conf->setIMMFilePath(file);
     }
 
-    console->info("Processing IMM file at path arg{}..", conf->getIMMFilePath().c_str());
+    console->info("Processing IMM file at path {}..", conf->getIMMFilePath().c_str());
 
     int* dqmap = conf->getDQMap();
     int *sqmap = conf->getSQMap();

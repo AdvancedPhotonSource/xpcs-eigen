@@ -75,31 +75,32 @@ Configuration::~Configuration()
     //TODO delete tables. 
 }
 
-void Configuration::init(const string &path)
+void Configuration::init(const string &path, const string& entry)
 {
     //TODO: Force initialization to once per instantiation
     m_filename = path;
+    file_id = H5Fopen(path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);    
+    std::string value = getString(entry + "/compression");
 
-    file_id = H5Fopen(path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-    std::string value = getString("/xpcs/compression");
+    printf("COMPRESSION = %s\n", value.c_str());
 
     if (boost::iequals(value, "ENABLED"))
         this->compression = true;
     
-    this->dqmap = get2DTable("/xpcs/dqmap");
-    this->sqmap = get2DTable("/xpcs/sqmap");
+    this->dqmap = get2DTable(entry + "/dqmap");
+    this->sqmap = get2DTable(entry + "/sqmap");
 
     this->xdim = getInteger("/measurement/instrument/detector/x_dimension");
     this->ydim = getInteger("/measurement/instrument/detector/y_dimension");
 
     // Subtract 1 to make the index zero based. 
-    this->frameStart = getInteger("/xpcs/data_begin");
-    this->frameEnd = getInteger("/xpcs/data_end");
-    this->frameStartTodo = getInteger("/xpcs/data_begin_todo");
-    this->frameEndTodo = getInteger("/xpcs/data_end_todo");
+    this->frameStart = getInteger(entry + "/data_begin");
+    this->frameEnd = getInteger(entry + "/data_end");
+    this->frameStartTodo = getInteger(entry + "/data_begin_todo");
+    this->frameEndTodo = getInteger(entry + "/data_end_todo");
 
-    darkFrameStart = getInteger("/xpcs/dark_begin_todo");
-    darkFrameEnd = getInteger("/xpcs/dark_end_todo");
+    darkFrameStart = getInteger(entry + "/dark_begin_todo");
+    darkFrameEnd = getInteger(entry + "/dark_end_todo");
 
     if (darkFrameStart == darkFrameEnd || darkFrameEnd == 0)
     {
@@ -114,8 +115,8 @@ void Configuration::init(const string &path)
         darkFrames = darkFrameEnd - darkFrameStart + 1;
     }
 
-    darkThreshold = getFloat("/xpcs/lld");
-    darkSigma = getFloat("/xpcs/sigma");
+    darkThreshold = getFloat(entry + "/lld");
+    darkSigma = getFloat(entry + "/sigma");
 
     this->m_totalStaticPartitions = 0;
     this->m_totalDynamicPartitions = 0;
@@ -138,9 +139,9 @@ void Configuration::init(const string &path)
     m_normFactor /= fluxTransmitted;
     m_normFactor /= thickness;
                 
-    this->m_staticWindow = getInteger("/xpcs/static_mean_window_size");
+    this->m_staticWindow = getInteger(entry + "/static_mean_window_size");
 
-    value = getString("/xpcs/flatfield_enabled");
+    value = getString(entry + "/flatfield_enabled");
     if (boost::iequals(value, "ENABLED"))
         this->flatfieldEnabled = true;
 
@@ -152,7 +153,7 @@ void Configuration::init(const string &path)
             flatfield[i] = 1.0;
     }
 
-    m_immFile = getString("/xpcs/input_file_local");
+    m_immFile = getString(entry + "/input_file_local");
     
     this->m_validPixelMask = new short[this->xdim * this->ydim];
     m_sbin = new int[this->xdim * this->ydim];
