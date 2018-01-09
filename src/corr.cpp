@@ -622,7 +622,6 @@ void Corr::normalizeG2s( Ref<MatrixXf> G2,
             count++;
         }
 
-
         // Mean of each G2 across tau values. This is our final g2 Matrix. 
         g2.row(q - 1).array() = g2.row(q - 1).array() / (float)count;
     }

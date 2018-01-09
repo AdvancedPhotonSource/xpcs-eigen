@@ -98,6 +98,9 @@ void Configuration::init(const string &path)
     this->frameStartTodo = getInteger("/xpcs/data_begin_todo");
     this->frameEndTodo = getInteger("/xpcs/data_end_todo");
 
+    frameStride = getInteger("/xpcs/stride_frames");
+    frameAvg = getInteger("/xpcs/avg_frames");
+
     darkFrameStart = getInteger("/xpcs/dark_begin_todo");
     darkFrameEnd = getInteger("/xpcs/dark_end_todo");
 
@@ -474,4 +477,14 @@ float Configuration::getDarkThreshold()
 float Configuration::getDarkSigma()
 {
     return darkSigma;
+}
+
+int Configuration::getFrameStride()
+{
+    return frameStride;
+}
+
+int Configuration::getFrameAvg()
+{
+    return frameAvg;
 }

@@ -163,6 +163,9 @@ void IMM::load_nonsparse2()
     int darkEnd = conf->getDarkFrameEnd();
     int darkFrames = conf->getDarkFrames();
 
+    int frameStride = conf->getFrameStride();
+    int frameAvg = conf->getFrameAvg();
+
     float threshold = conf->getDarkThreshold();
     float sigma = conf->getDarkSigma();
 
@@ -172,6 +175,8 @@ void IMM::load_nonsparse2()
     m_timestampClock = new float[2*m_frames];
     m_timestampTick = new float[2*m_frames];
 
+    float *prevPixelData = new float[totalPixels];
+    setToZero(prevPixelData, totalPixels)
     rewind(m_ptrFile);
 
      // Row/Cols large enough to hold the index buffer
@@ -250,7 +255,10 @@ void IMM::load_nonsparse2()
 
     int partno = 0;
     int totalNonZeroPixles = 0;
-    while ((fcount - m_frameStartTodo) < m_frames)
+    int fnumber = fcount - m_frameStartTodo;
+    fcount = fcount - m_frameStartTodo;
+
+    while (fcount < m_frames)
     {
         fread(m_ptrHeader, 1024, 1, m_ptrFile);
 
@@ -266,12 +274,17 @@ void IMM::load_nonsparse2()
 
         // TODO insert assert statements
         // /// - read pixels == requested pixels to read etc. 
-        int fnumber = fcount - m_frameStartTodo;
         if (fnumber > 0 && (fnumber % swindow) == 0)
             partno++;
 
         float fsum = 0.0;
         totalNonZeroPixles = 0;
+
+        if (frameAvg > 1 && (fcount % frameAvg) == 0)
+        {
+            setToZero(prevPixelData, totalPixels);
+        }
+
         for (int i = 0; i < pixels; i++)
         {
             // We want the sparse pixel index to be less the number of pixels requested.
@@ -295,6 +308,14 @@ void IMM::load_nonsparse2()
 
                 val = val * (float) flatfield[i];    
 
+                if (frameAvg > 1)
+                {
+                    prevPixelData[i] += val;
+                }
+
+                if (frameAvg > 1 && ((fcount+1) % frameAvg) != 0)
+                    continue;
+            
                 totalNonZeroPixles++;
 
                 Row* ptr = m_sdata->get(pix);
@@ -309,8 +330,26 @@ void IMM::load_nonsparse2()
             }
         }
 
+        if (frameAvg > 1)
+
         m_frameSums[fnumber] = fnumber + 1.0;
         m_frameSums[fnumber+m_frames] = fsum / totalNonZeroPixles;
+
+        if (frameStride > 1) 
+        {
+            int cnt = 1; // We skip 1 less frame
+            while (fcount < m_frames && cnt < frameStride)
+            {
+                fread(m_ptrHeader, 1024, 1, m_ptrFile);
+                uint skip = m_ptrHeader->dlen;        
+                fseek(m_ptrFile, skip * 2, SEEK_CUR);
+                fcount++;
+                cnt++;
+            }
+
+        }
+
+        fnumber++;
         fcount++;
     }
 
@@ -611,4 +650,10 @@ float* IMM::getTotalPartitionMean()
 float* IMM::getPartialPartitionMean()
 {
     return m_partialPartitionMean;
+}
+
+void IMM::setToZero(float* data, int size)
+{
+    for (int i = 0 ; i < size; i++)
+        data[i] = 0.0f;
 }

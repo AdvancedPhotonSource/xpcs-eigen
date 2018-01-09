@@ -110,6 +110,16 @@ private:
     
     bool m_isSparse;
 
+
+    SparseData *m_sdata;
+
+    std::shared_ptr<spdlog::logger> _logger;
+
+    float* m_pixelSums;
+    float* m_frameSums;
+    float* m_partialPartitionMean;
+    float* m_totalPartitionMean;
+
     // Initialize the file ptr and read-in file header. 
     void init();
 
@@ -124,14 +134,8 @@ private:
     void load_nonsparse();
     void load_nonsparse2();
 
-    SparseData *m_sdata;
 
-    std::shared_ptr<spdlog::logger> _logger;
-
-    float* m_pixelSums;
-    float* m_frameSums;
-    float* m_partialPartitionMean;
-    float* m_totalPartitionMean;
+    void setToZero(float* data, int size);
 };
 
 #endif

@@ -76,6 +76,9 @@ public:
     int getDarkFrameStart();
     int getDarkFrameEnd();
     int getDarkFrames();
+
+    int getFrameStride();
+    int getFrameAvg();
     
     void init(const std::string &path);
 
@@ -145,6 +148,9 @@ private:
     int darkFrameEnd;
     int darkFrames;
     int m_staticWindow;
+
+    int frameStride;
+    int frameAvg;
 
     float m_detDpixX;
     float m_detDpixY;
