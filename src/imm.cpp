@@ -250,6 +250,7 @@ void IMM::load_nonsparse2()
 
     int partno = 0;
     int totalNonZeroPixles = 0;
+    int framesInWindow = 0;
     while ((fcount - m_frameStartTodo) < m_frames)
     {
         fread(m_ptrHeader, 1024, 1, m_ptrFile);
@@ -267,9 +268,12 @@ void IMM::load_nonsparse2()
         // TODO insert assert statements
         // /// - read pixels == requested pixels to read etc. 
         int fnumber = fcount - m_frameStartTodo;
-        if (fnumber > 0 && (fnumber % swindow) == 0)
+        if (fnumber > 0 && (fnumber % swindow) == 0) {
             partno++;
+            framesInWindow = 0;
+        }
 
+        framesInWindow++;
         float fsum = 0.0;
         totalNonZeroPixles = 0;
         for (int i = 0; i < pixels; i++)
@@ -319,7 +323,7 @@ void IMM::load_nonsparse2()
     {
         for (int j = 0; j < partitions; j++)
         {   
-            denom = pixcount[i] * swindow * normFactor;
+            denom = pixcount[i] * framesInWindow * normFactor;
             m_partialPartitionMean[j*totalStaticPartns + i] /= denom;
         }
     }

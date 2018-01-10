@@ -156,9 +156,11 @@ int main(int argc, char** argv)
         float* totalPartmean = imm.getTotalPartitionMean();
         float* partialPartmean = imm.getPartialPartitionMean();
         int partitions = (int) ceil((double)frames/swindow);
+        float normFactor = conf->getNormFactor();
 
         H5Result::write1DData(conf->getFilename(), "exchange", "partition-mean-total", totalStaticPartns, totalPartmean);
         H5Result::write2DData(conf->getFilename(), "exchange", "partition-mean-partial", partitions, totalStaticPartns, partialPartmean);
+        H5Result::write1DData(conf->getFilename(), "exchange", "partition_norm_factor", 1, &normFactor);
     }
 
     {
