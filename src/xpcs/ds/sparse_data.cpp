@@ -44,32 +44,50 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-
-
-#ifndef DARKIMAGE_H
-#define DARKIMAGE_H
+#include "sparse_data.h"
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <iostream>
+
+#include "xpcs/configuration.h"
+#include "xpcs/benchmark.h"
 
 
-class DarkImage
+namespace xpcs {
+namespace ds {
+
+SparseData::SparseData(int rows, int initialSize)
 {
-public:
-    DarkImage();
-    DarkImage(short** data, int frames, int pixelPerFrame, double* flatfield);
-    ~DarkImage();
+    m_rows = rows;
+    m_initSize = initialSize;
+    m_data = new Row*[rows];
 
-    double* getDarkAvg();
-    double* getDarkStd();
+    for (int i = 0; i < m_rows; i++)
+        m_data[i] = NULL;
+}
 
-private:
+SparseData::~SparseData()
+{
+  //TODO
+}
 
-    double* darkAvg;
-    double* darkStd;
+Row* SparseData::get(int index)
+{
+    assert(index < m_rows);
+    Row *r = m_data[index];
+    if (!r) {
+        r = new Row(m_initSize);
+        m_data[index] = r;
+        m_validPixels.push_back(index);
+    }
 
-    void computeDarkStats(short** data, int frames, int pixels, double* flatfield);
-  
-};
+    return r;
+}
 
-#endif
+std::vector<int>& SparseData::getValidPixels()
+{
+    return m_validPixels;
+}
+
+} //namespace ds
+} //namespace xpcs

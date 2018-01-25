@@ -47,125 +47,128 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef CONFIGURATION_
 #define CONFIGURATION_
 
-#include <string>
+#include <string.h>
 #include <map>
 #include <vector>
 
 #include "hdf5.h"
 
-class Configuration 
-{
+namespace xpcs  {
+
+class Configuration  {
 
 public:    
-    static Configuration* instance();
+  static Configuration* instance();
 
-    ~Configuration();
+  ~Configuration();
 
-    int* getDQMap();
-    int* getSQMap();
+  int* getDQMap();
+  int* getSQMap();
 
-    int getFrameWidth();
-    int getFrameHeight();
+  int getFrameWidth();
+  int getFrameHeight();
 
-    int getFrameStartTodo();
-    int getFrameEndTodo();
-    int getFrameStart();
-    int getFrameEnd();
-    int getFrameTodoCount();
-    int getFrameCount();
-    int getDarkFrameStart();
-    int getDarkFrameEnd();
-    int getDarkFrames();
-    
-    void init(const std::string &path, const std::string &entry);
+  int getFrameStartTodo();
+  int getFrameEndTodo();
+  int getFrameStart();
+  int getFrameEnd();
+  int getFrameTodoCount();
+  int getFrameCount();
+  int getDarkFrameStart();
+  int getDarkFrameEnd();
+  int getDarkFrames();
 
-    std::map<int, std::map<int, std::vector<int>> > getBinMaps();
+  void init(const std::string &path, const std::string &entry);
 
-    int getTotalStaticPartitions();
-    int getTotalDynamicPartitions();
-    int getStaticWindowSize();
+  std::map<int, std::map<int, std::vector<int>> > getBinMaps();
 
-    std::string getFilename();
-    std::string& getIMMFilePath();
-    void setIMMFilePath(std::string& str);
+  int getTotalStaticPartitions();
+  int getTotalDynamicPartitions();
+  int getStaticWindowSize();
 
-    short* getPixelMask();
-    int* getSbinMask();
+  std::string getFilename();
+  std::string& getIMMFilePath();
+  void setIMMFilePath(std::string& str);
 
-    float getDetDpixX();
-    float getDetDpixY();
-    float getDetAdhuPhot();
-    float getDetPreset();
-    float getDetEfficiency();
-    float getNormFactor();
+  short* getPixelMask();
+  int* getSbinMask();
 
-    float getDarkThreshold();
-    float getDarkSigma();
+  float getDetDpixX();
+  float getDetDpixY();
+  float getDetAdhuPhot();
+  float getDetPreset();
+  float getDetEfficiency();
+  float getNormFactor();
 
-    bool getIsFlatFieldEnabled();
-    double* getFlatField();
+  float getDarkThreshold();
+  float getDarkSigma();
+
+  bool getIsFlatFieldEnabled();
+  double* getFlatField();
 
 private:
 
-    Configuration();
+  Configuration();
 
-    std::string getString(const std::string &path);
+  std::string getString(const std::string &path);
 
-    float getFloat(const std::string &path);
+  float getFloat(const std::string &path);
 
-    int getInteger(const std::string &path);
+  int getInteger(const std::string &path);
 
-    int* get2DTable(const std::string &path);
+  int* get2DTable(const std::string &path);
 
-    double* get2DTableD(const std::string &path);
+  double* get2DTableD(const std::string &path);
 
-    int* dqmap;
-    int* sqmap;
-    double* flatfield;
+  int* dqmap;
+  int* sqmap;
+  double* flatfield;
 
-    // Valid pixel mask - mark an entry as 1 in an array if the pixel is contained in any of the bins.
-    short* m_validPixelMask;
-    int* m_sbin;
+  // Valid pixel mask - mark an entry as 1 in an array if the pixel is contained in any of the bins.
+  short* m_validPixelMask;
+  int* m_sbin;
 
-    int m_totalStaticPartitions;
-    int m_totalDynamicPartitions;
+  int m_totalStaticPartitions;
+  int m_totalDynamicPartitions;
 
-    // Map of dynamic bins to static bin to pixels.
-    std::map<int, std::map<int, std::vector<int> >> m_mapping;
+  // Map of dynamic bins to static bin to pixels.
+  std::map<int, std::map<int, std::vector<int> >> m_mapping;
 
-    int xdim;
-    int ydim;
+  int xdim;
+  int ydim;
 
 
-    int frameStart;
-    int frameEnd;
-    int frameStartTodo;
-    int frameEndTodo;
-    int darkFrameStart;
-    int darkFrameEnd;
-    int darkFrames;
-    int m_staticWindow;
+  int frameStart;
+  int frameEnd;
+  int frameStartTodo;
+  int frameEndTodo;
+  int darkFrameStart;
+  int darkFrameEnd;
+  int darkFrames;
+  int m_staticWindow;
 
-    float m_detDpixX;
-    float m_detDpixY;
-    float m_detAdhupPhot;
-    float m_detPreset;
-    float m_detEfficiency;
-    float m_normFactor;
+  float m_detDpixX;
+  float m_detDpixY;
+  float m_detAdhupPhot;
+  float m_detPreset;
+  float m_detEfficiency;
+  float m_normFactor;
 
-    float darkThreshold;
-    float darkSigma;
+  float darkThreshold;
+  float darkSigma;
 
-    hid_t file_id;
+  hid_t file_id;
 
-    // Flags for checkig if certain fields are enabled. 
-    bool compression;
-    bool flatfieldEnabled;
+  // Flags for checkig if certain fields are enabled. 
+  bool compression;
+  bool flatfieldEnabled;
 
-    std::string m_filename;
-    std::string m_immFile;
+  std::string m_filename;
+  std::string m_immFile;
 
-    static Configuration *s_instance;
+  static Configuration *s_instance;
 };
+
+} // namespace xpcs
 
 #endif

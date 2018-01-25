@@ -46,18 +46,36 @@ POSSIBILITY OF SUCH DAMAGE.
 **/
 
 #include "corr.h"
-#include "configuration.h"
-#include "h5result.h"
 
 #include <math.h>
 #include <vector>
-
 #include <stdio.h>
 #include <iostream>
+
 #include <omp.h>
 
-using namespace Eigen;
-using namespace std;
+#include "configuration.h"
+#include "h5_result.h"
+
+
+namespace xpcs {
+
+using std::vector;
+using std::string;
+using std::tuple;
+using std::get;
+using std::min;
+using std::map;
+
+using Eigen::VectorXi;
+using Eigen::MatrixXf;
+using Eigen::SparseMatrix;
+using Eigen::VectorXf;
+using Eigen::RowMajor;
+using Eigen::Ref;
+using Eigen::Map;
+using Eigen::OuterStride;
+
 
 void Corr::multiTau(const MatrixXf &pixelData, int pix) {
     int frames = pixelData.cols();
@@ -74,7 +92,7 @@ void Corr::multiTau(const MatrixXf &pixelData, int pix) {
     int tau = 1;
     int level = 0;
 
-    std::vector<double*> results;
+    vector<double*> results;
 
     while (level <= maxLevel) {
         int tauIncrement = (int) pow(2.0, level);
@@ -103,8 +121,7 @@ void Corr::multiTau(const MatrixXf &pixelData, int pix) {
 void Corr::multiTauVec(Ref<MatrixXf> pixelData,
                        Ref<MatrixXf> G2, 
                        Ref<MatrixXf> IP,
-                       Ref<MatrixXf> IF)
-{
+                       Ref<MatrixXf> IF) {
     int frames = pixelData.cols();
     int pixels = pixelData.rows();
 
@@ -114,24 +131,24 @@ void Corr::multiTauVec(Ref<MatrixXf> pixelData,
     int w = conf->getFrameWidth();
     int h = conf->getFrameHeight();
 
-    vector<std::tuple<int,int> > delays_per_level = delaysPerLevel(frames, 4, maxLevel);
+    vector<tuple<int,int> > delays_per_level = Corr::delaysPerLevel(frames, 4, maxLevel);
 
     //TODO asserts for G2, IP and IF sizes
     int i = 0;
     int ll = 0; // Last level
 
-    MatrixXf c0; 
-    MatrixXf c1;
+    ::Eigen::MatrixXf c0; 
+    ::Eigen::MatrixXf c1;
 
     int lastframe = frames;
-    for (std::vector<std::tuple<int, int> >::iterator it = delays_per_level.begin() ;
+    for (vector<tuple<int, int> >::iterator it = delays_per_level.begin() ;
                 it != delays_per_level.end(); ++it)
     {
 
         // View of pixel data at two different tau values. 
-        std::tuple<int, int> tau_level = *it;
-        int level = std::get<0>(tau_level);
-        int tau = std::get<1>(tau_level);
+        tuple<int, int> tau_level = *it;
+        int level = get<0>(tau_level);
+        int tau = get<1>(tau_level);
 
         if (ll != level)
         {
@@ -178,7 +195,7 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
     int h = conf->getFrameHeight();
     int fcount = conf->getFrameTodoCount();
 
-    vector<std::tuple<int,int> > delays_per_level = delaysPerLevel(frames, 4, maxLevel);
+    vector<tuple<int,int> > delays_per_level = delaysPerLevel(frames, 4, maxLevel);
 
     // SparseMatrix<float, RowMajor> c0, c1;
 
@@ -187,14 +204,14 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
     int ll = 0;
 
     int lastframe = frames;
-    for (std::vector<std::tuple<int, int> >::iterator it = delays_per_level.begin() ;
+    for (vector<tuple<int, int> >::iterator it = delays_per_level.begin() ;
                 it != delays_per_level.end(); ++it)
     {
 
         // View of pixel data at two different tau values. 
-        std::tuple<int, int> tau_level = *it;
-        int level = std::get<0>(tau_level);
-        int tau = std::get<1>(tau_level);
+        tuple<int, int> tau_level = *it;
+        int level = get<0>(tau_level);
+        int tau = get<1>(tau_level);
 
         if (ll != level)
         {
@@ -296,7 +313,7 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
 
 }
 
-void Corr::multiTau2(SparseData* data, float* G2s, float* IPs, float* IFs)
+void Corr::multiTau2(ds::SparseData* data, float* G2s, float* IPs, float* IFs)
 {
     Configuration* conf = Configuration::instance();
     int w = conf->getFrameWidth();
@@ -306,16 +323,16 @@ void Corr::multiTau2(SparseData* data, float* G2s, float* IPs, float* IFs)
 
     int maxLevel = calculateLevelMax(frames, 4);
 
-    std::vector<int> validPixels = data->getValidPixels();
+    vector<int> validPixels = data->getValidPixels();
 
-    vector<std::tuple<int,int> > delays_per_level = delaysPerLevel(frames, 4, maxLevel);
+    vector<tuple<int,int> > delays_per_level = delaysPerLevel(frames, 4, maxLevel);
 
     int pix = 355517;
 
-    #pragma omp parallel for default(none) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
+    // #pragma omp parallel for default(none) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
     for (int i = 0; i < validPixels.size(); i++)
     {
-        Row *row = data->get(validPixels.at(i));
+        ds::Row *row = data->get(validPixels.at(i));
 
         int ll = 0;
 
@@ -327,14 +344,14 @@ void Corr::multiTau2(SparseData* data, float* G2s, float* IPs, float* IFs)
         //     printf("Last Index %d\n", lastIndex);
         // }
 
-        for (std::vector<std::tuple<int, int> >::iterator it = delays_per_level.begin() ;
+        for (vector<tuple<int, int> >::iterator it = delays_per_level.begin() ;
                 it != delays_per_level.end(); ++it)
         {
 
             // View of pixel data at two different tau values. 
-            std::tuple<int, int> tau_level = *it;
-            int level = std::get<0>(tau_level);
-            int tau = std::get<1>(tau_level);
+            tuple<int, int> tau_level = *it;
+            int level = get<0>(tau_level);
+            int tau = get<1>(tau_level);
             // int lastIndex;
 
             // if (level == 0)
@@ -489,7 +506,7 @@ void Corr::multiTau2(SparseData* data, float* G2s, float* IPs, float* IFs)
     }
 }
 
-void Corr::twoTimesVec(Ref<MatrixXf> pixelData)
+void Corr::twoTimesVec(Eigen::Ref<Eigen::MatrixXf> pixelData)
 {
 
     Configuration* conf = Configuration::instance();
@@ -519,16 +536,16 @@ void Corr::twoTimesVec(Ref<MatrixXf> pixelData)
 }
 
 //TODO: Refactor this function and possibly break into sub function for the unit-tests. 
-void Corr::normalizeG2s( Ref<MatrixXf> G2,
-                   Ref<MatrixXf> IP, 
-                   Ref<MatrixXf> IF)
+void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
+                   Eigen::Ref<Eigen::MatrixXf> IP, 
+                   Eigen::Ref<Eigen::MatrixXf> IF)
 {
 
     Configuration* conf = Configuration::instance();
     int w = conf->getFrameWidth();
     int h = conf->getFrameHeight();
 
-    map<int, map<int, vector<int>> > qbins = conf->getBinMaps();
+    std::map<int, std::map<int, vector<int>> > qbins = conf->getBinMaps();
 
     int totalStaticPartns = conf->getTotalStaticPartitions();
     int totalDynamicPartns = conf->getTotalDynamicPartitions();
@@ -745,4 +762,4 @@ int Corr::calculateDelayCount(int dpl, int level) {
     return level == 0 ? (2 * dpl -1) : dpl;
 }
 
-
+} //namespace xpcs

@@ -44,45 +44,49 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#ifndef BENCHMARK_
-#define BENCHMARK_
+#ifndef H5_RESULT_H
+#define H5_RESULT_H
 
-#include "spdlog/spdlog.h"
+#include "Eigen/Dense"
+#include "Eigen/SparseCore"
 
-namespace spd = spdlog; 
+namespace xpcs {
 
-
-class Benchmark 
-{
-private:
-
-    const std::chrono::steady_clock::time_point t0;
-    const std::string blkName;
+class H5Result {
 
 public:
+    static void write2DData(const std::string &file, 
+                        const std::string &grpname,
+                        const std::string &nodename,
+                        Eigen::Ref<Eigen::MatrixXf> mat);
 
-    Benchmark(const std::string& blockName): blkName(blockName), t0(std::chrono::steady_clock::now()){}
+    static void write1DData(const std::string &file, 
+                        const std::string &grpname,
+                        const std::string &nodename,
+                        Eigen::Ref<Eigen::VectorXf> mat);
 
-    ~Benchmark() {
-        const auto t1(std::chrono::steady_clock::now());
-        const auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>( t1 - t0).count();        
-        std::string suffix = "ms";
-        float time = duration_ms;
+    static void write1DData(const std::string &file,  
+                        const std::string &grpname,
+                        const std::string &nodename,
+                        int size,
+                        float *data);
 
-        if (time > 1000) 
-        {
-            suffix = "s";
-            time /= 1000;
+    static void write2DData(const std::string &file, 
+                        const std::string &grpname,
+                        const std::string &nodename,
+                        int size0,
+                        int size1,
+                        float* data);
 
-            if (time > 60)
-            {
-                suffix = "m";
-                time /= 60;
-            }
-        }
+    static void writePixelSum(const std::string &file, 
+                              const std::string &grpname,
+                              Eigen::Ref<Eigen::VectorXf> pixelSum);
 
-        spd::get("console")->info("{0} took {1} {2}", blkName.c_str(), time, suffix.c_str());
-    }
+    static void writeFrameSum(const std::string &file, 
+                              const std::string &grpname,
+                              Eigen::Ref<Eigen::VectorXf> frameSum);
 };
+
+}
 
 #endif

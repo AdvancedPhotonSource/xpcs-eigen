@@ -44,33 +44,99 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#ifndef ROW_H
-#define ROW_H
 
-#include <vector>
 
-class Row 
-{
+#ifndef IMM_H
+#define IMM_H
+
+#include "imm_header.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+
+#include "Eigen/Dense"
+#include "Eigen/SparseCore"
+#include "spdlog/spdlog.h"
+
+#include "ds/sparse_data.h"
+
+namespace xpcs {
+
+typedef Eigen::SparseMatrix<float> SparseMatF;
+typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SparseRMatF;
+
+class IMM {
+
 public:
+  IMM(const char* filename, int frameFrom, int frameTo, int pixels_per_frame);
+   
+  ~IMM();
 
-    Row()
-    {
-      
-    }
-    Row(int size)
-    {
-        indxPtr.reserve(size);
-        valPtr.reserve(size);
-    }
-    ~Row()
-    {
+  Eigen::MatrixXf getPixelData();
+   
+  SparseRMatF getSparsePixelData();
 
-    }
+  bool getIsSparse();
 
-    std::vector<int> indxPtr;
-    //TODO: Lets make this a template argument. 
-    std::vector<float> valPtr;
+  float* getTimestampClock();
+  float* getTimestampTick();
 
+  float* getFrameSums();
+  float* getPixelSums();
+
+  float* getTotalPartitionMean();
+  float* getPartialPartitionMean();
+
+  ds::SparseData* getSparseData();
+
+private:
+
+  long m_frameStartTodo;
+  long m_frameEndTodo;
+  long m_pixelsPerFrame;
+  long m_frames;
+    
+  const char* m_filename;
+  IMMHeader *m_ptrHeader;
+
+  FILE *m_ptrFile;
+
+  // Internal data pointer for storing pixels. 
+  float *m_data;
+  float *m_timestampClock;
+  float *m_timestampTick;
+
+  Eigen::MatrixXf m_pixelData;
+  SparseRMatF m_sparsePixelData;
+    
+  bool m_isSparse;
+
+  // Initialize the file ptr and read-in file header. 
+  void init();
+
+  // Loads the sparse IMM file 
+  void load_sparse();
+
+  // Loads the sparse IMM to internanl structures. Unlinke the load_sparse method
+  // it doesn't generate a matrix. 
+  void load_sparse2();
+
+  // Load non-sparse data. 
+  void load_nonsparse();
+  void load_nonsparse2();
+
+  ds::SparseData *m_sdata;
+
+  std::shared_ptr<spdlog::logger> _logger;
+
+  float* m_pixelSums;
+  float* m_frameSums;
+  float* m_partialPartitionMean;
+  float* m_totalPartitionMean;
+  
 };
+
+}
 
 #endif

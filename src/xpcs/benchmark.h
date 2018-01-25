@@ -44,30 +44,47 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#ifndef SPARSEDATA_H
-#define SPARSEDATA_H
+#ifndef BENCHMARK_
+#define BENCHMARK_
 
-#include "row.h"
+#include "spdlog/spdlog.h"
 
-#include <vector>
+namespace spd = spdlog; 
 
-class SparseData 
-{
+namespace xpcs {
+  
+class Benchmark  {
+private:
+
+    const std::chrono::steady_clock::time_point t0;
+    const std::string blkName;
+
 public:
 
-  SparseData(int rows, int initalSize=10);
-  ~SparseData();
+    Benchmark(const std::string& blockName): blkName(blockName), t0(std::chrono::steady_clock::now()){}
 
-  Row* get(int index);
+    ~Benchmark() {
+        const auto t1(std::chrono::steady_clock::now());
+        const auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>( t1 - t0).count();        
+        std::string suffix = "ms";
+        float time = duration_ms;
 
-  std::vector<int>& getValidPixels();
+        if (time > 1000) 
+        {
+            suffix = "s";
+            time /= 1000;
 
-private:
-  Row** m_data;
-  int m_rows;
-  int m_initSize;
+            if (time > 60)
+            {
+                suffix = "m";
+                time /= 60;
+            }
+        }
 
-  std::vector<int> m_validPixels;
+        spd::get("console")->info("{0} took {1} {2}", blkName.c_str(), time, suffix.c_str());
+    }
 };
+
+}
 
 #endif

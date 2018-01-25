@@ -7,15 +7,29 @@ set(CMAKE_BUILD_TYPE DEBUG)
 
 add_definitions(-std=c++0x)
 
+set(headers
+    src/xpcs/ds/row.h
+    src/xpcs/ds/sparse_data.h
+    src/xpcs/filter/filter.h
+    src/xpcs/benchmark.h
+    src/xpcs/configuration.h
+    src/xpcs/corr.h
+    src/xpcs/dark_image.h
+    src/xpcs/funcs.h
+    src/xpcs/h5_result.h
+    src/xpcs/imm.h
+    src/xpcs/imm_header.h
+)
+
 set(sources
-    src/configuration.cpp
-    src/h5result.cpp
-    src/corr.cpp
-    src/imm.cpp
-    src/sparsedata.cpp
-    src/funcs.cpp
-    src/darkImage.cpp
-    src/main.cpp)
+    src/xpcs/configuration.cpp
+    src/xpcs/h5_result.cpp
+    src/xpcs/corr.cpp
+    src/xpcs/imm.cpp
+    src/xpcs/ds/sparse_data.cpp
+    src/xpcs/funcs.cpp
+    src/xpcs/dark_image.cpp
+    src/xpcs/main.cpp)
 
 
 find_package(OpenMP)
@@ -26,10 +40,13 @@ endif()
 
 
 # TODO. Fix the hard-coded path. 
-include_directories("/usr/local/hdf5/include" "/usr/local/boost_1_64_0/")
+include_directories("/usr/local/hdf5/include" 
+                    "src" 
+                    "src/external")
+
 link_directories("/usr/local/hdf5/lib")
 
-add_subdirectory("src/gflags")
+add_subdirectory("src/external/gflags")
 add_executable(corr ${sources})
 
 target_link_libraries(corr hdf5 gflags)

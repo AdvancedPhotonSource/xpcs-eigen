@@ -44,23 +44,39 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#ifndef FUNCS_H
-#define FUNCS_H
+#ifndef ROW_H
+#define ROW_H
 
-#include "Eigen/Dense"
-#include "Eigen/SparseCore"
+#include <vector>
 
-typedef Eigen::SparseMatrix<float> SparseMatF;
+namespace xpcs {
+namespace ds {
 
-class Funcs {
+class Row {
 
 public:
-    static Eigen::VectorXf pixelSum(Eigen::Ref<Eigen::MatrixXf> pixels);
-    static Eigen::MatrixXf pixelWindowSum(SparseMatF pixels);
-    static Eigen::VectorXf pixelSum(SparseMatF pixels);
-    static Eigen::MatrixXf partitionMean(Eigen::Ref<Eigen::MatrixXf> pixelSum);
-    static Eigen::MatrixXf frameSum(SparseMatF pixels);
-    static Eigen::MatrixXf maskFromDQmap(int* dqmap, int w, int h);
+
+  Row()
+  {
+    
+  }
+  Row(int size)
+  {
+      indxPtr.reserve(size);
+      valPtr.reserve(size);
+  }
+  ~Row()
+  {
+
+  }
+
+  std::vector<int> indxPtr;
+  //TODO: Lets make this a template argument. 
+  std::vector<float> valPtr;
+
 };
+
+} // namespace ds
+} // namespace xpcs
 
 #endif

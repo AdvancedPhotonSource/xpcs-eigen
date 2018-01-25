@@ -47,12 +47,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "imm.h"
 #include "configuration.h"
 #include "benchmark.h"
-#include "darkImage.h"
+#include "dark_image.h"
 
 #include <stdio.h>
 #include <iostream>
 
-using namespace std;
+namespace xpcs {
+
 
 IMM::IMM(const char* filename, int frameFrom, int frameTo, int pixelsPerFrame)
 {
@@ -134,7 +135,7 @@ void IMM::load_nonsparse()
         fcount++;
     }
 
-    m_pixelData = Map<MatrixXf>(m_data, m_pixelsPerFrame, m_frames);
+    m_pixelData = Eigen::Map<Eigen::MatrixXf>(m_data, m_pixelsPerFrame, m_frames);
 
     delete(buffer);
 }
@@ -167,7 +168,7 @@ void IMM::load_nonsparse2()
     float sigma = conf->getDarkSigma();
 
     int totalPixels = x * y;
-    m_sdata = new SparseData(totalPixels);
+    m_sdata = new ds::SparseData(totalPixels);
 
     m_timestampClock = new float[2*m_frames];
     m_timestampTick = new float[2*m_frames];
@@ -291,7 +292,7 @@ void IMM::load_nonsparse2()
 
                 if (darkAvg != NULL) {
                     val = values[i] - darkAvg[i];
-                    val = max(val, 0.0f);
+                    val = std::max(val, 0.0f);
                     thresh = threshold + sigma * darkStd[i];
                 }
                 
@@ -301,7 +302,7 @@ void IMM::load_nonsparse2()
 
                 totalNonZeroPixles++;
 
-                Row* ptr = m_sdata->get(pix);
+                ds::Row* ptr = m_sdata->get(pix);
                 ptr->indxPtr.push_back(fnumber);
                 ptr->valPtr.push_back(val);
                 fsum += val;
@@ -437,7 +438,7 @@ void IMM::load_sparse2()
     int partitions = (int) ceil((double)framesTodo/swindow);
 
     int totalPixels = x * y;
-    m_sdata = new SparseData(totalPixels);
+    m_sdata = new ds::SparseData(totalPixels);
 
     m_timestampClock = new float[2*m_frames];
     m_timestampTick = new float[2*m_frames];
@@ -533,7 +534,7 @@ void IMM::load_sparse2()
                 int pix = index[i];
                 float val = values[i] * flatfield[index[i]];
 
-                Row* ptr = m_sdata->get(pix);
+                ds::Row* ptr = m_sdata->get(pix);
                 ptr->indxPtr.push_back(fnumber);
                 ptr->valPtr.push_back(val);
                 fsum += val;
@@ -602,7 +603,7 @@ float* IMM::getPixelSums()
     return m_pixelSums;
 }
 
-SparseData* IMM::getSparseData()
+ds::SparseData* IMM::getSparseData()
 {
     return m_sdata;
 }
@@ -615,4 +616,6 @@ float* IMM::getTotalPartitionMean()
 float* IMM::getPartialPartitionMean()
 {
     return m_partialPartitionMean;
+}
+
 }

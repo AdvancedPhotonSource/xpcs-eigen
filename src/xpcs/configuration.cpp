@@ -46,16 +46,14 @@ POSSIBILITY OF SUCH DAMAGE.
 **/
 
 #include "configuration.h"
-#include "hdf5.h"
 
 #include <iostream>
 
-#include <boost/algorithm/string.hpp>
+#include "hdf5.h"
 
-using namespace std;
+namespace xpcs {
 
 Configuration *Configuration::s_instance = 0;
-
 
 Configuration* Configuration::instance()
 {
@@ -75,7 +73,7 @@ Configuration::~Configuration()
     //TODO delete tables. 
 }
 
-void Configuration::init(const string &path, const string& entry)
+void Configuration::init(const std::string &path, const std::string& entry)
 {
     //TODO: Force initialization to once per instantiation
     m_filename = path;
@@ -84,9 +82,11 @@ void Configuration::init(const string &path, const string& entry)
 
     printf("COMPRESSION = %s\n", value.c_str());
 
-    if (boost::iequals(value, "ENABLED"))
-        this->compression = true;
-    
+    if (value.compare("ENABLED") == 0)
+         this->compression = true;
+
+    // if (boost::iequals(value, "ENABLED"))
+     
     this->dqmap = get2DTable(entry + "/dqmap");
     this->sqmap = get2DTable(entry + "/sqmap");
 
@@ -142,7 +142,8 @@ void Configuration::init(const string &path, const string& entry)
     this->m_staticWindow = getInteger(entry + "/static_mean_window_size");
 
     value = getString(entry + "/flatfield_enabled");
-    if (boost::iequals(value, "ENABLED"))
+    // if (boost::iequals(value, "ENABLED"))
+    if (value.compare("ENABLED") == 0)
         this->flatfieldEnabled = true;
 
     if (this->flatfieldEnabled) 
@@ -166,32 +167,32 @@ void Configuration::init(const string &path, const string& entry)
         m_validPixelMask[i] = 1;
         m_sbin[i] = sqmap[i];
 
-        map<int, map<int, vector<int>> >::iterator it = m_mapping.find(dqmap[i]);
+        std::map<int, std::map<int, std::vector<int>> >::iterator it = m_mapping.find(dqmap[i]);
 
         // Highest q-map value is equal to total number of dynamic partitions. 
         if (this->m_totalDynamicPartitions < dqmap[i])
             this->m_totalDynamicPartitions = dqmap[i];
 
         if (it != m_mapping.end()) {
-            map<int, vector<int> > &v = it->second;
+            std::map<int, std::vector<int> > &v = it->second;
             
-            map<int, vector<int>>::iterator it2 = v.find(sqmap[i]);
+            std::map<int, std::vector<int>>::iterator it2 = v.find(sqmap[i]);
             
             if (this->m_totalStaticPartitions < sqmap[i])
                 this->m_totalStaticPartitions = sqmap[i];
 
             if (it2 != v.end()) {
-                vector<int> &v2 = it2->second;
+                std::vector<int> &v2 = it2->second;
                 v2.push_back(i);
             } else {
-                vector<int> data;
+                std::vector<int> data;
                 data.push_back(i);
                 v[sqmap[i]] = data;
             }
         }
         else {
-            map<int, vector<int> > mapping;
-            vector<int> data;
+            std::map<int, std::vector<int> > mapping;
+            std::vector<int> data;
             data.push_back(i);
             mapping[sqmap[i]] = data;
             m_mapping[dqmap[i]] = mapping;
@@ -475,4 +476,6 @@ float Configuration::getDarkThreshold()
 float Configuration::getDarkSigma()
 {
     return darkSigma;
+}
+
 }

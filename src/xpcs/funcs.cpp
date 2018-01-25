@@ -51,18 +51,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <math.h>
 
-using namespace Eigen;
-using namespace std;
+namespace xpcs {
 
-VectorXf Funcs::pixelSum(Eigen::Ref<Eigen::MatrixXf> pixelData) {
+using std::vector;
+using std::map;
+
+Eigen::VectorXf Funcs::pixelSum(Eigen::Ref<Eigen::MatrixXf> pixelData) {
     return pixelData.rowwise().sum();
 }
 
-VectorXf Funcs::pixelSum(SparseMatF pixelData) {
+Eigen::VectorXf Funcs::pixelSum(SparseMatF pixelData) {
     Configuration *conf = Configuration::instance();
     int fcount = conf->getFrameTodoCount();
 
-    VectorXf psum(pixelData.rows());
+    Eigen::VectorXf psum(pixelData.rows());
     psum.setZero(pixelData.rows());
 
      for (int i = 0; i < pixelData.cols(); i++) {
@@ -72,14 +74,14 @@ VectorXf Funcs::pixelSum(SparseMatF pixelData) {
     return psum.array() / fcount;
 } 
 
-MatrixXf Funcs::pixelWindowSum(SparseMatF pixelData) {
+Eigen::MatrixXf Funcs::pixelWindowSum(SparseMatF pixelData) {
     Configuration *conf = Configuration::instance();
     int fcount = conf->getFrameTodoCount();
     int swindow = conf->getStaticWindowSize();
     int totalStaticPartns = conf->getTotalStaticPartitions();
     int partitions = (int) ceil((double)fcount/swindow);
 
-    MatrixXf pixelSums(pixelData.rows(), partitions+1);
+    Eigen::MatrixXf pixelSums(pixelData.rows(), partitions+1);
     pixelSums.setZero(pixelSums.rows(), pixelSums.cols());
     int win = 1;
     for (int i = 0; i < pixelData.cols(); i++) {
@@ -104,17 +106,17 @@ Eigen::MatrixXf Funcs::partitionMean(Eigen::Ref<Eigen::MatrixXf> pixelSum)
 
     map<int, map<int, vector<int>> > qbins = conf->getBinMaps();
 
-    MatrixXf means(totalStaticPartns, partitions+1);
+    Eigen::MatrixXf means(totalStaticPartns, partitions+1);
     means.setZero(totalStaticPartns, partitions+1);
 
     int pixcount = 0;
-    for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
+    for (std::map<int, std::map<int, vector<int>> >::const_iterator it = qbins.begin(); 
             it != qbins.end(); it++) {
 
         int q = it->first;
         map<int, vector<int> > values =  it->second;
         
-        for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
+        for (std::map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
             int sbin = it2->first;
             pixcount = 0;
             vector<int> pixels = it2->second;
@@ -135,11 +137,11 @@ Eigen::MatrixXf Funcs::partitionMean(Eigen::Ref<Eigen::MatrixXf> pixelSum)
     return means;
 }
 
-MatrixXf Funcs::frameSum(SparseMatF pixelData) {
+Eigen::MatrixXf Funcs::frameSum(SparseMatF pixelData) {
     Configuration *conf = Configuration::instance();
     int frames = pixelData.cols();
 
-    MatrixXf fsum(frames, 2);
+    Eigen::MatrixXf fsum(frames, 2);
     for (int i = 0; i < pixelData.cols(); i++) {
         fsum(i) = i + 1;
         fsum(i+frames) = pixelData.col(i).sum()/pixelData.rows();
@@ -159,4 +161,6 @@ Eigen::MatrixXf Funcs::maskFromDQmap(int* dqmap, int w, int h) {
         }
         printf("\n");
     }
+}
+
 }

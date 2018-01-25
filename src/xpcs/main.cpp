@@ -45,6 +45,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 **/
 
+#include "hdf5.h"
+#include "imm.h"
+#include "corr.h"
+#include "configuration.h"
+#include "h5_result.h"
+#include "benchmark.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -54,17 +61,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <iostream>
 
-#include "hdf5.h"
-#include "imm.h"
-#include "corr.h"
-#include "configuration.h"
-#include "h5result.h"
-#include "benchmark.h"
-
 #include "gflags/gflags.h"
 #include "spdlog/spdlog.h"
 
 using namespace std;
+using namespace xpcs;
 namespace spd = spdlog; 
 
 DEFINE_bool(g2out, false, "Write intermediate output from G2 computation");
@@ -138,9 +139,9 @@ int main(int argc, char** argv)
 
     IMM imm(conf->getIMMFilePath().c_str(), frameFrom, frameTo, -1);
 
-    MatrixXf G2(pixels, delays_per_level.size());
-    MatrixXf IP(pixels, delays_per_level.size());
-    MatrixXf IF(pixels, delays_per_level.size());
+    Eigen::MatrixXf G2(pixels, delays_per_level.size());
+    Eigen::MatrixXf IP(pixels, delays_per_level.size());
+    Eigen::MatrixXf IF(pixels, delays_per_level.size());
 
     {
         Benchmark benchmark("Writing frame-sums, pixel-sums, partition-means");
@@ -186,9 +187,9 @@ int main(int argc, char** argv)
     }
 
     Benchmark benchmark("Normalizing G2");
-    MatrixXf G2s = Map<MatrixXf>(g2s, pixels, delays_per_level.size());
-    MatrixXf IPs = Map<MatrixXf>(ips, pixels, delays_per_level.size());
-    MatrixXf IFs = Map<MatrixXf>(ifs, pixels, delays_per_level.size());
+    Eigen::MatrixXf G2s = Eigen::Map<Eigen::MatrixXf>(g2s, pixels, delays_per_level.size());
+    Eigen::MatrixXf IPs = Eigen::Map<Eigen::MatrixXf>(ips, pixels, delays_per_level.size());
+    Eigen::MatrixXf IFs = Eigen::Map<Eigen::MatrixXf>(ifs, pixels, delays_per_level.size());
 
     Corr::normalizeG2s(G2s, IPs, IFs);
     

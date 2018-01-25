@@ -45,60 +45,63 @@ POSSIBILITY OF SUCH DAMAGE.
 
 **/
 
-#include "darkImage.h"
-#include "configuration.h"
+#include "dark_image.h"
 
 #include <math.h>
 
+#include "configuration.h"
+
+namespace xpcs {
+
 DarkImage::DarkImage(short** data, int frames, int pixelPerFrame, double* flatfield)
 {
- 
-    darkAvg = new double[pixelPerFrame];
-    darkStd = new double[pixelPerFrame];
+  darkAvg = new double[pixelPerFrame];
+  darkStd = new double[pixelPerFrame];
 
-    computeDarkStats(data, frames, pixelPerFrame, flatfield);
+  computeDarkStats(data, frames, pixelPerFrame, flatfield);
 }
 
 DarkImage::~DarkImage()
 {
-    //TODO
+  //TODO
 }
 
 double* DarkImage::getDarkAvg() 
 {
-    return darkAvg;
+  return darkAvg;
 }
 
 double* DarkImage::getDarkStd() 
 {
-    return darkStd;
+  return darkStd;
 }
 
 void DarkImage::computeDarkStats(short** data, int frames, int pixels, double* flatfield)
 {
 
-    for (int i = 0 ; i < pixels; i++)
-    {
-        darkAvg[i] = 0.0;
-        darkStd[i] = 0.0;
-    }
+  for (int i = 0 ; i < pixels; i++)
+  {
+      darkAvg[i] = 0.0;
+      darkStd[i] = 0.0;
+  }
 
-    for (int i = 0; i < frames; i++)
-    {
-        for (int j = 0; j < pixels; j++)
-        {
-            double tmp = darkAvg[j];
-            double pix = (double)data[i][j] * flatfield[j];
-            
-            darkAvg[j] += ((pix - darkAvg[j]) / (double)(i+1));
-            darkStd[j] += ((pix - tmp) * (pix - darkAvg[j]));
+  for (int i = 0; i < frames; i++)
+  {
+      for (int j = 0; j < pixels; j++)
+      {
+          double tmp = darkAvg[j];
+          double pix = (double)data[i][j] * flatfield[j];
+          
+          darkAvg[j] += ((pix - darkAvg[j]) / (double)(i+1));
+          darkStd[j] += ((pix - tmp) * (pix - darkAvg[j]));
 
-        }
-    }
+      }
+  }
 
-    for (int j = 0; j < pixels; j++)
-        darkStd[j] = sqrt(darkStd[j] / frames);
+  for (int j = 0; j < pixels; j++)
+      darkStd[j] = sqrt(darkStd[j] / frames);
 
 
 }
 
+}

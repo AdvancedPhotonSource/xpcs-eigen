@@ -44,46 +44,73 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#ifndef H5RESULT_H
-#define H5RESULT_H
-
-#include "Eigen/Dense"
-#include "Eigen/SparseCore"
 
 
-class H5Result {
+#ifndef XPCS_IMMREADER_H
+#define XPCS_IMMREADER_H
+
+#include "imm_header.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+
+#include "spdlog/spdlog.h"
+
+
+namespace xpcs {
+namespace io {
+
+struct ImmBlock {
+  int** index;
+  float** value;
+  int frames;
+  std::vector<int> pixels_per_frames;
+}
+
+class ImmReader {
 
 public:
-    static void write2DData(const std::string &file, 
-                        const std::string &grpname,
-                        const std::string &nodename,
-                        Eigen::Ref<Eigen::MatrixXf> mat);
+  ImmReader(const std::string& filename);
+   
+  ~ImmReader();
 
-    static void write1DData(const std::string &file, 
-                        const std::string &grpname,
-                        const std::string &nodename,
-                        Eigen::Ref<Eigen::VectorXf> mat);
+  bool IsSparse();
 
-    static void write1DData(const std::string &file,  
-                        const std::string &grpname,
-                        const std::string &nodename,
-                        int size,
-                        float *data);
+  float* TimestampClock();
+  float* TimestampTick();
 
-    static void write2DData(const std::string &file, 
-                        const std::string &grpname,
-                        const std::string &nodename,
-                        int size0,
-                        int size1,
-                        float* data);
+  ImmBlock*  NextFrames(int count = 1);
+  void SkipFrames(int count = 1)
 
-    static void writePixelSum(const std::string &file, 
-                              const std::string &grpname,
-                              Eigen::Ref<Eigen::VectorXf> pixelSum);
+  void Reset();
 
-    static void writeFrameSum(const std::string &file, 
-                              const std::string &grpname,
-                              Eigen::Ref<Eigen::VectorXf> frameSum);
+private:
+
+  // Initialize the file ptr and read-in file header. 
+  void init();
+
+  // Loads the sparse IMM file 
+  ImmBlock* NextSparse(int count);
+
+  // Loads the sparse IMM to internanl structures. Unlinke the load_sparse method
+  // it doesn't generate a matrix. 
+  ImmBlock* NextNonSparse(int count);
+  
+  std::shared_ptr<spdlog::logger> logger_;
+
+  IMMHeader *header_;
+  FILE *file_;
+  // Internal data pointer for storing pixels. 
+  float *data_;
+  float *timestampClock_;
+  float *timestampTick_;
+  bool compression_;
+  int *linear_index_;
+
 };
+
+} //namespace io
+} //namespace xpcs
 
 #endif

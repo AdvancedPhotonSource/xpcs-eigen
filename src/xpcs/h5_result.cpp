@@ -45,10 +45,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 **/
 
-#include "h5result.h"
+#include "h5_result.h"
 
 #include "hdf5.h"
+
 #include "configuration.h"
+
+namespace xpcs {
 
 void H5Result::write2DData(const std::string &file, 
                            const std::string &grpname,
@@ -278,4 +281,6 @@ void H5Result::writeFrameSum(const std::string &file,
     if (dataspace_id) H5Sclose(dataspace_id);
     H5Gclose(exchange_grp_id);
     H5Fclose(file_id);
+}
+
 }

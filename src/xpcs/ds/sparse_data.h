@@ -44,42 +44,37 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#include "sparsedata.h"
-#include "configuration.h"
-#include "benchmark.h"
+#ifndef SPARSEDATA_H
+#define SPARSEDATA_H
 
-#include <stdio.h>
-#include <iostream>
+#include "row.h"
 
-SparseData::SparseData(int rows, int initialSize)
-{
-    m_rows = rows;
-    m_initSize = initialSize;
-    m_data = new Row*[rows];
+#include <vector>
 
-    for (int i = 0; i < m_rows; i++)
-        m_data[i] = NULL;
-}
+namespace xpcs {
+namespace ds {
 
-SparseData::~SparseData()
-{
-  //TODO
-}
+class SparseData  {
 
-Row* SparseData::get(int index)
-{
-    assert(index < m_rows);
-    Row *r = m_data[index];
-    if (!r) {
-        r = new Row(m_initSize);
-        m_data[index] = r;
-        m_validPixels.push_back(index);
-    }
+public:
 
-    return r;
-}
+  SparseData(int rows, int initalSize=10);
+  ~SparseData();
 
-std::vector<int>& SparseData::getValidPixels()
-{
-    return m_validPixels;
-}
+  Row* get(int index);
+
+  std::vector<int>& getValidPixels();
+
+private:
+  Row** m_data;
+  
+  int m_rows;
+  int m_initSize;
+
+  std::vector<int> m_validPixels;
+};
+
+} //namespace ds
+} //namespace xpcs
+
+#endif
