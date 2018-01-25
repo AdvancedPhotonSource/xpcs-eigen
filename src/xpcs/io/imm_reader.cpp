@@ -52,7 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "xpcs/configuration.h"
 #include "xpcs/dark_image.h"
 
-
 namespace xpcs {
 namespace io {
 
@@ -70,6 +69,36 @@ ImmReader::~ImmReader() {
 }
 
 ImmBlock* ImmReader::NextBlock() {
+    int index** = new int[count];
+    short value** = new float[count];
+    std::vector<int> ppf(count);
+
+    int done = 0, pxs = 0;
+    while (done < count) {
+        fread(header_, 1024, 1, file_);
+        pxs = header->dlen;
+
+        index[done] = new int[pxs * 4];
+        value[done] = new short[pxs * 2];
+        
+        if (!_compression) {
+            
+        } else {
+            fread(index[done], pxs * 4, 1, file_);    
+        }
+        
+        fread(value[done], pxs * 2, 1, file_);
+        ppf.push_back(pxs);
+        done++;
+    }
+
+    struct ImmBlock *ret = new ImmBlock;
+    ret->index = index;
+    ret->value = value;
+    ret->frames = count;
+    ret->pixels_per_frame = ppf;
+
+    return ret;
     if (compression_)
         return SparseBlock();
     else 
@@ -94,235 +123,35 @@ void ImmReader::Reset() {
 ImmBlock* ImmReader::SparseBlock(int count) {
 
     int index** = new int[count];
-    float value** = new float[count];
+    short value** = new float[count];
     std::vector<int> ppf(count);
 
-    
+    int done = 0, pxs = 0;
+
+    while (done < count) {
+        fread(header_, 1024, 1, file_);
+        pxs = header->dlen;
+
+        index[done] = new int[pxs * 4];
+        value[done] = new short[pxs * 2];
+        fread(index[done], pxs * 4, 1, file_);
+        fread(value[done], pxs * 2, 1, file_);
+        ppf.push_back(pxs);
+        done++;
+    }
 
     struct ImmBlock *ret = new ImmBlock;
     ret->index = index;
     ret->value = value;
     ret->frames = count;
-    ret->pixels_per_frame = 
+    ret->pixels_per_frame = ppf;
+
+    return ret;
 }
-    Configuration *conf = Configuration::instance();
-
-
-    float normFactor = conf->getNormFactor();
-
-    int framesTodo = conf->getFrameTodoCount();
-    int swindow = conf->getStaticWindowSize();
-    int totalStaticPartns = conf->getTotalStaticPartitions();
-    int partitions = (int) ceil((double)framesTodo/swindow);
-    int darkStart = conf->getDarkFrameStart();
-    int darkEnd = conf->getDarkFrameEnd();
-    int darkFrames = conf->getDarkFrames();
-
-    float threshold = conf->getDarkThreshold();
-    float sigma = conf->getDarkSigma();
-
-    int totalPixels = x * y;
-    m_sdata = new ds::SparseData(totalPixels);
-
-    m_timestampClock = new float[2*m_frames];
-    m_timestampTick = new float[2*m_frames];
-
-    rewind(m_ptrFile);
-
-     // Row/Cols large enough to hold the index buffer
-    // TODO: We can further reduce the memory requirement here 
-    // through a better allocation scheme. 
-    short* values = new short[m_pixelsPerFrame];
-    m_frameSums = new float[2*m_frames];
-    m_pixelSums = new float[totalPixels];
-    m_partialPartitionMean = new float[totalStaticPartns * partitions];
-    m_totalPartitionMean = new float[totalStaticPartns];
-    float *pixcount = new float[totalStaticPartns];
-
-    for (int i = 0; i < totalStaticPartns; i++)
-    {
-        pixcount[i] = 0.0;
-        m_totalPartitionMean[i] = 0.0;
-    }
-
-    for (int i = 0; i < totalStaticPartns * partitions; i++)
-        m_partialPartitionMean[i] = 0.0;
-
-    for (int i = 0; i < totalPixels; i++)
-    {
-        pixcount[sbinmask[i] - 1]++;
-    }
-
-    for (int i = 0 ; i < totalPixels; i++)
-        m_pixelSums[i] = 0.0f;
-
-    int fcount = 0;
-    int count = 0;
-
-    // Skip frames below start frame. 
-    while (fcount < darkStart)
-    {
-        fread(m_ptrHeader, 1024, 1, m_ptrFile);
-        uint skip = m_ptrHeader->dlen;        
-        fseek(m_ptrFile, skip * 2, SEEK_CUR);
-        fcount++;
-    }
-
-    short** darkPixels = 0;
-    if (darkFrames > 0)
-        darkPixels = new short*[darkFrames];
-
-    int darkIndex = 0;
-
-    while (fcount < darkFrames)
-    {
-        fread(m_ptrHeader, 1024, 1, m_ptrFile);
-        uint pixels = m_ptrHeader->dlen;        
-        darkPixels[darkIndex] = new short[m_pixelsPerFrame];
-        fread(darkPixels[darkIndex], pixels * 2, 1, m_ptrFile);
-        darkIndex++;
-        fcount++;
-    }
-
-    double* darkAvg =  NULL;
-    double * darkStd = NULL;
-
-    if (darkFrames > 0) 
-    {
-        DarkImage darkImage(darkPixels, darkFrames, m_pixelsPerFrame, flatfield);
-        darkAvg = darkImage.getDarkAvg();
-        darkStd = darkImage.getDarkStd();    
-    }
-
-    // Skip frames below start frame. 
-    while (fcount < m_frameStartTodo)
-    {
-        fread(m_ptrHeader, 1024, 1, m_ptrFile);
-        uint skip = m_ptrHeader->dlen;        
-        fseek(m_ptrFile, skip * 2, SEEK_CUR);
-        fcount++;
-    }
-
-    int partno = 0;
-    int totalNonZeroPixles = 0;
-    int framesInWindow = 0;
-    while ((fcount - m_frameStartTodo) < m_frames)
-    {
-        fread(m_ptrHeader, 1024, 1, m_ptrFile);
-
-        uint pixels = m_ptrHeader->dlen;        
-
-        m_timestampClock[count] = count + 1;
-        m_timestampClock[count+m_frames] = m_ptrHeader->elapsed;
-        m_timestampTick[count] = count + 1;
-        m_timestampTick[count+m_frames] = m_ptrHeader->corecotick;
-        count++;
-
-        fread(values, pixels * 2, 1, m_ptrFile);
-
-        // TODO insert assert statements
-        // /// - read pixels == requested pixels to read etc. 
-        int fnumber = fcount - m_frameStartTodo;
-        if (fnumber > 0 && (fnumber % swindow) == 0) {
-            partno++;
-            framesInWindow = 0;
-        }
-
-        framesInWindow++;
-        float fsum = 0.0;
-        totalNonZeroPixles = 0;
-        for (int i = 0; i < pixels; i++)
-        {
-            // We want the sparse pixel index to be less the number of pixels requested.
-            // if (index[i] >= m_pixelsPerFrame)
-            //     break;
-
-            if (pixelmask[i] != 0) {                
-                // tripletList.push_back(Triplet(index[i], fnumber, values[i] *flatfield[index[i]]));       
-                int pix = i;
-
-                float val = values[i];
-                float thresh = 0.0;
-
-                if (darkAvg != NULL) {
-                    val = values[i] - darkAvg[i];
-                    val = std::max(val, 0.0f);
-                    thresh = threshold + sigma * darkStd[i];
-                }
-                
-                if (val <= thresh) continue; 
-
-                val = val * (float) flatfield[i];    
-
-                totalNonZeroPixles++;
-
-                ds::Row* ptr = m_sdata->get(pix);
-                ptr->indxPtr.push_back(fnumber);
-                ptr->valPtr.push_back(val);
-                fsum += val;
-                m_pixelSums[pix] += val;
-
-                int sbin = sbinmask[pix] - 1;
-                m_totalPartitionMean[sbin] += val; 
-                m_partialPartitionMean[partno * totalStaticPartns + sbin] += val;
-            }
-        }
-
-        m_frameSums[fnumber] = fnumber + 1.0;
-        m_frameSums[fnumber+m_frames] = fsum / totalNonZeroPixles;
-        fcount++;
-    }
-
-    float denom = 1.0;
-    for (int i = 0; i < totalStaticPartns; i++)
-    {
-        for (int j = 0; j < partitions; j++)
-        {   
-            denom = pixcount[i] * framesInWindow * normFactor;
-            m_partialPartitionMean[j*totalStaticPartns + i] /= denom;
-        }
-    }
-    for (int  i = 0; i < totalStaticPartns; i++) 
-    {
-        denom = pixcount[i] * framesTodo * normFactor;
-        m_totalPartitionMean[i] /= denom;
-    }
+ 
+ImmBlock* ImmReader::NonSparseBlock(int count) {
 
 }
-
-    short* buffer = new short[m_pixelsPerFrame];
-    m_data = new float[m_frames * m_pixelsPerFrame];
-
-    long pixelsInFrame = m_ptrHeader->rows * m_ptrHeader->cols;
-    long bytesInFrame = pixelsInFrame * m_ptrHeader->bytes;
-    long bytesPerFrame = m_pixelsPerFrame * m_ptrHeader->bytes;
-
-    // If we are reading only a limited number of pixels.
-    long skip = bytesInFrame - bytesPerFrame;
-
-    long index = 0;
-    int fcount = 0;
-
-    rewind(m_ptrFile);
-
-    while (fcount < m_frames)
-    {
-        fseek(m_ptrFile, 1024, SEEK_CUR);
-        fread(buffer, 1, bytesPerFrame, m_ptrFile);
-
-        if (skip != 0)
-            fseek(m_ptrFile, skip, SEEK_CUR);
-
-        std::copy(buffer, buffer+m_pixelsPerFrame, m_data+index);
-        index += m_pixelsPerFrame;
-        fcount++;
-    }
-
-    m_pixelData = Eigen::Map<Eigen::MatrixXf>(m_data, m_pixelsPerFrame, m_frames);
-
-    delete(buffer);
-}
-
 
 void IMM::load_nonsparse2()
 {

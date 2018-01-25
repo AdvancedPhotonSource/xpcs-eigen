@@ -44,73 +44,33 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-
-
-#ifndef XPCS_IMMREADER_H
-#define XPCS_IMMREADER_H
-
-#include "imm_header.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string>
-
-#include "spdlog/spdlog.h"
+#ifndef XPCS_PIXELSUM_H
+#define XPCS_PIXELSUM_H
 
 
 namespace xpcs {
-namespace io {
+namespace filter {  
 
-struct ImmBlock {
-  int** index;
-  short** value;
-  int frames;
-  std::vector<int> pixels_per_frames;
-}
-
-class ImmReader {
+class PixelSum : public Filter  {
 
 public:
-  ImmReader(const std::string& filename);
-   
-  ~ImmReader();
+  PixelSum();
+  ~PixelSum();
 
-  bool IsSparse();
+  void Apply(int **index, 
+            float **values, 
+            int frames, 
+            std::vector<int> size_per_frame) {
 
-  float* TimestampClock();
-  float* TimestampTick();
-
-  ImmBlock*  NextFrames(int count = 1);
-  void SkipFrames(int count = 1)
-
-  void Reset();
+  }
 
 private:
 
-  // Initialize the file ptr and read-in file header. 
-  void init();
-
-  // Loads the sparse IMM file 
-  ImmBlock* NextSparse(int count);
-
-  // Loads the sparse IMM to internanl structures. Unlinke the load_sparse method
-  // it doesn't generate a matrix. 
-  ImmBlock* NextNonSparse(int count);
+  float *pixelSums
   
-  std::shared_ptr<spdlog::logger> logger_;
-
-  IMMHeader *header_;
-  FILE *file_;
-  // Internal data pointer for storing pixels. 
-  float *data_;
-  float *timestampClock_;
-  float *timestampTick_;
-  bool compression_;
-  int *linear_index_;
-
 };
 
-} //namespace io
+} //namespace filter
 } //namespace xpcs
 
 #endif
