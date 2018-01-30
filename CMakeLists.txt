@@ -8,29 +8,31 @@ set(CMAKE_BUILD_TYPE DEBUG)
 add_definitions(-std=c++0x)
 
 set(headers
-    src/xpcs/ds/row.h
-    src/xpcs/ds/sparse_data.h
-    src/xpcs/filter/filter.h
     src/xpcs/benchmark.h
     src/xpcs/configuration.h
     src/xpcs/corr.h
     src/xpcs/dark_image.h
     src/xpcs/funcs.h
     src/xpcs/h5_result.h
-    src/xpcs/imm.h
-    src/xpcs/imm_header.h
+    src/xpcs/ds/row.h
+    src/xpcs/ds/sparse_data.h
+    src/xpcs/filter/filter.h
+    src/xpcs/filter/sparse_filter.h
+    src/xpcs/io/imm_header.h
+   
 )
 
 set(sources
     src/xpcs/configuration.cpp
     src/xpcs/h5_result.cpp
     src/xpcs/corr.cpp
-    src/xpcs/imm.cpp
-    src/xpcs/ds/sparse_data.cpp
     src/xpcs/funcs.cpp
     src/xpcs/dark_image.cpp
-    src/xpcs/main.cpp)
-
+    src/xpcs/ds/sparse_data.cpp
+    src/xpcs/filter/sparse_filter.cpp
+    src/xpcs/io/imm_reader.cpp
+    src/xpcs/main2.cpp
+)
 
 find_package(OpenMP)
 if (OPENMP_FOUND)

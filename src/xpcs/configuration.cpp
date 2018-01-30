@@ -268,9 +268,9 @@ std::string Configuration::getString(const std::string &path)
     }
     else
     {
-        char *str = new char[size + 1];
+        char *str = new char[size];
         status = H5Dread(dataset_id, dtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, str);
-        str[size + 1] = '\n';
+        // str[size] = '\n';
         value = std::string(str);
     }
     

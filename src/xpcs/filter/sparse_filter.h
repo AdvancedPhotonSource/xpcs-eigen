@@ -47,27 +47,73 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef XPCS_PIXELSUM_H
 #define XPCS_PIXELSUM_H
 
+#include "filter.h"
 
 namespace xpcs {
+
+namespace io {
+  struct ImmBlock;
+}
+
 namespace filter {  
 
-class PixelSum : public Filter  {
+class SparseFilter : public Filter  {
 
 public:
-  PixelSum();
-  ~PixelSum();
+  SparseFilter();
 
-  void Apply(int **index, 
-            float **values, 
-            int frames, 
-            std::vector<int> size_per_frame) {
+  ~SparseFilter();
 
-  }
+  void Apply(struct xpcs::io::ImmBlock* data);
+
+  float* PixelsSum();
+
+  float* FramesSum();
 
 private:
 
-  float *pixelSums
+  short *pixel_mask_;
+
+  int *sbin_mask_;
+
+  int *pixel_count_;
+
+  int *frames_in_window_;
+
+  float *pixels_sum_;
+
+  float *frames_sum_;
+
+  float *partial_partitions_mean_;
+
+  float *partitions_mean_;
+
+  double *flatfield_;
+
+  int frame_width_;
+
+  int frame_height_; 
+
+  int static_window_; 
+
+  int total_static_partns_; 
+
+  int total_static_windows_; 
+
+  int frame_index_;
+
+  int frames_todo_;
   
+  int swindow_;
+
+  float eff_; 
+
+  float det_adhu_; 
+
+  float preset_; 
+
+  float normFactor_; 
+
 };
 
 } //namespace filter

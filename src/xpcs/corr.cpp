@@ -323,7 +323,7 @@ void Corr::multiTau2(ds::SparseData* data, float* G2s, float* IPs, float* IFs)
 
     int maxLevel = calculateLevelMax(frames, 4);
 
-    vector<int> validPixels = data->getValidPixels();
+    vector<int> validPixels = data->ValidPixels();
 
     vector<tuple<int,int> > delays_per_level = delaysPerLevel(frames, 4, maxLevel);
 
@@ -332,7 +332,7 @@ void Corr::multiTau2(ds::SparseData* data, float* G2s, float* IPs, float* IFs)
     // #pragma omp parallel for default(none) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
     for (int i = 0; i < validPixels.size(); i++)
     {
-        ds::Row *row = data->get(validPixels.at(i));
+        ds::Row *row = data->Pixel(validPixels.at(i));
 
         int ll = 0;
 

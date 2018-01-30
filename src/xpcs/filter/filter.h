@@ -49,14 +49,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace xpcs {
+
+namespace io {
+  struct ImmBlock;
+}
+
 namespace filter {  
 
 class Filter  {
 
-  virtual void Apply(int **index, 
-                    float **values, 
-                    int frames, 
-                    std::vector<int> size_per_frame) = 0;
+  virtual void Apply(struct xpcs::io::ImmBlock* block) = 0;
   
 };
 

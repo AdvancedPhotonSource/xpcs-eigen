@@ -59,11 +59,12 @@ class SparseData  {
 public:
 
   SparseData(int rows, int initalSize=10);
+
   ~SparseData();
 
-  Row* get(int index);
+  Row* Pixel(int index);
 
-  std::vector<int>& getValidPixels();
+  std::vector<int>& ValidPixels();
 
 private:
   Row** m_data;

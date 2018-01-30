@@ -65,8 +65,8 @@ struct ImmBlock {
   int** index;
   short** value;
   int frames;
-  std::vector<int> pixels_per_frames;
-}
+  std::vector<int> pixels_per_frame;
+};
 
 class ImmReader {
 
@@ -75,38 +75,29 @@ public:
    
   ~ImmReader();
 
-  bool IsSparse();
+  bool compression();
 
-  float* TimestampClock();
-  float* TimestampTick();
+  // float* TimestampClock();
 
-  ImmBlock*  NextFrames(int count = 1);
-  void SkipFrames(int count = 1)
+  // float* TimestampTick();
+
+  ImmBlock* NextFrames(int count = 1);
+
+  void SkipFrames(int count = 1);
 
   void Reset();
 
 private:
-
-  // Initialize the file ptr and read-in file header. 
-  void init();
-
-  // Loads the sparse IMM file 
-  ImmBlock* NextSparse(int count);
-
-  // Loads the sparse IMM to internanl structures. Unlinke the load_sparse method
-  // it doesn't generate a matrix. 
-  ImmBlock* NextNonSparse(int count);
   
   std::shared_ptr<spdlog::logger> logger_;
 
-  IMMHeader *header_;
+  ImmHeader *header_;
   FILE *file_;
   // Internal data pointer for storing pixels. 
   float *data_;
   float *timestampClock_;
   float *timestampTick_;
   bool compression_;
-  int *linear_index_;
 
 };
 

@@ -71,10 +71,11 @@ SparseData::~SparseData()
   //TODO
 }
 
-Row* SparseData::get(int index)
+Row* SparseData::Pixel(int index)
 {
     assert(index < m_rows);
     Row *r = m_data[index];
+    
     if (!r) {
         r = new Row(m_initSize);
         m_data[index] = r;
@@ -84,7 +85,7 @@ Row* SparseData::get(int index)
     return r;
 }
 
-std::vector<int>& SparseData::getValidPixels()
+std::vector<int>& SparseData::ValidPixels()
 {
     return m_validPixels;
 }

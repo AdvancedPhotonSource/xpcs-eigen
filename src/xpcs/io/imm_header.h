@@ -51,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 
 namespace xpcs {
-
 namespace io {
 
 class ImmHeader {

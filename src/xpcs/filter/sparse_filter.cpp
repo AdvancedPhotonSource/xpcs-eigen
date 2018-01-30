@@ -44,82 +44,106 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#include "imm_reader.h"
+
+#include "sparse_filter.h"
+
+#include <math.h>
 
 #include <stdio.h>
 #include <iostream>
 
 #include "xpcs/configuration.h"
-#include "xpcs/dark_image.h"
+#include "xpcs/io/imm_reader.h"
 
 namespace xpcs {
-namespace io {
+namespace filter {
 
-ImmReader::ImmReader(const std::string& filename) {
-    file_ = fopen(filename.c_str(), "rb");
 
-    if (file_ == NULL) return ; //TODO handle error
+SparseFilter::SparseFilter() {
+  Configuration *conf = Configuration::instance();
 
-    header_ = new ImmHeader();
-    fread(header_, 1024, 1, file_);
-    compression_ = header_->compression != 0 ? true : false;
-    rewind(file_);
+  pixel_mask_ = conf->getPixelMask();
+  sbin_mask_ = conf->getSbinMask();
+  flatfield_ = conf->getFlatField();
+  eff_ = conf->getDetEfficiency();
+  det_adhu_ = conf->getDetAdhuPhot();
+  preset_ =  conf->getDetPreset();
+  frames_todo_ = conf->getFrameTodoCount();
+  frame_width_ = conf->getFrameWidth();
+  frame_height_ = conf->getFrameHeight();
+  normFactor_ = conf->getNormFactor();
+  static_window_ = conf->getStaticWindowSize();
+  total_static_partns_ = conf->getTotalStaticPartitions();
+  swindow_ = conf->getStaticWindowSize();
+  total_static_windows_ = (int) ceil((double)frames_todo_/swindow_);
+  partial_partitions_mean = new float[total_static_partns_ * partitions];
+  partitions_mean = new float[total_static_partns_];
+  pixel_count_ = new int[total_static_partns_];
+  pixels_sum_ = new float[frame_width_ * frame_height_];
+  frames_sum_ =  new float[2 * conf->getFrameTodoCount()];
+  frame_index_ = 0;
+
 }
 
-ImmReader::~ImmReader() {
+SparseFilter::~SparseFilter() {
+
 }
 
-ImmBlock* ImmReader::NextFrames(int count) {
-    int **index = new int*[count];
-    short **value = new short*[count];
-    std::vector<int> ppf;
+void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
+  int **indx = blk->index;
+  short **val = blk->value;
+  int frames = blk->frames;
+  std::vector<int> ppf = blk->pixels_per_frame;
 
-    int done = 0, pxs = 0;
-    while (done < count) {
-        fread(header_, 1024, 1, file_);
-        pxs = header_->dlen;
-        // printf("%d\n", pxs);
-        // if (pxs == 137861)
-        //     printf("here\n");
+  for (int i = 0; i < frames; i++) {
+    int pixels = ppf[i];
+    int *index = indx[i];
+    short *value = val[i];
+    float f_sum = 0.0f;
+    int pix_cnt = 0;
+    int part_no = 0;
+    int sbin = 0;
 
-        index[done] = new int[pxs];
-        value[done] = new short[pxs];
-        
-        if (compression_) {
-            fread(index[done], pxs * 4, 1, file_);
-        } 
-
-        fread(value[done], pxs * 2, 1, file_);
-        ppf.push_back(pxs);
-        done++;
+    if (frame_index_ > 0 && (frame_index_ % static_window_) == 0) {
+      part_no++;
     }
 
-    struct ImmBlock *ret = new ImmBlock;
-    ret->index = index;
-    ret->value = value;
-    ret->frames = count;
-    ret->pixels_per_frame = ppf;
+    for (int j = 0; j < pixels; j++) {
 
-    return ret;
-}
+      if (pixel_mask_[index[j]] != 0) {
+        int pix = index[j];
+        float v = (float)value[j] * flatfield_[pix];
 
-void ImmReader::SkipFrames(int count) {
-    int done = 0;
-    int image_bytes = compression_ ? 6 : 2;
+        pixels_sum_[pix] += v;
+        f_sum += v;
 
-    while (done < count) {
-        fread(header_, 1024, 1, file_);
-        fseek(file_, header_->dlen * image_bytes, SEEK_CUR);
-        done++;
-        printf("Skipped %d\n", header_->dlen);
+        sbin = sbin_mask_[pix] - 1;
+
+        partitions_mean[sbin] += v;
+        partial_partitions_mean[part_no * total_static_partns_ + sbin ] += v;
+        pix_cnt++;
+      }
     }
+    
+    frames_sum_[frame_index_] = frame_index_ + 1.0;
+    frames_sum_[frame_index_ + frames_todo_] = f_sum / pix_cnt;
+    frame_index_++;
+  }
+
+  delete [] blk->index;
+  delete [] blk->value;
+  delete blk;
+
+
 }
 
-void ImmReader::Reset() {
-    rewind(file_);
+float* SparseFilter::PixelsSum() {
+  return pixels_sum_;
 }
 
-bool ImmReader::compression() { return compression_; }
+float* SparseFilter::FramesSum() {
+  return frames_sum_;
+}
 
 } // namespace io
 } // namespace xpcs

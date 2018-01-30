@@ -53,10 +53,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "Eigen/Dense"
 #include "Eigen/SparseCore"
 
-#include "imm.h"
 #include "ds/sparse_data.h"
 
 namespace xpcs  {
+
+typedef Eigen::SparseMatrix<float> SparseMatF;
+typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SparseRMatF;
+
 
 class Corr  {
 
