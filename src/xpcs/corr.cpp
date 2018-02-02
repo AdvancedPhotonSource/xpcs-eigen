@@ -57,6 +57,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "configuration.h"
 #include "h5_result.h"
 
+#include "xpcs/data_structure/sparse_data.h"
+
 
 namespace xpcs {
 
@@ -313,7 +315,7 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
 
 }
 
-void Corr::multiTau2(ds::SparseData* data, float* G2s, float* IPs, float* IFs)
+void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, float* IFs)
 {
     Configuration* conf = Configuration::instance();
     int w = conf->getFrameWidth();
@@ -329,10 +331,10 @@ void Corr::multiTau2(ds::SparseData* data, float* G2s, float* IPs, float* IFs)
 
     int pix = 355517;
 
-    // #pragma omp parallel for default(none) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
+    #pragma omp parallel for default(none) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
     for (int i = 0; i < validPixels.size(); i++)
     {
-        ds::Row *row = data->Pixel(validPixels.at(i));
+        data_structure::Row *row = data->Pixel(validPixels.at(i));
 
         int ll = 0;
 

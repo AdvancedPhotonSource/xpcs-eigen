@@ -14,8 +14,8 @@ set(headers
     src/xpcs/dark_image.h
     src/xpcs/funcs.h
     src/xpcs/h5_result.h
-    src/xpcs/ds/row.h
-    src/xpcs/ds/sparse_data.h
+    src/xpcs/data_structure/row.h
+    src/xpcs/data_structure/sparse_data.h
     src/xpcs/filter/filter.h
     src/xpcs/filter/sparse_filter.h
     src/xpcs/io/imm_header.h
@@ -28,7 +28,7 @@ set(sources
     src/xpcs/corr.cpp
     src/xpcs/funcs.cpp
     src/xpcs/dark_image.cpp
-    src/xpcs/ds/sparse_data.cpp
+    src/xpcs/data_structure/sparse_data.cpp
     src/xpcs/filter/sparse_filter.cpp
     src/xpcs/io/imm_reader.cpp
     src/xpcs/main2.cpp

@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 namespace xpcs {
-namespace ds {
+namespace data_structure {
 
 class Row {
 
@@ -76,7 +76,7 @@ public:
 
 };
 
-} // namespace ds
+} // namespace data_structure
 } // namespace xpcs
 
 #endif

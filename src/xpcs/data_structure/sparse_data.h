@@ -44,51 +44,38 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#include "sparse_data.h"
+#ifndef SPARSEDATA_H
+#define SPARSEDATA_H
 
-#include <stdio.h>
-#include <iostream>
+#include "row.h"
 
-#include "xpcs/configuration.h"
-#include "xpcs/benchmark.h"
-
+#include <vector>
 
 namespace xpcs {
-namespace ds {
+namespace data_structure {
 
-SparseData::SparseData(int rows, int initialSize)
-{
-    m_rows = rows;
-    m_initSize = initialSize;
-    m_data = new Row*[rows];
+class SparseData  {
 
-    for (int i = 0; i < m_rows; i++)
-        m_data[i] = NULL;
-}
+public:
 
-SparseData::~SparseData()
-{
-  //TODO
-}
+  SparseData(int rows, int initalSize=10);
 
-Row* SparseData::Pixel(int index)
-{
-    assert(index < m_rows);
-    Row *r = m_data[index];
-    
-    if (!r) {
-        r = new Row(m_initSize);
-        m_data[index] = r;
-        m_validPixels.push_back(index);
-    }
+  ~SparseData();
 
-    return r;
-}
+  Row* Pixel(int index);
 
-std::vector<int>& SparseData::ValidPixels()
-{
-    return m_validPixels;
-}
+  std::vector<int>& ValidPixels();
 
-} //namespace ds
+private:
+  Row** m_data;
+  
+  int m_rows;
+  int m_initSize;
+
+  std::vector<int> m_validPixels;
+};
+
+} //namespace data_structure
 } //namespace xpcs
+
+#endif

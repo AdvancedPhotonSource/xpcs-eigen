@@ -78,6 +78,7 @@ DEFINE_string(entry, "", "The metadata path in HDF5 file");
 int main(int argc, char** argv)
 {
 
+  xpcs::Benchmark total("Total");
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   if (argc < 2) {
@@ -136,21 +137,37 @@ int main(int argc, char** argv)
   float* ips = new float[pixels * delays_per_level.size()];
   float* ifs = new float[pixels * delays_per_level.size()];
 
-  xpcs::io::ImmReader reader(conf->getIMMFilePath().c_str());
-  xpcs::filter::SparseFilter filter;
+  float *timestamp_clock = new float[2 * frames];
+  float *timestamp_tick = new float[2 * frames];
 
-  int r = 0;
-  if (frameFrom > 0) {
+  xpcs::filter::SparseFilter filter;
+  xpcs::io::ImmReader reader(conf->getIMMFilePath().c_str());
+
+  {
+    xpcs::Benchmark benchmark("Loading data");
+    int r = 0;
+    if (frameFrom > 0) {
       reader.SkipFrames(frameFrom);
       r += frameFrom;
-  }
+    }
 
-  while (r <= frameTo) {
-    struct xpcs::io::ImmBlock* data = reader.NextFrames();
-    filter.Apply(data);
-    r++;
-  }
+    int f = 0;
+    while (r <= frameTo) {
+      struct xpcs::io::ImmBlock* data = reader.NextFrames();
+      filter.Apply(data);
+      timestamp_clock[f] = f + 1;
+      timestamp_clock[f + frames] = data->clock[0];
+      timestamp_tick[f] = f + 1;
+      timestamp_tick[f + frames] = data->ticks[0]; 
 
+      // delete [] data->index;
+      // delete [] data->value;
+      // delete data;
+      r++;
+      f++;
+    }
+  }
+ 
   float* pixels_sum = filter.PixelsSum();
   for (int i = 0 ; i < pixels; i++) {
     pixels_sum[i] /= frames;
@@ -172,7 +189,83 @@ int main(int argc, char** argv)
                               frames, 
                               frames_sum);
 
+  float *partitions_mean = filter.PartitionsMean();
+  float *partial_part_mean = filter.PartialPartitionsMean();
+  int total_static_partns = conf->getTotalStaticPartitions();
+  int partitions = (int) ceil((double) frames/ swindow);
+  int *pixels_per_sbin = conf->PixelsPerStaticBin();
+  float norm_factor = conf->getNormFactor();
 
-  delete [] pixels_sum;
-  delete [] frames_sum;
+  float denominator = 1.0f;
+  for (int i = 0; i < total_static_partns; i++) {
+    for (int j = 0; j < partitions; j++) {
+      denominator = pixels_per_sbin[i] * swindow * norm_factor;
+      partial_part_mean[j * total_static_partns + i] /= denominator;
+    }
+  }
+
+  for (int i = 0; i < total_static_partns; i++) {
+    denominator = pixels_per_sbin[i] * frames * norm_factor;
+    partitions_mean[i] /= denominator;
+  }
+
+  xpcs::H5Result::write1DData(conf->getFilename(), 
+                        "exchange", 
+                        "partition-mean-total", 
+                        total_static_partns,
+                        partitions_mean);
+
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                        "exchange", 
+                        "partition-mean-partial", 
+                        partitions, 
+                        total_static_partns,
+                        partial_part_mean);
+                        
+  xpcs::H5Result::write1DData(conf->getFilename(), 
+                        "exchange", 
+                        "partition_norm_factor", 
+                        1, 
+                        &norm_factor);
+
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                              "exchange", 
+                              "timestamp_clock", 
+                              2, 
+                              frames, 
+                              timestamp_clock);
+
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                              "exchange", 
+                              "timestamp_tick", 
+                              2, 
+                              frames, 
+                              timestamp_tick);
+
+  float *tau = new float[delays_per_level.size()];
+  for (int x = 0 ; x < delays_per_level.size(); x++)
+  {   
+    std::tuple<int, int> value = delays_per_level[x];
+    tau[x] = std::get<1>(value);
+  }
+
+  xpcs::H5Result::write1DData(conf->getFilename(), 
+                              "exchange", 
+                              "tau", 
+                              (int)delays_per_level.size(), 
+                              tau);
+
+  {
+    xpcs::Benchmark benchmark("Computing G2");
+    xpcs::Corr::multiTau2(filter.Data(), g2s, ips, ifs);
+  }
+
+  
+  xpcs::Benchmark benchmark("Normalizing Data");
+  Eigen::MatrixXf G2s = Eigen::Map<Eigen::MatrixXf>(g2s, pixels, delays_per_level.size());
+  Eigen::MatrixXf IPs = Eigen::Map<Eigen::MatrixXf>(ips, pixels, delays_per_level.size());
+  Eigen::MatrixXf IFs = Eigen::Map<Eigen::MatrixXf>(ifs, pixels, delays_per_level.size());
+
+  xpcs::Corr::normalizeG2s(G2s, IPs, IFs);
+
 }

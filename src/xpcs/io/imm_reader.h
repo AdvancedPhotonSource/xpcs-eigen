@@ -66,6 +66,8 @@ struct ImmBlock {
   short** value;
   int frames;
   std::vector<int> pixels_per_frame;
+  float* clock;
+  float* ticks;
 };
 
 class ImmReader {
@@ -95,8 +97,6 @@ private:
   FILE *file_;
   // Internal data pointer for storing pixels. 
   float *data_;
-  float *timestampClock_;
-  float *timestampTick_;
   bool compression_;
 
 };

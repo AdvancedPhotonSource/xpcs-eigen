@@ -51,6 +51,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace xpcs {
 
+namespace data_structure {
+  class SparseData;
+}
+
 namespace io {
   struct ImmBlock;
 }
@@ -70,15 +74,19 @@ public:
 
   float* FramesSum();
 
+  float* PartitionsMean();
+
+  float* PartialPartitionsMean();
+
+  xpcs::data_structure::SparseData* Data();
+
 private:
+
+  xpcs::data_structure::SparseData *data_;
 
   short *pixel_mask_;
 
   int *sbin_mask_;
-
-  int *pixel_count_;
-
-  int *frames_in_window_;
 
   float *pixels_sum_;
 
@@ -98,13 +106,13 @@ private:
 
   int total_static_partns_; 
 
-  int total_static_windows_; 
-
   int frame_index_;
 
   int frames_todo_;
   
   int swindow_;
+
+  int partition_no_;
 
   float eff_; 
 

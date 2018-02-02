@@ -64,6 +64,7 @@ public:
 
   int* getDQMap();
   int* getSQMap();
+  int *PixelsPerStaticBin();
 
   int getFrameWidth();
   int getFrameHeight();
@@ -120,8 +121,7 @@ private:
 
   double* get2DTableD(const std::string &path);
 
-  int* dqmap;
-  int* sqmap;
+  
   double* flatfield;
 
   // Valid pixel mask - mark an entry as 1 in an array if the pixel is contained in any of the bins.
@@ -136,8 +136,6 @@ private:
 
   int xdim;
   int ydim;
-
-
   int frameStart;
   int frameEnd;
   int frameStartTodo;
@@ -147,13 +145,16 @@ private:
   int darkFrames;
   int m_staticWindow;
 
+  int *pixels_per_bin;
+  int *dqmap;
+  int *sqmap;
+
   float m_detDpixX;
   float m_detDpixY;
   float m_detAdhupPhot;
   float m_detPreset;
   float m_detEfficiency;
   float m_normFactor;
-
   float darkThreshold;
   float darkSigma;
 

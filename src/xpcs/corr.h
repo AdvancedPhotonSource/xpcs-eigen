@@ -53,9 +53,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "Eigen/Dense"
 #include "Eigen/SparseCore"
 
-#include "ds/sparse_data.h"
-
 namespace xpcs  {
+
+namespace data_structure {
+  class SparseData;
+}
 
 typedef Eigen::SparseMatrix<float> SparseMatF;
 typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SparseRMatF;
@@ -93,7 +95,7 @@ public:
                           Eigen::Ref<Eigen::MatrixXf> IP, 
                           Eigen::Ref<Eigen::MatrixXf> IF);
 
-  static void multiTau2(ds::SparseData *data, float* G2, float* IP, float* IF);
+  static void multiTau2(data_structure::SparseData *data, float* G2, float* IP, float* IF);
 
   static void twoTimesVec(Eigen::Ref<Eigen::MatrixXf> pixelData);
 

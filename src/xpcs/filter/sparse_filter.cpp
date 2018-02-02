@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "xpcs/configuration.h"
 #include "xpcs/io/imm_reader.h"
+#include "xpcs/data_structure/sparse_data.h"
 
 namespace xpcs {
 namespace filter {
@@ -75,13 +76,25 @@ SparseFilter::SparseFilter() {
   static_window_ = conf->getStaticWindowSize();
   total_static_partns_ = conf->getTotalStaticPartitions();
   swindow_ = conf->getStaticWindowSize();
-  total_static_windows_ = (int) ceil((double)frames_todo_/swindow_);
-  partial_partitions_mean = new float[total_static_partns_ * partitions];
-  partitions_mean = new float[total_static_partns_];
-  pixel_count_ = new int[total_static_partns_];
+  int partitions = (int) ceil((double)frames_todo_/swindow_);
+  partial_partitions_mean_ = new float[total_static_partns_ * partitions];
+  partitions_mean_ = new float[total_static_partns_];
   pixels_sum_ = new float[frame_width_ * frame_height_];
   frames_sum_ =  new float[2 * conf->getFrameTodoCount()];
+
   frame_index_ = 0;
+  partition_no_ = 0;
+
+  for (int i = 0; i < total_static_partns_; i++) 
+    partitions_mean_[i] = 0.0;
+
+  for (int i = 0; i < total_static_partns_ * partitions; i++)
+    partial_partitions_mean_[i] = 0.0;
+
+  for (int i = 0; i < (frame_width_ * frame_height_); i++)
+    pixels_sum_[i] = 0.0f;
+
+  data_ = new xpcs::data_structure::SparseData(frame_width_ * frame_height_);
 
 }
 
@@ -101,11 +114,10 @@ void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
     short *value = val[i];
     float f_sum = 0.0f;
     int pix_cnt = 0;
-    int part_no = 0;
     int sbin = 0;
 
     if (frame_index_ > 0 && (frame_index_ % static_window_) == 0) {
-      part_no++;
+      partition_no_++;
     }
 
     for (int j = 0; j < pixels; j++) {
@@ -119,21 +131,20 @@ void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
 
         sbin = sbin_mask_[pix] - 1;
 
-        partitions_mean[sbin] += v;
-        partial_partitions_mean[part_no * total_static_partns_ + sbin ] += v;
+        xpcs::data_structure::Row *row = data_->Pixel(pix);
+        row->indxPtr.push_back(frame_index_);
+        row->valPtr.push_back(v);
+
+        partitions_mean_[sbin] += v;
+        partial_partitions_mean_[partition_no_ * total_static_partns_ + sbin ] += v;
         pix_cnt++;
       }
     }
-    
+
     frames_sum_[frame_index_] = frame_index_ + 1.0;
     frames_sum_[frame_index_ + frames_todo_] = f_sum / pix_cnt;
     frame_index_++;
   }
-
-  delete [] blk->index;
-  delete [] blk->value;
-  delete blk;
-
 
 }
 
@@ -143,6 +154,19 @@ float* SparseFilter::PixelsSum() {
 
 float* SparseFilter::FramesSum() {
   return frames_sum_;
+}
+
+float* SparseFilter::PartitionsMean() {
+  return partitions_mean_;
+}
+
+float* SparseFilter::PartialPartitionsMean() {
+  return partial_partitions_mean_;
+}
+
+
+xpcs::data_structure::SparseData* SparseFilter::Data() {
+  return data_;
 }
 
 } // namespace io

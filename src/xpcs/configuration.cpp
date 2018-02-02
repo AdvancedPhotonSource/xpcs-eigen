@@ -199,6 +199,15 @@ void Configuration::init(const std::string &path, const std::string& entry)
         }
     }
 
+    pixels_per_bin = new int[m_totalStaticPartitions];
+    for (int i = 0; i < m_totalStaticPartitions; i++) {
+        pixels_per_bin[i] = 0;
+    }
+
+    for (int i = 0; i < (xdim*ydim); i++) {
+        pixels_per_bin[m_sbin[i] -1]++;
+    }
+
     H5Fclose(file_id);
 }
 
@@ -476,6 +485,10 @@ float Configuration::getDarkThreshold()
 float Configuration::getDarkSigma()
 {
     return darkSigma;
+}
+
+int* Configuration::PixelsPerStaticBin() {
+  return pixels_per_bin;
 }
 
 }

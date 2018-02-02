@@ -72,15 +72,15 @@ ImmReader::~ImmReader() {
 ImmBlock* ImmReader::NextFrames(int count) {
     int **index = new int*[count];
     short **value = new short*[count];
+    float *clock = new float[count];
+    float *ticks = new float[count];
+
     std::vector<int> ppf;
 
     int done = 0, pxs = 0;
     while (done < count) {
         fread(header_, 1024, 1, file_);
         pxs = header_->dlen;
-        // printf("%d\n", pxs);
-        // if (pxs == 137861)
-        //     printf("here\n");
 
         index[done] = new int[pxs];
         value[done] = new short[pxs];
@@ -91,6 +91,9 @@ ImmBlock* ImmReader::NextFrames(int count) {
 
         fread(value[done], pxs * 2, 1, file_);
         ppf.push_back(pxs);
+
+        clock[done] = header_->elapsed;
+        ticks[done] = header_->corecotick;
         done++;
     }
 
@@ -99,6 +102,8 @@ ImmBlock* ImmReader::NextFrames(int count) {
     ret->value = value;
     ret->frames = count;
     ret->pixels_per_frame = ppf;
+    ret->clock = clock;
+    ret->ticks = ticks;
 
     return ret;
 }
