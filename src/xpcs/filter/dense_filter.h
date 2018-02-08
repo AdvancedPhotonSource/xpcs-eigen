@@ -44,8 +44,8 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#ifndef XPCS_SPARSE_FILTER_H
-#define XPCS_SPARSE_FILTER_H
+#ifndef XPCS_DENSE_FILTER_H
+#define XPCS_DENSE_FILTER_H
 
 #include "filter.h"
 
@@ -61,12 +61,12 @@ namespace io {
 
 namespace filter {  
 
-class SparseFilter : public Filter  {
+class DenseFilter : public Filter  {
 
 public:
-  SparseFilter();
+  DenseFilter();
 
-  ~SparseFilter();
+  ~DenseFilter();
 
   void Apply(struct xpcs::io::ImmBlock* data);
 

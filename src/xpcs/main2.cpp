@@ -141,14 +141,31 @@ int main(int argc, char** argv)
   float *timestamp_tick = new float[2 * frames];
 
   xpcs::filter::SparseFilter filter;
+  xpcs::dat_structure DarkImage *dark_image = NULL;
+
   xpcs::io::ImmReader reader(conf->getIMMFilePath().c_str());
 
   {
     xpcs::Benchmark benchmark("Loading data");
+
     int r = 0;
-    if (frameFrom > 0) {
-      reader.SkipFrames(frameFrom);
-      r += frameFrom;
+
+    if (!reader.compression()) {
+      int dark_s = conf->getDarkFrameStart();
+      int dark_e = conf->getDarkFrameEnd();
+      int darks = conf->getDarkFrames();
+
+      if (dark_s != dark_e) {
+        struct xpcs::io::ImmBlock *data = reader.NextFrames(darks);
+        dark_image = new DarkImage(data->value, darks, pixels, conf->getFlatField());
+        r += darks;
+      }
+
+    }
+    
+    if (frameFrom > 0 && r < frameFrom) {
+      reader.SkipFrames(frameFrom - r);
+      r += (frameFrom - r);
     }
 
     int f = 0;

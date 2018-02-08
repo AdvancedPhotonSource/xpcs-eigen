@@ -11,7 +11,7 @@ set(headers
     src/xpcs/benchmark.h
     src/xpcs/configuration.h
     src/xpcs/corr.h
-    src/xpcs/dark_image.h
+    src/xpcs/data_structure/dark_image.h
     src/xpcs/funcs.h
     src/xpcs/h5_result.h
     src/xpcs/data_structure/row.h
@@ -27,7 +27,7 @@ set(sources
     src/xpcs/h5_result.cpp
     src/xpcs/corr.cpp
     src/xpcs/funcs.cpp
-    src/xpcs/dark_image.cpp
+    src/xpcs/data_structure/dark_image.cpp
     src/xpcs/data_structure/sparse_data.cpp
     src/xpcs/filter/sparse_filter.cpp
     src/xpcs/io/imm_reader.cpp
