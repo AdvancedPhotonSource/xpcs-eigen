@@ -55,14 +55,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "xpcs/configuration.h"
 #include "xpcs/io/imm_reader.h"
 #include "xpcs/data_structure/sparse_data.h"
+#include "xpcs/data_structure/dark_image.h"
 
 namespace xpcs {
 namespace filter {
 
 
-DenseFilter::DenseFilter() {
-  Configuration *conf = Configuration::instance();
+DenseFilter::DenseFilter(xpcs::data_structure::DarkImage *dark_image) {
 
+  dark_image_ = dark_image;
+
+  Configuration *conf = Configuration::instance();
   pixel_mask_ = conf->getPixelMask();
   sbin_mask_ = conf->getSbinMask();
   flatfield_ = conf->getFlatField();
@@ -81,6 +84,8 @@ DenseFilter::DenseFilter() {
   partitions_mean_ = new float[total_static_partns_];
   pixels_sum_ = new float[frame_width_ * frame_height_];
   frames_sum_ =  new float[2 * conf->getFrameTodoCount()];
+  sigma_ = conf->getDarkSigma();
+  threshold_ = conf->getDarkThreshold();
 
   frame_index_ = 0;
   partition_no_ = 0;
@@ -106,6 +111,15 @@ void DenseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
   int **indx = blk->index;
   short **val = blk->value;
   int frames = blk->frames;
+
+  double *dark_avg = NULL;
+  double *dark_std = NULL;
+
+  if (dark_image_ != NULL) {
+    dark_avg = dark_image_->dark_avg();
+    dark_std = dark_image_->dark_std();
+  }
+
   std::vector<int> ppf = blk->pixels_per_frame;
 
   for (int i = 0; i < frames; i++) {
@@ -122,9 +136,20 @@ void DenseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
 
     for (int j = 0; j < pixels; j++) {
 
-      if (pixel_mask_[index[j]] != 0) {
-        int pix = index[j];
-        float v = (float)value[j] * flatfield_[pix];
+      if (pixel_mask_[j] != 0) {
+        int pix = j;
+        float v = value[j];
+        float thresh = 0.0f;
+
+        if (dark_avg != NULL) {
+          v = v - dark_avg[j];
+          v = std::max(v, 0.0f);
+          thresh = threshold_ + sigma_ * dark_std[j];
+        }
+
+        if (v <= thresh) continue;
+
+        v = v * flatfield_[j];
 
         pixels_sum_[pix] += v;
         f_sum += v;

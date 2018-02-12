@@ -63,7 +63,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "h5_result.h"
 #include "benchmark.h"
 #include "xpcs/io/imm_reader.h"
+#include "xpcs/filter/filter.h"
 #include "xpcs/filter/sparse_filter.h"
+#include "xpcs/filter/dense_filter.h"
+#include "xpcs/data_structure/dark_image.h"
 
 
 using namespace std;
@@ -140,10 +143,10 @@ int main(int argc, char** argv)
   float *timestamp_clock = new float[2 * frames];
   float *timestamp_tick = new float[2 * frames];
 
-  xpcs::filter::SparseFilter filter;
-  xpcs::dat_structure DarkImage *dark_image = NULL;
-
   xpcs::io::ImmReader reader(conf->getIMMFilePath().c_str());
+  xpcs::filter::Filter *filter = NULL;
+  
+  xpcs::data_structure::DarkImage *dark_image = NULL;
 
   {
     xpcs::Benchmark benchmark("Loading data");
@@ -157,10 +160,9 @@ int main(int argc, char** argv)
 
       if (dark_s != dark_e) {
         struct xpcs::io::ImmBlock *data = reader.NextFrames(darks);
-        dark_image = new DarkImage(data->value, darks, pixels, conf->getFlatField());
+        dark_image = new xpcs::data_structure::DarkImage(data->value, darks, pixels, conf->getFlatField());
         r += darks;
       }
-
     }
     
     if (frameFrom > 0 && r < frameFrom) {
@@ -168,29 +170,54 @@ int main(int argc, char** argv)
       r += (frameFrom - r);
     }
 
+    if (reader.compression())
+      filter = new xpcs::filter::SparseFilter();
+    else
+      filter = new xpcs::filter::DenseFilter(dark_image);
+
     int f = 0;
     while (r <= frameTo) {
       struct xpcs::io::ImmBlock* data = reader.NextFrames();
-      filter.Apply(data);
+      filter->Apply(data);
       timestamp_clock[f] = f + 1;
       timestamp_clock[f + frames] = data->clock[0];
       timestamp_tick[f] = f + 1;
       timestamp_tick[f + frames] = data->ticks[0]; 
-
-      // delete [] data->index;
-      // delete [] data->value;
-      // delete data;
-      r++;
       f++;
+      r++;
     }
+
+    // #pragma omp parallel num_threads(1)
+    // {
+    //   #pragma omp single 
+    //   {
+    //     while (r <= frameTo) 
+    //     {
+    //       struct xpcs::io::ImmBlock* data = reader.NextFrames();
+    //       r++;
+    //       #pragma omp task firstprivate(data) 
+    //       {
+    //         int tid = omp_get_thread_num();
+    //         // printf("Hello world from omp thread %d\n", tid);
+    //         filter->Apply(data);
+    //         timestamp_clock[f] = f + 1;
+    //         timestamp_clock[f + frames] = data->clock[0];
+    //         timestamp_tick[f] = f + 1;
+    //         timestamp_tick[f + frames] = data->ticks[0]; 
+    //         f++;
+    //       } 
+    //     }
+    //     // printf("Done reading!\n");
+    //   } 
+    // }
   }
- 
-  float* pixels_sum = filter.PixelsSum();
+  
+  float* pixels_sum = filter->PixelsSum();
   for (int i = 0 ; i < pixels; i++) {
     pixels_sum[i] /= frames;
   }
 
-  float* frames_sum = filter.FramesSum();
+  float* frames_sum = filter->FramesSum();
 
   xpcs::H5Result::write2DData(conf->getFilename(), 
                         "exchange", 
@@ -206,8 +233,8 @@ int main(int argc, char** argv)
                               frames, 
                               frames_sum);
 
-  float *partitions_mean = filter.PartitionsMean();
-  float *partial_part_mean = filter.PartialPartitionsMean();
+  float *partitions_mean = filter->PartitionsMean();
+  float *partial_part_mean = filter->PartialPartitionsMean();
   int total_static_partns = conf->getTotalStaticPartitions();
   int partitions = (int) ceil((double) frames/ swindow);
   int *pixels_per_sbin = conf->PixelsPerStaticBin();
@@ -274,7 +301,7 @@ int main(int argc, char** argv)
 
   {
     xpcs::Benchmark benchmark("Computing G2");
-    xpcs::Corr::multiTau2(filter.Data(), g2s, ips, ifs);
+    xpcs::Corr::multiTau2(filter->Data(), g2s, ips, ifs);
   }
 
   

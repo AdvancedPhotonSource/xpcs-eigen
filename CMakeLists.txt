@@ -18,8 +18,8 @@ set(headers
     src/xpcs/data_structure/sparse_data.h
     src/xpcs/filter/filter.h
     src/xpcs/filter/sparse_filter.h
+    src/xpcs/filter/dense_filter.h
     src/xpcs/io/imm_header.h
-   
 )
 
 set(sources
@@ -30,6 +30,7 @@ set(sources
     src/xpcs/data_structure/dark_image.cpp
     src/xpcs/data_structure/sparse_data.cpp
     src/xpcs/filter/sparse_filter.cpp
+    src/xpcs/filter/dense_filter.cpp
     src/xpcs/io/imm_reader.cpp
     src/xpcs/main2.cpp
 )

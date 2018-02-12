@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 #include "xpcs/configuration.h"
-#include "xpcs/dark_image.h"
+#include "xpcs/data_structure/dark_image.h"
 
 namespace xpcs {
 namespace io {

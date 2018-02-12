@@ -53,6 +53,7 @@ namespace xpcs {
 
 namespace data_structure {
   class SparseData;
+  class DarkImage;
 }
 
 namespace io {
@@ -64,7 +65,7 @@ namespace filter {
 class DenseFilter : public Filter  {
 
 public:
-  DenseFilter();
+  DenseFilter(xpcs::data_structure::DarkImage* dark_image);
 
   ~DenseFilter();
 
@@ -84,9 +85,15 @@ private:
 
   xpcs::data_structure::SparseData *data_;
 
+  xpcs::data_structure::DarkImage *dark_image_;
+
   short *pixel_mask_;
 
   int *sbin_mask_;
+
+  float sigma_;
+
+  float threshold_;
 
   float *pixels_sum_;
 

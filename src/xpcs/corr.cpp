@@ -78,7 +78,6 @@ using Eigen::Ref;
 using Eigen::Map;
 using Eigen::OuterStride;
 
-
 void Corr::multiTau(const MatrixXf &pixelData, int pix) {
     int frames = pixelData.cols();
     int maxLevel = calculateLevelMax(frames, 4);
@@ -331,7 +330,7 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
 
     int pix = 355517;
 
-    #pragma omp parallel for default(none) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
+    #pragma omp parallel for default(none) schedule(dynamic) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
     for (int i = 0; i < validPixels.size(); i++)
     {
         data_structure::Row *row = data->Pixel(validPixels.at(i));

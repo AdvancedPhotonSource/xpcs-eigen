@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <math.h>
 
-#include "configuration.h"
+#include "xpcs/configuration.h"
 
 namespace xpcs {
 
@@ -83,25 +83,25 @@ void DarkImage::Compute(short** data, int frames, int pixels, double* flatfield)
 
   for (int i = 0 ; i < pixels; i++)
   {
-      darkAvg[i] = 0.0;
-      darkStd[i] = 0.0;
+      dark_avg_[i] = 0.0;
+      dark_std_[i] = 0.0;
   }
 
   for (int i = 0; i < frames; i++)
   {
       for (int j = 0; j < pixels; j++)
       {
-          double tmp = darkAvg[j];
+          double tmp = dark_avg_[j];
           double pix = (double)data[i][j] * flatfield[j];
           
-          darkAvg[j] += ((pix - darkAvg[j]) / (double)(i+1));
-          darkStd[j] += ((pix - tmp) * (pix - darkAvg[j]));
+          dark_avg_[j] += ((pix - dark_avg_[j]) / (double)(i+1));
+          dark_std_[j] += ((pix - tmp) * (pix - dark_avg_[j]));
 
       }
   }
 
   for (int j = 0; j < pixels; j++)
-      darkStd[j] = sqrt(darkStd[j] / frames);
+      dark_std_[j] = sqrt(dark_std_[j] / frames);
 
 }
 

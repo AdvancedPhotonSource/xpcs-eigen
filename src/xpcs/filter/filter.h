@@ -50,6 +50,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace xpcs {
 
+namespace data_structure {
+  class SparseData;
+}
+
 namespace io {
   struct ImmBlock;
 }
@@ -58,7 +62,20 @@ namespace filter {
 
 class Filter  {
 
+public:
+
   virtual void Apply(struct xpcs::io::ImmBlock* block) = 0;
+
+  virtual float* PixelsSum() = 0;
+
+  virtual float* FramesSum() = 0;
+
+  virtual float* PartitionsMean() = 0;
+
+  virtual float* PartialPartitionsMean() = 0;
+
+  virtual xpcs::data_structure::SparseData* Data() = 0;
+
   
 };
 
