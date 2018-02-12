@@ -140,6 +140,12 @@ int main(int argc, char** argv)
   float* ips = new float[pixels * delays_per_level.size()];
   float* ifs = new float[pixels * delays_per_level.size()];
 
+  for (int i = 0; i < (pixels * delays_per_level.size()); i++) {
+    g2s[i] = 0.0f;
+    ips[i] = 0.0f;
+    ifs[i] = 0.0f;
+  }
+
   float *timestamp_clock = new float[2 * frames];
   float *timestamp_tick = new float[2 * frames];
 
