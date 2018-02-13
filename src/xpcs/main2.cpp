@@ -318,4 +318,10 @@ int main(int argc, char** argv)
 
   xpcs::Corr::normalizeG2s(G2s, IPs, IFs);
 
+  if (FLAGS_g2out) {
+    xpcs::Benchmark b("Writing G2s, IPs and IFs");
+    xpcs::H5Result::write2DData(conf->getFilename(), "exchange", "G2", pixels, delays_per_level.size(), g2s);
+    xpcs::H5Result::write2DData(conf->getFilename(), "exchange", "IP", pixels, delays_per_level.size(), ips);
+    xpcs::H5Result::write2DData(conf->getFilename(), "exchange", "IF", pixels, delays_per_level.size(), ifs);
+  }
 }
