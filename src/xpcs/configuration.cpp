@@ -156,59 +156,125 @@ void Configuration::init(const std::string &path, const std::string& entry)
 
     m_immFile = getString(entry + "/input_file_local");
     
-    this->m_validPixelMask = new short[this->xdim * this->ydim];
-    m_sbin = new int[this->xdim * this->ydim];
-
-    // Build mapping from q-bin to s-bins and from s-bins to pixels. 
-    for (int i=0; i<(xdim*ydim); i++) {
-        if (dqmap[i] < 1 || sqmap[i] < 1) continue;
-
-        // Mark this pixel to be part of a valid mask. 
-        m_validPixelMask[i] = 1;
-        m_sbin[i] = sqmap[i];
-
-        std::map<int, std::map<int, std::vector<int>> >::iterator it = m_mapping.find(dqmap[i]);
-
-        // Highest q-map value is equal to total number of dynamic partitions. 
-        if (this->m_totalDynamicPartitions < dqmap[i])
-            this->m_totalDynamicPartitions = dqmap[i];
-
-        if (it != m_mapping.end()) {
-            std::map<int, std::vector<int> > &v = it->second;
-            
-            std::map<int, std::vector<int>>::iterator it2 = v.find(sqmap[i]);
-            
-            if (this->m_totalStaticPartitions < sqmap[i])
-                this->m_totalStaticPartitions = sqmap[i];
-
-            if (it2 != v.end()) {
-                std::vector<int> &v2 = it2->second;
-                v2.push_back(i);
-            } else {
-                std::vector<int> data;
-                data.push_back(i);
-                v[sqmap[i]] = data;
-            }
-        }
-        else {
-            std::map<int, std::vector<int> > mapping;
-            std::vector<int> data;
-            data.push_back(i);
-            mapping[sqmap[i]] = data;
-            m_mapping[dqmap[i]] = mapping;
-        }
-    }
-
-    pixels_per_bin = new int[m_totalStaticPartitions];
-    for (int i = 0; i < m_totalStaticPartitions; i++) {
-        pixels_per_bin[i] = 0;
-    }
-
-    for (int i = 0; i < (xdim*ydim); i++) {
-        pixels_per_bin[m_sbin[i] -1]++;
-    }
+    BuildQMap();
 
     H5Fclose(file_id);
+}
+
+void Configuration::BuildQMap() {
+  this->m_validPixelMask = new short[this->xdim * this->ydim];
+  m_sbin = new int[this->xdim * this->ydim];
+
+  std::map<int, std::vector<int>> sbin_to_qbin;
+
+  // Build mapping from q-bin to s-bins and from s-bins to pixels. 
+  for (int i=0; i<(xdim*ydim); i++) {
+    if (dqmap[i] < 1 || sqmap[i] < 1) continue;
+    // Mark this pixel to be part of a valid mask. 
+    m_validPixelMask[i] = 1;
+    m_sbin[i] = sqmap[i];
+
+    std::map<int, std::map<int, std::vector<int>> >::iterator it = m_mapping.find(dqmap[i]);
+
+    // Highest q-map value is equal to total number of dynamic partitions. 
+    if (this->m_totalDynamicPartitions < dqmap[i])
+      this->m_totalDynamicPartitions = dqmap[i];
+
+    if (it != m_mapping.end()) {
+      std::map<int, std::vector<int> > &v = it->second;    
+      std::map<int, std::vector<int>>::iterator it2 = v.find(sqmap[i]);
+          
+      if (this->m_totalStaticPartitions < sqmap[i])
+        this->m_totalStaticPartitions = sqmap[i];
+
+      if (it2 != v.end()) {
+        std::vector<int> &v2 = it2->second;
+        v2.push_back(i);
+      } else {
+        std::vector<int> data;
+        data.push_back(i);
+        v[sqmap[i]] = data;
+
+        std::map<int, std::vector<int>>::iterator sbin_it = sbin_to_qbin.find(sqmap[i]);
+        if (sbin_it != sbin_to_qbin.end()) {
+          std::vector<int> &avec = sbin_it->second;
+          avec.push_back(dqmap[i]);
+        } else {
+          std::vector<int> avec;
+          avec.push_back(dqmap[i]);
+          sbin_to_qbin[sqmap[i]] = avec;
+        }
+      }
+    } else {
+      std::map<int, std::vector<int> > mapping;
+      std::vector<int> data;
+      data.push_back(i);
+      mapping[sqmap[i]] = data;
+      m_mapping[dqmap[i]] = mapping;
+    }
+  }
+
+  // remove duplicates.
+  for (auto it =  sbin_to_qbin.begin(); it != sbin_to_qbin.end(); it++) {
+    int sbin = it->first;
+    std::vector<int> qbins = it->second;
+
+    if (qbins.size() > 1) {
+      // duplicate sbin -> qbin mapping
+      // int dups[qbins.size() - 1] = {0};
+      int max_qbin = 0;
+      int max_pixels = 0;
+      for (auto qid = qbins.begin(); qid != qbins.end(); qid++) {
+        int q = *qid;
+        auto m1 = m_mapping.find(q)->second;
+        std::vector<int> m2 = m1.find(sbin)->second;
+        int pixels = m2.size();
+
+        if (pixels > max_pixels) {
+          max_pixels = pixels;
+          max_qbin = q;
+        }
+      }
+
+      auto m1 = m_mapping.find(max_qbin)->second;
+      std::vector<int> &dest_sbin = m1.find(sbin)->second;
+      
+      for (auto qid = qbins.begin(); qid != qbins.end(); qid++) {
+        int q = *qid;
+        if (q == max_qbin) continue;
+
+        std::map<int, std::vector<int>> &m1 = m_mapping.find(q)->second;
+        std::vector<int> &src_sbin = m1.find(sbin)->second;
+
+        for (std::vector<int>::iterator qbin_it = src_sbin.begin(); qbin_it != src_sbin.end(); qbin_it++) {
+          int p = *qbin_it;
+          dest_sbin.push_back(p);
+        }
+        
+        m1.erase(m1.find(sbin));
+      }
+    }
+  }
+
+  for (auto it = m_mapping.begin(); it != m_mapping.end(); it++) {
+    int q = it->first;
+    std::map<int, std::vector<int> > values =  it->second;
+
+    printf("%d\n", q);
+    for (auto it2 =  values.begin(); it2 != values.end(); it2++) {
+      int sbin = it2->first;
+      printf("\t%d\n", sbin);
+    }
+  }
+
+  pixels_per_bin = new int[m_totalStaticPartitions];
+  for (int i = 0; i < m_totalStaticPartitions; i++) {
+    pixels_per_bin[i] = 0;
+  }
+
+  for (int i = 0; i < (xdim*ydim); i++) {
+    pixels_per_bin[m_sbin[i] -1]++;
+  }
 }
 
 /**

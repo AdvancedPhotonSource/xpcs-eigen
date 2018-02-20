@@ -121,6 +121,7 @@ private:
 
   double* get2DTableD(const std::string &path);
 
+  void BuildQMap();
   
   double* flatfield;
 
