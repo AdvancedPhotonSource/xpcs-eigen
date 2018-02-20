@@ -256,7 +256,7 @@ void Configuration::BuildQMap() {
     }
   }
 
-  for (auto it = m_mapping.begin(); it != m_mapping.end(); it++) {
+  /*for (auto it = m_mapping.begin(); it != m_mapping.end(); it++) {
     int q = it->first;
     std::map<int, std::vector<int> > values =  it->second;
 
@@ -265,7 +265,7 @@ void Configuration::BuildQMap() {
       int sbin = it2->first;
       printf("\t%d\n", sbin);
     }
-  }
+  }*/
 
   pixels_per_bin = new int[m_totalStaticPartitions];
   for (int i = 0; i < m_totalStaticPartitions; i++) {
