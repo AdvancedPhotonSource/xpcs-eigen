@@ -113,7 +113,7 @@ void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
     int *index = indx[i];
     short *value = val[i];
     float f_sum = 0.0f;
-    int pix_cnt = 0;
+    int pix_cnt = frame_width_ * frame_height_;
     int sbin = 0;
 
     if (frame_index_ > 0 && (frame_index_ % static_window_) == 0) {
@@ -137,7 +137,7 @@ void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
 
         partitions_mean_[sbin] += v;
         partial_partitions_mean_[partition_no_ * total_static_partns_ + sbin ] += v;
-        pix_cnt++;
+        // pix_cnt++;
       }
     }
 

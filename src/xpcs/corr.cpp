@@ -341,6 +341,7 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
         int lastIndex = row->indxPtr.size();
         int tauIndex = 0;
         int g2Index = 0;
+        
         // if (validPixels.at(i) == pix) {
         //     printf("Last Index %d\n", lastIndex);
         // }
