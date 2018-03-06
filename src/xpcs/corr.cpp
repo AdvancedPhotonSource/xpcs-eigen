@@ -660,7 +660,7 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
         VectorXf stdG2(G2.cols());
         stdG2.setZero();
         
-        double samples = 1.0;
+        float samples = 1.0;
 
         for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
             int sbin = it2->first;
@@ -683,8 +683,8 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
             }
         }
 
-        VectorXf stdNorm = stdG2 / (samples - 1.0);
-        stdError.row(q - 1).array() = sqrt( 1 / (samples - 1.0) ) * stdNorm.array().sqrt();
+        VectorXf stdNorm = stdG2 / (samples - 1.0f);
+        stdError.row(q - 1).array() = sqrt( 1 / (samples - 1.0f) ) * stdNorm.array().sqrt();
     }
 
     H5Result::write2DData(conf->getFilename(), "exchange", "norm-0-g2", g2);
