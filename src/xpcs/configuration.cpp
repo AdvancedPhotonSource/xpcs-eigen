@@ -194,23 +194,24 @@ void Configuration::BuildQMap() {
         std::vector<int> data;
         data.push_back(i);
         v[sqmap[i]] = data;
-
-        std::map<int, std::vector<int>>::iterator sbin_it = sbin_to_qbin.find(sqmap[i]);
-        if (sbin_it != sbin_to_qbin.end()) {
-          std::vector<int> &avec = sbin_it->second;
-          avec.push_back(dqmap[i]);
-        } else {
-          std::vector<int> avec;
-          avec.push_back(dqmap[i]);
-          sbin_to_qbin[sqmap[i]] = avec;
-        }
       }
     } else {
       std::map<int, std::vector<int> > mapping;
       std::vector<int> data;
       data.push_back(i);
       mapping[sqmap[i]] = data;
-      m_mapping[dqmap[i]] = mapping;
+      m_mapping[dqmap[i]] = mapping;      
+    }
+
+    // Save reverse mapping from sbin to qbin for removing duplicates next. 
+    std::map<int, std::vector<int>>::iterator sbin_it = sbin_to_qbin.find(sqmap[i]);
+    if (sbin_it != sbin_to_qbin.end()) {
+      std::vector<int> &avec = sbin_it->second;
+      avec.push_back(dqmap[i]);
+    } else {
+      std::vector<int> avec;
+      avec.push_back(dqmap[i]);
+      sbin_to_qbin[sqmap[i]] = avec;
     }
   }
 
@@ -224,6 +225,7 @@ void Configuration::BuildQMap() {
       // int dups[qbins.size() - 1] = {0};
       int max_qbin = 0;
       int max_pixels = 0;
+
       for (auto qid = qbins.begin(); qid != qbins.end(); qid++) {
         int q = *qid;
         auto m1 = m_mapping.find(q)->second;
@@ -256,16 +258,16 @@ void Configuration::BuildQMap() {
     }
   }
 
-  /*for (auto it = m_mapping.begin(); it != m_mapping.end(); it++) {
-    int q = it->first;
-    std::map<int, std::vector<int> > values =  it->second;
+  // for (auto it = m_mapping.begin(); it != m_mapping.end(); it++) {
+  //   int q = it->first;
+  //   std::map<int, std::vector<int> > values =  it->second;
 
-    printf("%d\n", q);
-    for (auto it2 =  values.begin(); it2 != values.end(); it2++) {
-      int sbin = it2->first;
-      printf("\t%d\n", sbin);
-    }
-  }*/
+  //   printf("%d\n", q);
+  //   for (auto it2 =  values.begin(); it2 != values.end(); it2++) {
+  //     int sbin = it2->first;
+  //     printf("\t%d\n", sbin);
+  //   }
+  // }
 
   pixels_per_bin = new int[m_totalStaticPartitions];
   for (int i = 0; i < m_totalStaticPartitions; i++) {
