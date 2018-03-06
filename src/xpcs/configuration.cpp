@@ -275,7 +275,8 @@ void Configuration::BuildQMap() {
   }
 
   for (int i = 0; i < (xdim*ydim); i++) {
-    pixels_per_bin[m_sbin[i] -1]++;
+    if (m_sbin[i] >= 1)
+      pixels_per_bin[m_sbin[i] -1]++;
   }
 }
 
