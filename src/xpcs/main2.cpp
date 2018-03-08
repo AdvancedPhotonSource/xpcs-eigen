@@ -242,7 +242,7 @@ int main(int argc, char** argv)
   float *partitions_mean = filter->PartitionsMean();
   float *partial_part_mean = filter->PartialPartitionsMean();
   int total_static_partns = conf->getTotalStaticPartitions();
-  int partitions = (int) ceil((double) frames/ swindow);
+  int partitions = (int) floor((double) frames/ swindow);
   int *pixels_per_sbin = conf->PixelsPerStaticBin();
   float norm_factor = conf->getNormFactor();
 
