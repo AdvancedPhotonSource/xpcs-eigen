@@ -673,8 +673,9 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
                 tmpAvg = avgG2;
 
                 VectorXf normalizedG2 =  G2.row(p).array() / (IP.row(p).array() * IF.row(p).array());
-                normalizedG2 = Eigen::isinf(normalizedG2.array()).select(0, normalizedG2);
-                samples += Eigen::isinf(normalizedG2.array()).select(0, incrs);
+                samples += incrs;
+                // normalizedG2 = Eigen::isnan(normalizedG2.array()).select(0, normalizedG2);
+                // samples += Eigen::is(normalizedG2.array()).select(0, incrs);
 
                 avgG2 += (normalizedG2 - tmpAvg);
                 avgG2.array() /= samples.array();
