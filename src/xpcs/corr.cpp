@@ -677,8 +677,9 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
                 // normalizedG2 = Eigen::isnan(normalizedG2.array()).select(0, normalizedG2);
                 // samples += Eigen::is(normalizedG2.array()).select(0, incrs);
 
-                avgG2 += (normalizedG2 - tmpAvg);
-                avgG2.array() /= samples.array();
+                VectorXf tmp0 = (normalizedG2 - tmpAvg);
+                VectorXf tmp00 = tmp0.array() / samples.array();
+                avgG2 += tmp00;
                 VectorXf tmp1 = (normalizedG2 - tmpAvg);
                 VectorXf tmp2 = (normalizedG2 - avgG2);
                 VectorXf tmp3 = tmp1.array() * tmp2.array();
@@ -688,7 +689,8 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
         }
 
         VectorXf stdNorm = stdG2.array() / samples.array();
-        samples = 1 / samples.array();
+        samples = 1.0f / samples.array();
+        // std::cout<<samples.array().sqrt()<<std::endl;
         stdError.row(q - 1).array() = samples.array().sqrt() * stdNorm.array().sqrt();
     }
 
