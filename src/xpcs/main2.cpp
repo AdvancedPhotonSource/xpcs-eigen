@@ -82,6 +82,34 @@ int main(int argc, char** argv)
 {
 
   xpcs::Benchmark total("Total");
+  // Eigen::VectorXf v(5);
+  // v << 1, 2, 3, 4, 5;
+
+  // Eigen::VectorXf v2(5);
+  // v2 << 1, 1, 0, 1, 1;
+
+  // Eigen::VectorXf sums(5);
+  // sums.setZero();
+
+  // Eigen::VectorXf counts(5);
+  // counts.setOnes();
+
+  // v = v.array() / v2.array();
+
+  // std::cout<<v<<std::endl;
+
+  // sums += Eigen::isinf(v.array()).select(0, counts);
+  // sums += Eigen::isinf(v.array()).select(0, counts);
+
+  // v = Eigen::isinf(v.array()).select(0, v);
+  
+  // std::cout<<v<<std::endl;
+  // std::cout<<sums<<std::endl;
+  // // std::cout<<(1 - Eigen::isinf(v.array()))<<endl;
+
+
+  // std::cout<<(Eigen::isinf(v.array()).select()<<std::endl;
+
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   if (argc < 2) {

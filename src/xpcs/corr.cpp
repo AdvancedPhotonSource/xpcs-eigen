@@ -659,8 +659,10 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
         tmpAvg.setZero();
         VectorXf stdG2(G2.cols());
         stdG2.setZero();
-        
-        float samples = 1.0;
+        VectorXf samples(G2.cols());
+        samples.setZero();
+        VectorXf incrs(G2.cols());
+        incrs.setOnes();
 
         for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
             int sbin = it2->first;
@@ -671,20 +673,22 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
                 tmpAvg = avgG2;
 
                 VectorXf normalizedG2 =  G2.row(p).array() / (IP.row(p).array() * IF.row(p).array());
+                normalizedG2 = Eigen::isinf(normalizedG2.array()).select(0, normalizedG2);
+                samples += Eigen::isinf(normalizedG2.array()).select(0, incrs);
 
-               //                 (ipSums.row(sbin - 1).array() * ifSums.row(sbin - 1).array());
-                avgG2 += (normalizedG2 - tmpAvg) / samples;
+                avgG2 += (normalizedG2 - tmpAvg);
+                avgG2.array() /= samples.array();
                 VectorXf tmp1 = (normalizedG2 - tmpAvg);
                 VectorXf tmp2 = (normalizedG2 - avgG2);
                 VectorXf tmp3 = tmp1.array() * tmp2.array();
 
                 stdG2 += tmp3;
-                samples = samples + 1.0;
             }
         }
 
-        VectorXf stdNorm = stdG2 / (samples - 1.0f);
-        stdError.row(q - 1).array() = sqrt( 1 / (samples - 1.0f) ) * stdNorm.array().sqrt();
+        VectorXf stdNorm = stdG2.array() / samples.array();
+        samples = 1 / samples.array();
+        stdError.row(q - 1).array() = samples.array().sqrt() * stdNorm.array().sqrt();
     }
 
     H5Result::write2DData(conf->getFilename(), "exchange", "norm-0-g2", g2);

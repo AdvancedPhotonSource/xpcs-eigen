@@ -116,7 +116,6 @@ void ImmReader::SkipFrames(int count) {
         fread(header_, 1024, 1, file_);
         fseek(file_, header_->dlen * image_bytes, SEEK_CUR);
         done++;
-        printf("Skipped %d\n", header_->dlen);
     }
 }
 
