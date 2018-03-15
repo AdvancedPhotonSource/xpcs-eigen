@@ -80,13 +80,11 @@ void Configuration::init(const std::string &path, const std::string& entry)
     file_id = H5Fopen(path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);    
     std::string value = getString(entry + "/compression");
 
-    printf("COMPRESSION = %s\n", value.c_str());
-
     if (value.compare("ENABLED") == 0)
          this->compression = true;
 
-    // if (boost::iequals(value, "ENABLED"))
-     
+    output_path_ = getString(entry + "/output_data");
+
     this->dqmap = get2DTable(entry + "/dqmap");
     this->sqmap = get2DTable(entry + "/sqmap");
 
@@ -559,6 +557,11 @@ float Configuration::getDarkSigma()
 
 int* Configuration::PixelsPerStaticBin() {
   return pixels_per_bin;
+}
+
+std::string& Configuration::OutputPath()
+{
+    return output_path_;
 }
 
 }

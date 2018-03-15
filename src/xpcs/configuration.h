@@ -89,6 +89,7 @@ public:
 
   std::string getFilename();
   std::string& getIMMFilePath();
+  std::string& OutputPath();
   void setIMMFilePath(std::string& str);
 
   short* getPixelMask();
@@ -167,6 +168,7 @@ private:
 
   std::string m_filename;
   std::string m_immFile;
+  std::string output_path_;
 
   static Configuration *s_instance;
 };

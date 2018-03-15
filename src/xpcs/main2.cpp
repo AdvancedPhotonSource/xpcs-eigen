@@ -54,6 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <iostream>
 
+#include <sys/stat.h>
+
 #include "hdf5.h"
 #include "gflags/gflags.h"
 #include "spdlog/spdlog.h"
@@ -121,6 +123,20 @@ int main(int argc, char** argv)
   }
 
   console->info("Processing IMM file at path {}..", conf->getIMMFilePath().c_str());
+  struct stat st;
+  if(stat(conf->getIMMFilePath().c_str(), &st) == 0) {
+    char prefix[] = {' ', 'K', 'M', 'G', 'T'};
+    int size = st.st_size;
+    int suffix = 0;
+    while (size >= 1024) {
+       size = size / 1024;
+       printf("%d\n", size);
+       suffix++;
+    }
+
+    console->info("File size {0} {1}bytes", suffix > 0 ? (float)st.st_size/ pow(1024.0, suffix) : st.st_size, prefix[suffix]);
+    // console->info("File size {0}", st.st_size);
+  }
 
   int* dqmap = conf->getDQMap();
   int *sqmap = conf->getSQMap();
@@ -227,14 +243,14 @@ int main(int argc, char** argv)
   float* frames_sum = filter->FramesSum();
 
   xpcs::H5Result::write2DData(conf->getFilename(), 
-                        "exchange", 
+                        conf->OutputPath(), 
                         "pixelSum", 
                         conf->getFrameHeight(), 
                         conf->getFrameWidth(), 
                         pixels_sum);
 
   xpcs::H5Result::write2DData(conf->getFilename(), 
-                              "exchange", 
+                              conf->OutputPath(), 
                               "frameSum", 
                               2, 
                               frames, 
@@ -261,33 +277,33 @@ int main(int argc, char** argv)
   }
 
   xpcs::H5Result::write1DData(conf->getFilename(), 
-                        "exchange", 
+                        conf->OutputPath(), 
                         "partition-mean-total", 
                         total_static_partns,
                         partitions_mean);
 
   xpcs::H5Result::write2DData(conf->getFilename(), 
-                        "exchange", 
+                        conf->OutputPath(), 
                         "partition-mean-partial", 
                         partitions, 
                         total_static_partns,
                         partial_part_mean);
                         
   xpcs::H5Result::write1DData(conf->getFilename(), 
-                        "exchange", 
+                        conf->OutputPath(), 
                         "partition_norm_factor", 
                         1, 
                         &norm_factor);
 
   xpcs::H5Result::write2DData(conf->getFilename(), 
-                              "exchange", 
+                              conf->OutputPath(), 
                               "timestamp_clock", 
                               2, 
                               frames, 
                               timestamp_clock);
 
   xpcs::H5Result::write2DData(conf->getFilename(), 
-                              "exchange", 
+                              conf->OutputPath(), 
                               "timestamp_tick", 
                               2, 
                               frames, 
@@ -301,7 +317,7 @@ int main(int argc, char** argv)
   }
 
   xpcs::H5Result::write1DData(conf->getFilename(), 
-                              "exchange", 
+                              conf->OutputPath(), 
                               "tau", 
                               (int)delays_per_level.size(), 
                               tau);
@@ -321,8 +337,8 @@ int main(int argc, char** argv)
 
   if (FLAGS_g2out) {
     xpcs::Benchmark b("Writing G2s, IPs and IFs");
-    xpcs::H5Result::write2DData(conf->getFilename(), "exchange", "G2", pixels, delays_per_level.size(), g2s);
-    xpcs::H5Result::write2DData(conf->getFilename(), "exchange", "IP", pixels, delays_per_level.size(), ips);
-    xpcs::H5Result::write2DData(conf->getFilename(), "exchange", "IF", pixels, delays_per_level.size(), ifs);
+    xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "G2", pixels, delays_per_level.size(), g2s);
+    xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IP", pixels, delays_per_level.size(), ips);
+    xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF", pixels, delays_per_level.size(), ifs);
   }
 }
