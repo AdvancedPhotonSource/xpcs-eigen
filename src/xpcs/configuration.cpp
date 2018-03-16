@@ -84,7 +84,6 @@ void Configuration::init(const std::string &path, const std::string& entry)
          this->compression = true;
 
     output_path_ = getString(entry + "/output_data");
-
     this->dqmap = get2DTable(entry + "/dqmap");
     this->sqmap = get2DTable(entry + "/sqmap");
 
@@ -345,9 +344,9 @@ std::string Configuration::getString(const std::string &path)
     }
     else
     {
-        char *str = new char[size];
+        char *str = new char[size + 1];
         status = H5Dread(dataset_id, dtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, str);
-        // str[size] = '\n';
+        str[size] = '\0';
         value = std::string(str);
     }
     
