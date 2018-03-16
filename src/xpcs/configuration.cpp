@@ -97,7 +97,6 @@ void Configuration::init(const std::string &path, const std::string& entry)
     this->frameStartTodo = getInteger(entry + "/data_begin_todo");
     this->frameEndTodo = getInteger(entry + "/data_end_todo");
     delays_per_level_ = getInteger(entry + "/delays_per_level");
-    printf("delays_per_level = %d\n",delays_per_level_); 
     darkFrameStart = getInteger(entry + "/dark_begin_todo");
     darkFrameEnd = getInteger(entry + "/dark_end_todo");
 

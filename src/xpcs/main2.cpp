@@ -126,7 +126,7 @@ int main(int argc, char** argv)
   struct stat st;
   if(stat(conf->getIMMFilePath().c_str(), &st) == 0) {
     char prefix[] = {' ', 'K', 'M', 'G', 'T'};
-    int size = st.st_size;
+    unsigned long size = st.st_size;
     int suffix = 0;
     while (size >= 1024) {
        size = size / 1024;
