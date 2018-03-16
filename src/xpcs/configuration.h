@@ -86,6 +86,7 @@ public:
   int getTotalStaticPartitions();
   int getTotalDynamicPartitions();
   int getStaticWindowSize();
+  int DelaysPerLevel();
 
   std::string getFilename();
   std::string& getIMMFilePath();
@@ -146,6 +147,7 @@ private:
   int darkFrameEnd;
   int darkFrames;
   int m_staticWindow;
+  int delays_per_level_;
 
   int *pixels_per_bin;
   int *dqmap;

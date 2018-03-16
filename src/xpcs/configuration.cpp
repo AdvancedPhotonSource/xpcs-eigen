@@ -96,7 +96,8 @@ void Configuration::init(const std::string &path, const std::string& entry)
     this->frameEnd = getInteger(entry + "/data_end");
     this->frameStartTodo = getInteger(entry + "/data_begin_todo");
     this->frameEndTodo = getInteger(entry + "/data_end_todo");
-
+    delays_per_level_ = getInteger(entry + "/delays_per_level");
+    printf("delays_per_level = %d\n",delays_per_level_); 
     darkFrameStart = getInteger(entry + "/dark_begin_todo");
     darkFrameEnd = getInteger(entry + "/dark_end_todo");
 
@@ -562,6 +563,11 @@ int* Configuration::PixelsPerStaticBin() {
 std::string& Configuration::OutputPath()
 {
     return output_path_;
+}
+
+int Configuration::DelaysPerLevel()
+{
+  return delays_per_level_;
 }
 
 }

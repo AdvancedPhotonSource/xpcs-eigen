@@ -79,10 +79,10 @@ using Eigen::Map;
 using Eigen::OuterStride;
 
 void Corr::multiTau(const MatrixXf &pixelData, int pix) {
-    int frames = pixelData.cols();
-    int maxLevel = calculateLevelMax(frames, 4);
-
     Configuration* conf = Configuration::instance();
+
+    int frames = pixelData.cols();
+    int maxLevel = calculateLevelMax(frames, conf->DelaysPerLevel());
 
     int* dqmap = conf->getDQMap();
     int* sqmap = conf->getSQMap();
@@ -99,7 +99,7 @@ void Corr::multiTau(const MatrixXf &pixelData, int pix) {
         int tauIncrement = (int) pow(2.0, level);
         
         //TODO smooth intensities
-        int dplCount = Corr::calculateDelayCount(4, level);
+        int dplCount = Corr::calculateDelayCount(conf->DelaysPerLevel(), level);
 
         for (int delayIndex = 0; delayIndex < dplCount; delayIndex++) {
 
@@ -123,16 +123,18 @@ void Corr::multiTauVec(Ref<MatrixXf> pixelData,
                        Ref<MatrixXf> G2, 
                        Ref<MatrixXf> IP,
                        Ref<MatrixXf> IF) {
+    
+    Configuration* conf = Configuration::instance();
+    
     int frames = pixelData.cols();
     int pixels = pixelData.rows();
 
-    int maxLevel = calculateLevelMax(frames, 4);
+    int maxLevel = calculateLevelMax(frames, conf->DelaysPerLevel());
 
-    Configuration* conf = Configuration::instance();
     int w = conf->getFrameWidth();
     int h = conf->getFrameHeight();
 
-    vector<tuple<int,int> > delays_per_level = Corr::delaysPerLevel(frames, 4, maxLevel);
+    vector<tuple<int,int> > delays_per_level = Corr::delaysPerLevel(frames, conf->DelaysPerLevel(), maxLevel);
 
     //TODO asserts for G2, IP and IF sizes
     int i = 0;
@@ -186,17 +188,18 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
                        Ref<MatrixXf> IP,
                        Ref<MatrixXf> IF)
 {
+    Configuration* conf = Configuration::instance();
+    
     int frames = pixelData.cols();
     int pixels = pixelData.rows();
 
-    int maxLevel = calculateLevelMax(frames, 4);
+    int maxLevel = calculateLevelMax(frames, conf->DelaysPerLevel());
 
-    Configuration* conf = Configuration::instance();
     int w = conf->getFrameWidth();
     int h = conf->getFrameHeight();
     int fcount = conf->getFrameTodoCount();
 
-    vector<tuple<int,int> > delays_per_level = delaysPerLevel(frames, 4, maxLevel);
+    vector<tuple<int,int> > delays_per_level = delaysPerLevel(frames, conf->DelaysPerLevel(), maxLevel);
 
     // SparseMatrix<float, RowMajor> c0, c1;
 
@@ -322,11 +325,11 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
     int frames = conf->getFrameTodoCount();
     int pixels = w * h;
 
-    int maxLevel = calculateLevelMax(frames, 4);
+    int maxLevel = calculateLevelMax(frames, conf->DelaysPerLevel());
 
     vector<int> validPixels = data->ValidPixels();
 
-    vector<tuple<int,int> > delays_per_level = delaysPerLevel(frames, 4, maxLevel);
+    vector<tuple<int,int> > delays_per_level = delaysPerLevel(frames, conf->DelaysPerLevel(), maxLevel);
 
     int pix = 355517;
 
@@ -498,10 +501,6 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
                 IFs[g2Index] /= (lastframe-tau);
             }
             
-            // if (validPixels.at(i) >= 94045 and validPixels.at(i) <= 94048) {
-            //     printf("%d, g2Index=%d, tau=%d, IP=%f\n", validPixels[i], g2Index, tauIndex, IPs[g2Index]);
-            // }
-
             ll = level;
             tauIndex++;
         }
@@ -753,7 +752,7 @@ vector<tuple<int, int>> Corr::delaysPerLevel(int frameCount, int dpl, int maxDel
 
         for (int j=0; j<dpll; j++) {
             
-            if ( (ll_dpl+step) >= frameCount) break;
+            if ( (ll_dpl+step + pow(2.0, i)) >= frameCount) break;
 
             result.push_back(std::make_tuple(i, ll_dpl + step));
             ll_dpl = ll_dpl + step;

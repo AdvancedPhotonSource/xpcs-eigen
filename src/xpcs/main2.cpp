@@ -150,8 +150,8 @@ int main(int argc, char** argv)
   console->debug("Frames count={0}, from={1}, todo={2}", frames, frameFrom, frameTo);
 
   int pixels = conf->getFrameWidth() * conf->getFrameHeight();
-  int maxLevel = xpcs::Corr::calculateLevelMax(frames, 4);
-  vector<std::tuple<int,int> > delays_per_level = xpcs::Corr::delaysPerLevel(frames, 4, maxLevel);
+  int maxLevel = xpcs::Corr::calculateLevelMax(frames, conf->DelaysPerLevel());
+  vector<std::tuple<int,int> > delays_per_level = xpcs::Corr::delaysPerLevel(frames, conf->DelaysPerLevel(), maxLevel);
 
   float* g2s = new float[pixels * delays_per_level.size()];
   float* ips = new float[pixels * delays_per_level.size()];
