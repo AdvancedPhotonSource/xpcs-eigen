@@ -83,15 +83,15 @@ DEFINE_string(entry, "", "The metadata path in HDF5 file");
 int main(int argc, char** argv)
 {
 
-  xpcs::Benchmark total("Total");
- 
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
-
   if (argc < 2) {
-      fprintf(stderr, "Please specify a HDF5 metadata file");
+      fprintf(stderr, "Please specify a HDF5 metadata file\n");
       return 1;
   }
 
+  xpcs::Benchmark total("Total");
+ 
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  
   auto console = spd::stdout_color_mt("console");
 
   std::string entry = "/xpcs";
@@ -130,12 +130,10 @@ int main(int argc, char** argv)
     int suffix = 0;
     while (size >= 1024) {
        size = size / 1024;
-       printf("%d\n", size);
        suffix++;
     }
 
     console->info("File size {0} {1}bytes", suffix > 0 ? (float)st.st_size/ pow(1024.0, suffix) : st.st_size, prefix[suffix]);
-    // console->info("File size {0}", st.st_size);
   }
 
   int* dqmap = conf->getDQMap();
