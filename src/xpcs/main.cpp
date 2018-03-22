@@ -45,13 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 **/
 
-#include "hdf5.h"
-#include "imm.h"
-#include "corr.h"
-#include "configuration.h"
-#include "h5_result.h"
-#include "benchmark.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -61,11 +54,24 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <iostream>
 
+#include <sys/stat.h>
+
+#include "hdf5.h"
 #include "gflags/gflags.h"
 #include "spdlog/spdlog.h"
 
+#include "corr.h"
+#include "xpcs/configuration.h"
+#include "h5_result.h"
+#include "benchmark.h"
+#include "xpcs/io/imm_reader.h"
+#include "xpcs/filter/filter.h"
+#include "xpcs/filter/sparse_filter.h"
+#include "xpcs/filter/dense_filter.h"
+#include "xpcs/data_structure/dark_image.h"
+
+
 using namespace std;
-using namespace xpcs;
 namespace spd = spdlog; 
 
 DEFINE_bool(g2out, false, "Write intermediate output from G2 computation");
@@ -77,128 +83,237 @@ DEFINE_string(entry, "", "The metadata path in HDF5 file");
 int main(int argc, char** argv)
 {
 
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
+  if (argc < 2) {
+      fprintf(stderr, "Please specify a HDF5 metadata file\n");
+      return 1;
+  }
 
-    if (argc < 2) {
-        fprintf(stderr, "Please specify a HDF5 metadata file");
-        return 1;
+  xpcs::Benchmark total("Total");
+ 
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  
+  auto console = spd::stdout_color_mt("console");
+
+  std::string entry = "/xpcs";
+
+  if (!FLAGS_entry.empty())
+      entry = FLAGS_entry;
+
+  console->info("H5 metadata path {}", entry.c_str());
+
+  xpcs::Configuration *conf = xpcs::Configuration::instance();
+  conf->init(argv[1], entry);
+
+  if (!FLAGS_imm.empty())
+      conf->setIMMFilePath(FLAGS_imm);
+
+  if (!FLAGS_inpath.empty() and !FLAGS_outpath.empty())
+  {
+      std::string file = conf->getIMMFilePath();
+      std::string::size_type pos = file.find(FLAGS_inpath);
+
+      if (pos != std::string::npos)
+      {
+          file.replace(file.begin()+pos,
+                       file.end()-(strlen(file.c_str()) - strlen(FLAGS_inpath.c_str())),
+                       FLAGS_outpath.begin(), FLAGS_outpath.end());
+      }
+
+      conf->setIMMFilePath(file);
+  }
+
+  console->info("Processing IMM file at path {}..", conf->getIMMFilePath().c_str());
+  struct stat st;
+  if(stat(conf->getIMMFilePath().c_str(), &st) == 0) {
+    char prefix[] = {' ', 'K', 'M', 'G', 'T'};
+    unsigned long size = st.st_size;
+    int suffix = 0;
+    while (size >= 1024) {
+       size = size / 1024;
+       suffix++;
     }
 
-    auto console = spd::stdout_color_mt("console");
+    console->info("File size {0} {1}bytes", suffix > 0 ? (float)st.st_size/ pow(1024.0, suffix) : st.st_size, prefix[suffix]);
+  }
 
-    //Eigen::initParallel();
+  int* dqmap = conf->getDQMap();
+  int *sqmap = conf->getSQMap();
+
+  int frames = conf->getFrameTodoCount();
+  int frameFrom = conf->getFrameStartTodo();
+  int frameTo = conf->getFrameEndTodo();
+  int swindow = conf->getStaticWindowSize();
+
+  console->info("Data frames {0}..", frames);
+  console->debug("Frames count={0}, from={1}, todo={2}", frames, frameFrom, frameTo);
+
+  int pixels = conf->getFrameWidth() * conf->getFrameHeight();
+  int maxLevel = xpcs::Corr::calculateLevelMax(frames, conf->DelaysPerLevel());
+  vector<std::tuple<int,int> > delays_per_level = xpcs::Corr::delaysPerLevel(frames, conf->DelaysPerLevel(), maxLevel);
+
+  float* g2s = new float[pixels * delays_per_level.size()];
+  float* ips = new float[pixels * delays_per_level.size()];
+  float* ifs = new float[pixels * delays_per_level.size()];
+
+  for (int i = 0; i < (pixels * delays_per_level.size()); i++) {
+    g2s[i] = 0.0f;
+    ips[i] = 0.0f;
+    ifs[i] = 0.0f;
+  }
+
+  float *timestamp_clock = new float[2 * frames];
+  float *timestamp_tick = new float[2 * frames];
+
+  xpcs::io::ImmReader reader(conf->getIMMFilePath().c_str());
+  xpcs::filter::Filter *filter = NULL;
+  
+  xpcs::data_structure::DarkImage *dark_image = NULL;
+
+  {
+    xpcs::Benchmark benchmark("Loading data");
+
+    int r = 0;
+
+    if (!reader.compression()) {
+      int dark_s = conf->getDarkFrameStart();
+      int dark_e = conf->getDarkFrameEnd();
+      int darks = conf->getDarkFrames();
+
+      if (dark_s != dark_e) {
+        struct xpcs::io::ImmBlock *data = reader.NextFrames(darks);
+        dark_image = new xpcs::data_structure::DarkImage(data->value, darks, pixels, conf->getFlatField());
+        r += darks;
+      }
+    }
     
-    std::string entry = "/xpcs";
-
-    if (!FLAGS_entry.empty())
-        entry = FLAGS_entry;
-
-    console->info("H5 metadata path {}", entry.c_str());
-
-    Configuration *conf = Configuration::instance();
-    conf->init(argv[1], entry);
-
-    if (!FLAGS_imm.empty())
-        conf->setIMMFilePath(FLAGS_imm);
-
-    if (!FLAGS_inpath.empty() and !FLAGS_outpath.empty())
-    {
-        std::string file = conf->getIMMFilePath();
-        std::string::size_type pos = file.find(FLAGS_inpath);
-
-        if (pos != std::string::npos)
-        {
-            file.replace(file.begin()+pos,
-                         file.end()-(strlen(file.c_str()) - strlen(FLAGS_inpath.c_str())),
-                         FLAGS_outpath.begin(), FLAGS_outpath.end());
-        }
-
-        conf->setIMMFilePath(file);
+    if (frameFrom > 0 && r < frameFrom) {
+      reader.SkipFrames(frameFrom - r);
+      r += (frameFrom - r);
     }
 
-    console->info("Processing IMM file at path {}..", conf->getIMMFilePath().c_str());
+    if (reader.compression())
+      filter = new xpcs::filter::SparseFilter();
+    else
+      filter = new xpcs::filter::DenseFilter(dark_image);
 
-    int* dqmap = conf->getDQMap();
-    int *sqmap = conf->getSQMap();
-
-    int frames = conf->getFrameTodoCount();
-    int frameFrom = conf->getFrameStartTodo();
-    int frameTo = conf->getFrameEndTodo();
-    int swindow = conf->getStaticWindowSize();
-
-    console->info("Data frames {0}..", frames);
-    console->debug("Frames count={0}, from={1}, todo={2}", frames, frameFrom, frameTo);
-
-    int pixels = conf->getFrameWidth() * conf->getFrameHeight();
-    int maxLevel = Corr::calculateLevelMax(frames, 4);
-    vector<std::tuple<int,int> > delays_per_level = Corr::delaysPerLevel(frames, 4, maxLevel);
-
-    float* g2s = new float[pixels * delays_per_level.size()];
-    float* ips = new float[pixels * delays_per_level.size()];
-    float* ifs = new float[pixels * delays_per_level.size()];
-
-    IMM imm(conf->getIMMFilePath().c_str(), frameFrom, frameTo, -1);
-
-    Eigen::MatrixXf G2(pixels, delays_per_level.size());
-    Eigen::MatrixXf IP(pixels, delays_per_level.size());
-    Eigen::MatrixXf IF(pixels, delays_per_level.size());
-
-    {
-        Benchmark benchmark("Writing frame-sums, pixel-sums, partition-means");
-        float* fsum = imm.getFrameSums();
-        H5Result::write2DData(conf->getFilename(), "exchange", "frameSum", 2, frames, fsum);
-        float* psum = imm.getPixelSums();
-        for (int i = 0 ; i < pixels; i++) {
-            psum[i] /= frames;
-        }
-
-        H5Result::write2DData(conf->getFilename(), "exchange", "pixelSum", conf->getFrameHeight(), conf->getFrameWidth(), psum);
-        int totalStaticPartns = conf->getTotalStaticPartitions();
-        float* totalPartmean = imm.getTotalPartitionMean();
-        float* partialPartmean = imm.getPartialPartitionMean();
-        int partitions = (int) ceil((double)frames/swindow);
-        float normFactor = conf->getNormFactor();
-
-        H5Result::write1DData(conf->getFilename(), "exchange", "partition-mean-total", totalStaticPartns, totalPartmean);
-        H5Result::write2DData(conf->getFilename(), "exchange", "partition-mean-partial", partitions, totalStaticPartns, partialPartmean);
-        H5Result::write1DData(conf->getFilename(), "exchange", "partition_norm_factor", 1, &normFactor);
+    int f = 0;
+    while (r <= frameTo) {
+      struct xpcs::io::ImmBlock* data = reader.NextFrames();
+      filter->Apply(data);
+      timestamp_clock[f] = f + 1;
+      timestamp_clock[f + frames] = data->clock[0];
+      timestamp_tick[f] = f + 1;
+      timestamp_tick[f + frames] = data->ticks[0]; 
+      f++;
+      r++;
     }
 
-    {
-        Benchmark b("Writing timestamps and taus");
-        float* tclock = imm.getTimestampClock();
-        float* ttick = imm.getTimestampTick();
+  }
+  
+  float* pixels_sum = filter->PixelsSum();
+  for (int i = 0 ; i < pixels; i++) {
+    pixels_sum[i] /= frames;
+  }
 
-        H5Result::write2DData(conf->getFilename(), "exchange", "timestamp_clock", 2, frames, tclock);
-        H5Result::write2DData(conf->getFilename(), "exchange", "timestamp_tick", 2, frames, ttick);
+  float* frames_sum = filter->FramesSum();
 
-        float *tau = new float[delays_per_level.size()];
-        for (int x = 0 ; x < delays_per_level.size(); x++)
-        {   
-            std::tuple<int, int> value = delays_per_level[x];
-            tau[x] = std::get<1>(value);
-        }
-        H5Result::write1DData(conf->getFilename(), "exchange", "tau", (int)delays_per_level.size(), tau);
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "pixelSum", 
+                        conf->getFrameHeight(), 
+                        conf->getFrameWidth(), 
+                        pixels_sum);
+
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                              conf->OutputPath(), 
+                              "frameSum", 
+                              2, 
+                              frames, 
+                              frames_sum);
+
+  float *partitions_mean = filter->PartitionsMean();
+  float *partial_part_mean = filter->PartialPartitionsMean();
+  int total_static_partns = conf->getTotalStaticPartitions();
+  int partitions = (int) floor((double) frames/ swindow);
+  int *pixels_per_sbin = conf->PixelsPerStaticBin();
+  float norm_factor = conf->getNormFactor();
+
+  float denominator = 1.0f;
+  for (int i = 0; i < total_static_partns; i++) {
+    for (int j = 0; j < partitions; j++) {
+      denominator = pixels_per_sbin[i] * swindow * norm_factor;
+      partial_part_mean[j * total_static_partns + i] /= denominator;
     }
-        
-    {
-        Benchmark benchmark("Computing G2");
-        Corr::multiTau2(imm.getSparseData(), g2s, ips, ifs);
-    }
+  }
 
-    Benchmark benchmark("Normalizing G2");
-    Eigen::MatrixXf G2s = Eigen::Map<Eigen::MatrixXf>(g2s, pixels, delays_per_level.size());
-    Eigen::MatrixXf IPs = Eigen::Map<Eigen::MatrixXf>(ips, pixels, delays_per_level.size());
-    Eigen::MatrixXf IFs = Eigen::Map<Eigen::MatrixXf>(ifs, pixels, delays_per_level.size());
+  for (int i = 0; i < total_static_partns; i++) {
+    denominator = pixels_per_sbin[i] * frames * norm_factor;
+    partitions_mean[i] /= denominator;
+  }
 
-    Corr::normalizeG2s(G2s, IPs, IFs);
-    
-    if (FLAGS_g2out) {
+  xpcs::H5Result::write1DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "partition-mean-total", 
+                        total_static_partns,
+                        partitions_mean);
 
-        Benchmark b("Writing G2s, IPs and IFs");
-        H5Result::write2DData(conf->getFilename(), "exchange", "G2", pixels, delays_per_level.size(), g2s);
-        H5Result::write2DData(conf->getFilename(), "exchange", "IP", pixels, delays_per_level.size(), ips);
-        H5Result::write2DData(conf->getFilename(), "exchange", "IF", pixels, delays_per_level.size(), ifs);
-    }
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "partition-mean-partial", 
+                        partitions, 
+                        total_static_partns,
+                        partial_part_mean);
+                        
+  xpcs::H5Result::write1DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "partition_norm_factor", 
+                        1, 
+                        &norm_factor);
 
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                              conf->OutputPath(), 
+                              "timestamp_clock", 
+                              2, 
+                              frames, 
+                              timestamp_clock);
+
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                              conf->OutputPath(), 
+                              "timestamp_tick", 
+                              2, 
+                              frames, 
+                              timestamp_tick);
+
+  float *tau = new float[delays_per_level.size()];
+  for (int x = 0 ; x < delays_per_level.size(); x++)
+  {   
+    std::tuple<int, int> value = delays_per_level[x];
+    tau[x] = std::get<1>(value);
+  }
+
+  xpcs::H5Result::write1DData(conf->getFilename(), 
+                              conf->OutputPath(), 
+                              "tau", 
+                              (int)delays_per_level.size(), 
+                              tau);
+
+  {
+    xpcs::Benchmark benchmark("Computing G2");
+    xpcs::Corr::multiTau2(filter->Data(), g2s, ips, ifs);
+  }
+
+  
+  xpcs::Benchmark benchmark("Normalizing Data");
+  Eigen::MatrixXf G2s = Eigen::Map<Eigen::MatrixXf>(g2s, pixels, delays_per_level.size());
+  Eigen::MatrixXf IPs = Eigen::Map<Eigen::MatrixXf>(ips, pixels, delays_per_level.size());
+  Eigen::MatrixXf IFs = Eigen::Map<Eigen::MatrixXf>(ifs, pixels, delays_per_level.size());
+
+  xpcs::Corr::normalizeG2s(G2s, IPs, IFs);
+
+  if (FLAGS_g2out) {
+    xpcs::Benchmark b("Writing G2s, IPs and IFs");
+    xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "G2", pixels, delays_per_level.size(), g2s);
+    xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IP", pixels, delays_per_level.size(), ips);
+    xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF", pixels, delays_per_level.size(), ifs);
+  }
 }

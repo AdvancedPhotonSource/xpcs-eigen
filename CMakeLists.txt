@@ -32,7 +32,7 @@ set(sources
     src/xpcs/filter/sparse_filter.cpp
     src/xpcs/filter/dense_filter.cpp
     src/xpcs/io/imm_reader.cpp
-    src/xpcs/main2.cpp
+    src/xpcs/main.cpp
 )
 
 find_package(OpenMP)
