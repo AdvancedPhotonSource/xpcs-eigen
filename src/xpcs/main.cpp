@@ -144,8 +144,10 @@ int main(int argc, char** argv)
   int frameFrom = conf->getFrameStartTodo();
   int frameTo = conf->getFrameEndTodo();
   int swindow = conf->getStaticWindowSize();
+  int stride = conf->FrameStride();
 
-  console->info("Data frames {0}..", frames);
+
+  console->info("Data frames={0} stride={1}", frames, stride);
   console->debug("Frames count={0}, from={1}, todo={2}", frames, frameFrom, frameTo);
 
   int pixels = conf->getFrameWidth() * conf->getFrameHeight();
@@ -162,6 +164,7 @@ int main(int argc, char** argv)
     ifs[i] = 0.0f;
   }
 
+  // printf("Effective frames = %d\n", frames);
   float *timestamp_clock = new float[2 * frames];
   float *timestamp_tick = new float[2 * frames];
 
@@ -200,14 +203,10 @@ int main(int argc, char** argv)
     xpcs::filter::StrideAverage stride_average;
 
     int f = 0;
-    int stride = conf->FrameStride();
     // The last frame outside the stride will be ignored. 
-    printf("frameTo = %d\n", frameTo);
-
-    while ((r+stride) <= frameTo) {
-      printf("%d\n", r);
+    while (r <= ((frameTo+1) - stride)) {
+      // printf("frame # old = %d, frame # new = %d\n", r, f);
       struct xpcs::io::ImmBlock* data = reader.NextFrames(stride);
-      data->id = f++;
       
       if (stride > 1)
         stride_average.Apply(data);

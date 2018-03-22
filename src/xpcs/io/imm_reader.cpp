@@ -67,6 +67,7 @@ ImmReader::ImmReader(const std::string& filename) {
 }
 
 ImmReader::~ImmReader() {
+
 }
 
 ImmBlock* ImmReader::NextFrames(int count) {
@@ -77,11 +78,14 @@ ImmBlock* ImmReader::NextFrames(int count) {
 
     std::vector<int> ppf;
 
+    // printf("in ftell(file_) %ld\n", ftell(file_));
+
     int done = 0, pxs = 0;
     while (done < count) {
+        // printf("inloop ftell(file_) %ld\n", ftell(file_));
         fread(header_, 1024, 1, file_);
         pxs = header_->dlen;
-        printf("%ld\n", pxs);
+        // printf("Buffer # = %ld, pxs = %d\n", header_->buffer_number, pxs);
 
         index[done] = new int[pxs];
         value[done] = new short[pxs];
@@ -106,6 +110,9 @@ ImmBlock* ImmReader::NextFrames(int count) {
     ret->clock = clock;
     ret->ticks = ticks;
     ret->id = 0;
+
+    // printf("ret ftell(file_) %ld\n", ftell(file_));
+
 
     return ret;
 }

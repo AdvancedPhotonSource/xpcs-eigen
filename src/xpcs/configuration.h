@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 #include "hdf5.h"
+#include "benchmark.h"
 
 namespace xpcs  {
 
@@ -88,7 +89,7 @@ public:
   int getStaticWindowSize();
   int DelaysPerLevel();
 
-  long FrameStride();
+  int FrameStride();
 
   std::string getFilename();
   std::string& getIMMFilePath();
@@ -157,8 +158,8 @@ private:
   int *dqmap;
   int *sqmap;
 
-  long frame_stride;
-  long frame_average;
+  int frame_stride;
+  int frame_average;
 
   float m_detDpixX;
   float m_detDpixY;

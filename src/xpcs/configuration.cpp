@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 #include "hdf5.h"
+#include "benchmark.h"
 
 namespace xpcs {
 
@@ -76,6 +77,7 @@ Configuration::~Configuration()
 void Configuration::init(const std::string &path, const std::string& entry)
 {
     //TODO: Force initialization to once per instantiation
+    Benchmark conf("Configuration Total");
     m_filename = path;
     file_id = H5Fopen(path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);    
     std::string value = getString(entry + "/compression");
@@ -98,7 +100,7 @@ void Configuration::init(const std::string &path, const std::string& entry)
     delays_per_level_ = getInteger(entry + "/delays_per_level");
     darkFrameStart = getInteger(entry + "/dark_begin_todo");
     darkFrameEnd = getInteger(entry + "/dark_end_todo");
-    frame_stride = getInteger(entry + "/stride_frames");
+    frame_stride = getLong(entry + "/stride_frames");
 
     if (darkFrameStart == darkFrameEnd || darkFrameEnd == 0)
     {
@@ -153,8 +155,11 @@ void Configuration::init(const std::string &path, const std::string& entry)
     }
 
     m_immFile = getString(entry + "/input_file_local");
+    {
+        Benchmark conf("BuildQMap()");
+        BuildQMap();
+    }
     
-    BuildQMap();
 
     H5Fclose(file_id);
 }
@@ -214,47 +219,47 @@ void Configuration::BuildQMap() {
   }
 
   // remove duplicates.
-  for (auto it =  sbin_to_qbin.begin(); it != sbin_to_qbin.end(); it++) {
-    int sbin = it->first;
-    std::vector<int> qbins = it->second;
+  // for (auto it =  sbin_to_qbin.begin(); it != sbin_to_qbin.end(); it++) {
+  //   int sbin = it->first;
+  //   std::vector<int> qbins = it->second;
 
-    if (qbins.size() > 1) {
-      // duplicate sbin -> qbin mapping
-      // int dups[qbins.size() - 1] = {0};
-      int max_qbin = 0;
-      int max_pixels = 0;
+  //   if (qbins.size() > 1) {
+  //     // duplicate sbin -> qbin mapping
+  //     // int dups[qbins.size() - 1] = {0};
+  //     int max_qbin = 0;
+  //     int max_pixels = 0;
 
-      for (auto qid = qbins.begin(); qid != qbins.end(); qid++) {
-        int q = *qid;
-        auto m1 = m_mapping.find(q)->second;
-        std::vector<int> m2 = m1.find(sbin)->second;
-        int pixels = m2.size();
+  //     for (auto qid = qbins.begin(); qid != qbins.end(); qid++) {
+  //       int q = *qid;
+  //       auto m1 = m_mapping.find(q)->second;
+  //       std::vector<int> m2 = m1.find(sbin)->second;
+  //       int pixels = m2.size();
 
-        if (pixels > max_pixels) {
-          max_pixels = pixels;
-          max_qbin = q;
-        }
-      }
+  //       if (pixels > max_pixels) {
+  //         max_pixels = pixels;
+  //         max_qbin = q;
+  //       }
+  //     }
 
-      auto m1 = m_mapping.find(max_qbin)->second;
-      std::vector<int> &dest_sbin = m1.find(sbin)->second;
+  //     auto m1 = m_mapping.find(max_qbin)->second;
+  //     std::vector<int> &dest_sbin = m1.find(sbin)->second;
       
-      for (auto qid = qbins.begin(); qid != qbins.end(); qid++) {
-        int q = *qid;
-        if (q == max_qbin) continue;
+  //     for (auto qid = qbins.begin(); qid != qbins.end(); qid++) {
+  //       int q = *qid;
+  //       if (q == max_qbin) continue;
 
-        std::map<int, std::vector<int>> &m1 = m_mapping.find(q)->second;
-        std::vector<int> &src_sbin = m1.find(sbin)->second;
+  //       std::map<int, std::vector<int>> &m1 = m_mapping.find(q)->second;
+  //       std::vector<int> &src_sbin = m1.find(sbin)->second;
 
-        for (std::vector<int>::iterator qbin_it = src_sbin.begin(); qbin_it != src_sbin.end(); qbin_it++) {
-          int p = *qbin_it;
-          dest_sbin.push_back(p);
-        }
+  //       for (std::vector<int>::iterator qbin_it = src_sbin.begin(); qbin_it != src_sbin.end(); qbin_it++) {
+  //         int p = *qbin_it;
+  //         dest_sbin.push_back(p);
+  //       }
         
-        m1.erase(m1.find(sbin));
-      }
-    }
-  }
+  //       m1.erase(m1.find(sbin));
+  //     }
+  //   }
+  // }
 
   pixels_per_bin = new int[m_totalStaticPartitions];
   for (int i = 0; i < m_totalStaticPartitions; i++) {
@@ -577,7 +582,7 @@ int Configuration::DelaysPerLevel()
   return delays_per_level_;
 }
 
-long Configuration::FrameStride()
+int Configuration::FrameStride()
 {
   return frame_stride;
 }

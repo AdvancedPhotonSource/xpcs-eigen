@@ -107,7 +107,6 @@ void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
   short **val = blk->value;
   int frames = blk->frames;
   std::vector<int> ppf = blk->pixels_per_frame;
-
   for (int i = 0; i < frames; i++) {
     int pixels = ppf[i];
     int *index = indx[i];
