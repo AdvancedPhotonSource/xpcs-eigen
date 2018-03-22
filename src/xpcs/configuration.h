@@ -88,6 +88,8 @@ public:
   int getStaticWindowSize();
   int DelaysPerLevel();
 
+  long FrameStride();
+
   std::string getFilename();
   std::string& getIMMFilePath();
   std::string& OutputPath();
@@ -118,6 +120,8 @@ private:
   float getFloat(const std::string &path);
 
   int getInteger(const std::string &path);
+
+  long getLong(const std::string &path);
 
   int* get2DTable(const std::string &path);
 
@@ -152,6 +156,9 @@ private:
   int *pixels_per_bin;
   int *dqmap;
   int *sqmap;
+
+  long frame_stride;
+  long frame_average;
 
   float m_detDpixX;
   float m_detDpixY;

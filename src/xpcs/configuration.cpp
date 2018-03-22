@@ -98,6 +98,7 @@ void Configuration::init(const std::string &path, const std::string& entry)
     delays_per_level_ = getInteger(entry + "/delays_per_level");
     darkFrameStart = getInteger(entry + "/dark_begin_todo");
     darkFrameEnd = getInteger(entry + "/dark_end_todo");
+    frame_stride = getInteger(entry + "/stride_frames");
 
     if (darkFrameStart == darkFrameEnd || darkFrameEnd == 0)
     {
@@ -255,17 +256,6 @@ void Configuration::BuildQMap() {
     }
   }
 
-  // for (auto it = m_mapping.begin(); it != m_mapping.end(); it++) {
-  //   int q = it->first;
-  //   std::map<int, std::vector<int> > values =  it->second;
-
-  //   printf("%d\n", q);
-  //   for (auto it2 =  values.begin(); it2 != values.end(); it2++) {
-  //     int sbin = it2->first;
-  //     printf("\t%d\n", sbin);
-  //   }
-  // }
-
   pixels_per_bin = new int[m_totalStaticPartitions];
   for (int i = 0; i < m_totalStaticPartitions; i++) {
     pixels_per_bin[i] = 0;
@@ -393,6 +383,25 @@ float Configuration::getFloat(const std::string &path)
     return value;   
 }
 
+long Configuration::getLong(const std::string &path)
+{
+    hid_t  dataset_id;
+    herr_t status;
+
+    dataset_id = H5Dopen(this->file_id, path.c_str(), H5P_DEFAULT);
+    
+    hid_t dtype = H5Dget_type(dataset_id);
+    hid_t size = H5Dget_storage_size(dataset_id);
+
+    long value = 0;
+
+    status = H5Dread(dataset_id, dtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, &value);
+
+    H5Dclose(dataset_id);
+
+    return value;   
+}
+
 int* Configuration::getDQMap()
 {
     return this->dqmap;
@@ -435,7 +444,7 @@ int Configuration::getFrameEnd()
 
 int Configuration::getFrameTodoCount()
 {
-    return (frameEndTodo - frameStartTodo) + 1;
+    return ((frameEndTodo - frameStartTodo) + 1) / frame_stride;
 }
 
 int Configuration::getFrameCount()
@@ -566,6 +575,11 @@ std::string& Configuration::OutputPath()
 int Configuration::DelaysPerLevel()
 {
   return delays_per_level_;
+}
+
+long Configuration::FrameStride()
+{
+  return frame_stride;
 }
 
 }

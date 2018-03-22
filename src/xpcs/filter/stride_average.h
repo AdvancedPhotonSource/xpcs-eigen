@@ -44,88 +44,38 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#include "imm_reader.h"
-
-#include <stdio.h>
-#include <iostream>
-
-#include "xpcs/configuration.h"
-#include "xpcs/data_structure/dark_image.h"
+#ifndef XPCS_STRIDE_AVERAGE_H
+#define XPCS_STRIDE_AVERAGE_H
 
 namespace xpcs {
+
+namespace data_structure {
+  class SparseData;
+  class DarkImage;
+}
+
 namespace io {
-
-ImmReader::ImmReader(const std::string& filename) {
-    file_ = fopen(filename.c_str(), "rb");
-
-    if (file_ == NULL) return ; //TODO handle error
-
-    header_ = new ImmHeader();
-    fread(header_, 1024, 1, file_);
-    compression_ = header_->compression != 0 ? true : false;
-    rewind(file_);
+  struct ImmBlock;
 }
 
-ImmReader::~ImmReader() {
-}
+namespace filter {  
 
-ImmBlock* ImmReader::NextFrames(int count) {
-    int **index = new int*[count];
-    short **value = new short*[count];
-    float *clock = new float[count];
-    float *ticks = new float[count];
+class StrideAverage {
 
-    std::vector<int> ppf;
+public:
+  StrideAverage();
 
-    int done = 0, pxs = 0;
-    while (done < count) {
-        fread(header_, 1024, 1, file_);
-        pxs = header_->dlen;
-        printf("%ld\n", pxs);
+  ~StrideAverage();
 
-        index[done] = new int[pxs];
-        value[done] = new short[pxs];
-        
-        if (compression_) {
-            fread(index[done], pxs * 4, 1, file_);
-        } 
+  void Apply(struct xpcs::io::ImmBlock* data);
 
-        fread(value[done], pxs * 2, 1, file_);
-        ppf.push_back(pxs);
+private:
 
-        clock[done] = header_->elapsed;
-        ticks[done] = header_->corecotick;
-        done++;
-    }
+  int stride_size_;
 
-    struct ImmBlock *ret = new ImmBlock;
-    ret->index = index;
-    ret->value = value;
-    ret->frames = count;
-    ret->pixels_per_frame = ppf;
-    ret->clock = clock;
-    ret->ticks = ticks;
-    ret->id = 0;
+};
 
-    return ret;
-}
+} //namespace filter
+} //namespace xpcs
 
-void ImmReader::SkipFrames(int count) {
-    int done = 0;
-    int image_bytes = compression_ ? 6 : 2;
-
-    while (done < count) {
-        fread(header_, 1024, 1, file_);
-        fseek(file_, header_->dlen * image_bytes, SEEK_CUR);
-        done++;
-    }
-}
-
-void ImmReader::Reset() {
-    rewind(file_);
-}
-
-bool ImmReader::compression() { return compression_; }
-
-} // namespace io
-} // namespace xpcs
+#endif

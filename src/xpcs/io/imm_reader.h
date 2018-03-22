@@ -65,6 +65,7 @@ struct ImmBlock {
   int** index;
   short** value;
   int frames;
+  int id;
   std::vector<int> pixels_per_frame;
   float* clock;
   float* ticks;

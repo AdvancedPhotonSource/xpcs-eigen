@@ -2,8 +2,8 @@ project(xpcs-eigen)
 
 cmake_minimum_required(VERSION 3.5)
 
-set(CMAKE_BUILD_TYPE RELEASE)
-#set(CMAKE_BUILD_TYPE DEBUG)
+#set(CMAKE_BUILD_TYPE RELEASE)
+set(CMAKE_BUILD_TYPE DEBUG)
 
 add_definitions(-std=c++0x)
 
@@ -19,6 +19,7 @@ set(headers
     src/xpcs/filter/filter.h
     src/xpcs/filter/sparse_filter.h
     src/xpcs/filter/dense_filter.h
+    src/xpcs/filter/stride_average.h
     src/xpcs/io/imm_header.h
 )
 
@@ -31,6 +32,7 @@ set(sources
     src/xpcs/data_structure/sparse_data.cpp
     src/xpcs/filter/sparse_filter.cpp
     src/xpcs/filter/dense_filter.cpp
+    src/xpcs/filter/stride_average.cpp
     src/xpcs/io/imm_reader.cpp
     src/xpcs/main.cpp
 )

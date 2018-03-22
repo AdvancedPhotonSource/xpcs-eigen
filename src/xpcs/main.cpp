@@ -68,6 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "xpcs/filter/filter.h"
 #include "xpcs/filter/sparse_filter.h"
 #include "xpcs/filter/dense_filter.h"
+#include "xpcs/filter/stride_average.h"
 #include "xpcs/data_structure/dark_image.h"
 
 
@@ -196,16 +197,28 @@ int main(int argc, char** argv)
     else
       filter = new xpcs::filter::DenseFilter(dark_image);
 
+    xpcs::filter::StrideAverage stride_average;
+
     int f = 0;
-    while (r <= frameTo) {
-      struct xpcs::io::ImmBlock* data = reader.NextFrames();
+    int stride = conf->FrameStride();
+    // The last frame outside the stride will be ignored. 
+    printf("frameTo = %d\n", frameTo);
+
+    while ((r+stride) <= frameTo) {
+      printf("%d\n", r);
+      struct xpcs::io::ImmBlock* data = reader.NextFrames(stride);
+      data->id = f++;
+      
+      if (stride > 1)
+        stride_average.Apply(data);
+
       filter->Apply(data);
       timestamp_clock[f] = f + 1;
       timestamp_clock[f + frames] = data->clock[0];
       timestamp_tick[f] = f + 1;
       timestamp_tick[f + frames] = data->ticks[0]; 
       f++;
-      r++;
+      r += stride;
     }
 
   }
