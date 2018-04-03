@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "configuration.h"
 
 #include <iostream>
+#include <set>
 
 #include "hdf5.h"
 
@@ -162,7 +163,7 @@ void Configuration::BuildQMap() {
   this->m_validPixelMask = new short[this->xdim * this->ydim];
   m_sbin = new int[this->xdim * this->ydim];
 
-  std::map<int, std::vector<int>> sbin_to_qbin;
+  std::map<int, std::set<int>> sbin_to_qbin;
 
   // Build mapping from q-bin to s-bins and from s-bins to pixels. 
   for (int i=0; i<(xdim*ydim); i++) {
@@ -201,13 +202,13 @@ void Configuration::BuildQMap() {
     }
 
     // Save reverse mapping from sbin to qbin for removing duplicates next. 
-    std::map<int, std::vector<int>>::iterator sbin_it = sbin_to_qbin.find(sqmap[i]);
+    std::map<int, std::set<int>>::iterator sbin_it = sbin_to_qbin.find(sqmap[i]);
     if (sbin_it != sbin_to_qbin.end()) {
-      std::vector<int> &avec = sbin_it->second;
-      avec.push_back(dqmap[i]);
+      std::set<int> &avec = sbin_it->second;
+      avec.insert(dqmap[i]);
     } else {
-      std::vector<int> avec;
-      avec.push_back(dqmap[i]);
+      std::set<int> avec;
+      avec.insert(dqmap[i]);
       sbin_to_qbin[sqmap[i]] = avec;
     }
   }
@@ -215,7 +216,7 @@ void Configuration::BuildQMap() {
   // remove duplicates.
   for (auto it =  sbin_to_qbin.begin(); it != sbin_to_qbin.end(); it++) {
     int sbin = it->first;
-    std::vector<int> qbins = it->second;
+    std::set<int> qbins = it->second;
 
     if (qbins.size() > 1) {
       // duplicate sbin -> qbin mapping
