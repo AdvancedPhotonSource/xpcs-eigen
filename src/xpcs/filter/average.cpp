@@ -47,8 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "average.h"
 
+#include <set>
 #include <math.h>
-
 #include <stdio.h>
 #include <iostream>
 
@@ -63,7 +63,6 @@ Average::Average() {
   Configuration *conf = Configuration::instance();
   int pixels = conf->getFrameWidth() * conf->getFrameHeight();
   average_size_ = conf->FrameStride();
-  pixels_index_ = new int[pixels];
   pixels_value_ = new float[pixels];
 }
 
