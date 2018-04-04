@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 **/
 
-#include "stride_average.h"
+#include "stride.h"
 
 #include <math.h>
 
@@ -60,16 +60,16 @@ namespace xpcs {
 namespace filter {
 
 
-StrideAverage::StrideAverage() {
+Stride::Stride() {
   Configuration *conf = Configuration::instance();
   stride_size_ = conf->FrameStride();
 }
 
-StrideAverage::~StrideAverage() {
+Stride::~Stride() {
 
 }
 
-void StrideAverage::Apply(struct xpcs::io::ImmBlock* blk) {
+void Stride::Apply(struct xpcs::io::ImmBlock* blk) {
   int **indx = blk->index;
   short **val = blk->value;
   int frames = blk->frames;

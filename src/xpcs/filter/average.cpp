@@ -44,38 +44,78 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#ifndef XPCS_STRIDE_AVERAGE_H
-#define XPCS_STRIDE_AVERAGE_H
+
+#include "average.h"
+
+#include <math.h>
+
+#include <stdio.h>
+#include <iostream>
+
+#include "xpcs/configuration.h"
+#include "xpcs/io/imm_reader.h"
+#include "xpcs/data_structure/sparse_data.h"
 
 namespace xpcs {
+namespace filter {
 
-namespace data_structure {
-  class SparseData;
-  class DarkImage;
+Average::Average() {
+  Configuration *conf = Configuration::instance();
+  int pixels = conf->getFrameWidth() * conf->getFrameHeight();
+  average_size_ = conf->FrameStride();
+  pixels_index_ = new int[pixels];
+  pixels_value_ = new float[pixels];
 }
 
-namespace io {
-  struct ImmBlock;
+Average::~Average() {
+
 }
 
-namespace filter {  
+void Average::Apply(struct xpcs::io::ImmBlock* blk) {
+  int **indx = blk->index;
+  short **val = blk->value;
+  int frames = blk->frames;
+  std::vector<int> ppf = blk->pixels_per_frame;
 
-class StrideAverage {
+  if (frames < 2) return;
 
-public:
-  StrideAverage();
+  // The first frame is just act as the base. 
+  std::set<float> pixels_touched(int(0.3 * pixels_));
+  for (int j = 0; j < ppf[0]; j++) {
+    pixels_touched.insert(index[0][j])
+    pixels_value_[index[0][j]] = val[0][j]
+  }
 
-  ~StrideAverage();
+  for (int i = 1 ; i < frames; i++) {
+    for (int j = 0; j < ppf[i]; j++) {
+      pixels_touched.insert(index[i][j])
+      pixels_value_[index[i][j]] += val[i][j]
+    }
+  }
 
-  void Apply(struct xpcs::io::ImmBlock* data);
+  int **new_index = new int*[1];
+  short **new_val = new short*[1];
+  int new_frames = 1;
+  new_index[0] = new int[pixels_touched.size()];
+  new_val[0] = new short[pixels_touched.size()];
+  std::vector<int> new_ppf = {pixels_touched.size()};
 
-private:
+  int ind = 0;
+  for (std::set<int>::iterator it=pixels_touched.begin(); it != pixels_touched.end(); ++it) {
+    int px = *it;
+    new_index[ind] = px;
+    new_value[ind] = short(pixels_value_[px] / frames);
+  }
 
-  int stride_size_;
 
-};
+  blk->index = new_index;
+  blk->value = new_val;
+  blk->frames = new_frames;
+  blk->pixels_per_frame = new_ppf;
 
-} //namespace filter
-} //namespace xpcs
+  //TODO smart pointers to handle memory
+}
 
-#endif
+
+} // namespace io
+} // namespace xpcs

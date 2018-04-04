@@ -19,7 +19,8 @@ set(headers
     src/xpcs/filter/filter.h
     src/xpcs/filter/sparse_filter.h
     src/xpcs/filter/dense_filter.h
-    src/xpcs/filter/stride_average.h
+    src/xpcs/filter/stride.h
+    src/xpcs/filter/average.h
     src/xpcs/io/imm_header.h
 )
 
@@ -32,7 +33,8 @@ set(sources
     src/xpcs/data_structure/sparse_data.cpp
     src/xpcs/filter/sparse_filter.cpp
     src/xpcs/filter/dense_filter.cpp
-    src/xpcs/filter/stride_average.cpp
+    src/xpcs/filter/stride.cpp
+    src/xpcs/filter/average.cpp
     src/xpcs/io/imm_reader.cpp
     src/xpcs/main.cpp
 )
