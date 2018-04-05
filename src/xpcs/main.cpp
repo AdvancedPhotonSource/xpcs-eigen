@@ -69,6 +69,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "xpcs/filter/sparse_filter.h"
 #include "xpcs/filter/dense_filter.h"
 #include "xpcs/filter/stride.h"
+#include "xpcs/filter/average.h"
 #include "xpcs/data_structure/dark_image.h"
 
 
@@ -145,10 +146,10 @@ int main(int argc, char** argv)
   int frameTo = conf->getFrameEndTodo();
   int swindow = conf->getStaticWindowSize();
   int stride_factor = conf->FrameStride();
-  int average_factor = 1;
+  int average_factor = conf->FrameAverage();
 
 
-  console->info("Data frames={0} stride={1}", frames, stride_factor);
+  console->info("Data frames={0} stride={1} average={2}", frames, stride_factor, average_factor);
   console->debug("Frames count={0}, from={1}, todo={2}", frames, frameFrom, frameTo);
 
   int pixels = conf->getFrameWidth() * conf->getFrameHeight();
@@ -202,13 +203,14 @@ int main(int argc, char** argv)
       filter = new xpcs::filter::DenseFilter(dark_image);
 
     xpcs::filter::Stride stride;
-    xpcs::filter::Stride average;
+    xpcs::filter::Average average;
 
     int f = 0;
+    int the_stride = stride_factor > 1 ? stride_factor : average_factor;
     // The last frame outside the stride will be ignored. 
-    while (r <= ((frameTo+1) - stride_factor)) {
+    while (r <= ((frameTo+1) - the_stride)) {
       // printf("frame # old = %d, frame # new = %d\n", r, f);
-      struct xpcs::io::ImmBlock* data = reader.NextFrames(stride_factor);
+      struct xpcs::io::ImmBlock* data = reader.NextFrames(the_stride);
       
       if (stride_factor > 1)
         stride.Apply(data);
@@ -221,7 +223,7 @@ int main(int argc, char** argv)
       timestamp_tick[f] = f + 1;
       timestamp_tick[f + frames] = data->ticks[0]; 
       f++;
-      r += stride_factor;
+      r += the_stride;
     }
 
   }

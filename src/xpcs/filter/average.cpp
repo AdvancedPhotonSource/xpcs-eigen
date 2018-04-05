@@ -79,16 +79,20 @@ void Average::Apply(struct xpcs::io::ImmBlock* blk) {
   if (frames < 2) return;
 
   // The first frame is just act as the base. 
-  std::set<float> pixels_touched(int(0.3 * pixels_));
+  std::set<int> pixels_touched; //(int(0.3 * pixels_));
   for (int j = 0; j < ppf[0]; j++) {
-    pixels_touched.insert(index[0][j])
-    pixels_value_[index[0][j]] = val[0][j]
+    int px = indx[0][j];
+    short v = val[0][j];
+    pixels_touched.insert(px);
+    pixels_value_[px] = v; 
   }
 
   for (int i = 1 ; i < frames; i++) {
     for (int j = 0; j < ppf[i]; j++) {
-      pixels_touched.insert(index[i][j])
-      pixels_value_[index[i][j]] += val[i][j]
+      int px = indx[i][j];
+      float v = val[i][j];
+      pixels_touched.insert(px);
+      pixels_value_[px] += v; 
     }
   }
 
@@ -97,13 +101,14 @@ void Average::Apply(struct xpcs::io::ImmBlock* blk) {
   int new_frames = 1;
   new_index[0] = new int[pixels_touched.size()];
   new_val[0] = new short[pixels_touched.size()];
-  std::vector<int> new_ppf = {pixels_touched.size()};
+  std::vector<int> new_ppf = {(int)pixels_touched.size()};
 
   int ind = 0;
   for (std::set<int>::iterator it=pixels_touched.begin(); it != pixels_touched.end(); ++it) {
     int px = *it;
-    new_index[ind] = px;
-    new_value[ind] = short(pixels_value_[px] / frames);
+    new_index[0][ind] = px;
+    new_val[0][ind] = short(pixels_value_[px] / frames);
+    ind++;
   }
 
 

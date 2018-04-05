@@ -90,6 +90,7 @@ public:
   int DelaysPerLevel();
 
   int FrameStride();
+  int FrameAverage();
 
   std::string getFilename();
   std::string& getIMMFilePath();
@@ -158,8 +159,8 @@ private:
   int *dqmap;
   int *sqmap;
 
-  int frame_stride;
-  int frame_average;
+  int frame_stride_;
+  int frame_average_;
 
   float m_detDpixX;
   float m_detDpixY;

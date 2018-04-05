@@ -100,7 +100,8 @@ void Configuration::init(const std::string &path, const std::string& entry)
     delays_per_level_ = getInteger(entry + "/delays_per_level");
     darkFrameStart = getInteger(entry + "/dark_begin_todo");
     darkFrameEnd = getInteger(entry + "/dark_end_todo");
-    frame_stride = getLong(entry + "/stride_frames");
+    frame_stride_ = getLong(entry + "/stride_frames");
+    frame_average_ = getLong(entry + "/avg_frames");
 
     if (darkFrameStart == darkFrameEnd || darkFrameEnd == 0)
     {
@@ -449,7 +450,13 @@ int Configuration::getFrameEnd()
 
 int Configuration::getFrameTodoCount()
 {
-    return ((frameEndTodo - frameStartTodo) + 1) / frame_stride;
+  int denom = 1;
+  if (frame_stride_ > 1)
+    denom = frame_stride_;
+  else if (frame_average_ > 1)
+    denom = frame_average_;
+
+  return ((frameEndTodo - frameStartTodo) + 1) / denom;
 }
 
 int Configuration::getFrameCount()
@@ -584,7 +591,12 @@ int Configuration::DelaysPerLevel()
 
 int Configuration::FrameStride()
 {
-  return frame_stride;
+  return frame_stride_;
+}
+
+int Configuration::FrameAverage()
+{
+  return frame_average_;
 }
 
 }

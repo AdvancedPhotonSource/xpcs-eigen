@@ -118,7 +118,6 @@ void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
     if (frame_index_ > 0 && (frame_index_ % static_window_) == 0) {
       partition_no_++;
     }
-
     for (int j = 0; j < pixels; j++) {
 
       if (pixel_mask_[index[j]] != 0) {
