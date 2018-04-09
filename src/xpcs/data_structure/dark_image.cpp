@@ -55,7 +55,7 @@ namespace xpcs {
 
 namespace data_structure {
 
-DarkImage::DarkImage(short** data, int frames, int pixels_per_frames, double* flatfield)
+DarkImage::DarkImage(float** data, int frames, int pixels_per_frames, double* flatfield)
 {
   dark_avg_ = new double[pixels_per_frames];
   dark_std_ = new double[pixels_per_frames];
@@ -78,7 +78,7 @@ double* DarkImage::dark_std()
   return dark_std_;
 }
 
-void DarkImage::Compute(short** data, int frames, int pixels, double* flatfield)
+void DarkImage::Compute(float** data, int frames, int pixels, double* flatfield)
 {
 
   for (int i = 0 ; i < pixels; i++)

@@ -71,7 +71,7 @@ Stride::~Stride() {
 
 void Stride::Apply(struct xpcs::io::ImmBlock* blk) {
   int **indx = blk->index;
-  short **val = blk->value;
+  float **val = blk->value;
   int frames = blk->frames;
   std::vector<int> ppf = blk->pixels_per_frame;
 
@@ -80,7 +80,7 @@ void Stride::Apply(struct xpcs::io::ImmBlock* blk) {
   int **new_index = new int*[1];
   new_index[0] = indx[0];
 
-  short **new_val = new short*[1];
+  float **new_val = new float*[1];
   new_val[0] = val[0];
 
   int new_frames = 1;

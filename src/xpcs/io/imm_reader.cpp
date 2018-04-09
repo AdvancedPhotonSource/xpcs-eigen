@@ -72,13 +72,11 @@ ImmReader::~ImmReader() {
 
 ImmBlock* ImmReader::NextFrames(int count) {
     int **index = new int*[count];
-    short **value = new short*[count];
+    float **value = new float*[count];
     float *clock = new float[count];
     float *ticks = new float[count];
 
     std::vector<int> ppf;
-
-    // printf("in ftell(file_) %ld\n", ftell(file_));
 
     int done = 0, pxs = 0;
     while (done < count) {
@@ -88,13 +86,16 @@ ImmBlock* ImmReader::NextFrames(int count) {
         // printf("Buffer # = %ld, pxs = %d\n", header_->buffer_number, pxs);
 
         index[done] = new int[pxs];
-        value[done] = new short[pxs];
+        value[done] = new float[pxs];
+        short *tmpmem = new short[pxs];
         
         if (compression_) {
             fread(index[done], pxs * 4, 1, file_);
         } 
 
-        fread(value[done], pxs * 2, 1, file_);
+        fread(tmpmem, pxs * 2, 1, file_);
+        std::copy(tmpmem, tmpmem + pxs, value[done]);
+        delete [] tmpmem;
         ppf.push_back(pxs);
 
         clock[done] = header_->elapsed;
@@ -110,9 +111,6 @@ ImmBlock* ImmReader::NextFrames(int count) {
     ret->clock = clock;
     ret->ticks = ticks;
     ret->id = 0;
-
-    // printf("ret ftell(file_) %ld\n", ftell(file_));
-
 
     return ret;
 }

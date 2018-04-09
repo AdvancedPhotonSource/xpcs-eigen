@@ -61,7 +61,7 @@ class DarkImage {
 public:
   DarkImage();
   
-  DarkImage(short** data, int frames, int pixelPerFrame, double* flatfield);
+  DarkImage(float** data, int frames, int pixelPerFrame, double* flatfield);
 
   ~DarkImage();
 
@@ -75,7 +75,7 @@ private:
 
   double* dark_std_;
 
-  void Compute(short** data, int frames, int pixels, double* flatfield);
+  void Compute(float** data, int frames, int pixels, double* flatfield);
   
 };
 

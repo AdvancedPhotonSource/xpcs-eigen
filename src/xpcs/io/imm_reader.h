@@ -63,7 +63,7 @@ namespace io {
 
 struct ImmBlock {
   int** index;
-  short** value;
+  float** value;
   int frames;
   int id;
   std::vector<int> pixels_per_frame;

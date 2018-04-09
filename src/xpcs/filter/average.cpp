@@ -61,9 +61,11 @@ namespace filter {
 
 Average::Average() {
   Configuration *conf = Configuration::instance();
-  int pixels = conf->getFrameWidth() * conf->getFrameHeight();
+  pixels_ = conf->getFrameWidth() * conf->getFrameHeight();
   average_size_ = conf->FrameStride();
-  pixels_value_ = new float[pixels];
+  pixels_value_ = new float[pixels_];
+  for (int i = 0; i < pixels_; i++)
+    pixels_value_[i] = 0.0;
 }
 
 Average::~Average() {
@@ -72,17 +74,17 @@ Average::~Average() {
 
 void Average::Apply(struct xpcs::io::ImmBlock* blk) {
   int **indx = blk->index;
-  short **val = blk->value;
+  float **val = blk->value;
   int frames = blk->frames;
   std::vector<int> ppf = blk->pixels_per_frame;
 
   if (frames < 2) return;
 
-  // The first frame is just act as the base. 
+  // The first frame just act as the base. 
   std::set<int> pixels_touched; //(int(0.3 * pixels_));
   for (int j = 0; j < ppf[0]; j++) {
     int px = indx[0][j];
-    short v = val[0][j];
+    float v = val[0][j];
     pixels_touched.insert(px);
     pixels_value_[px] = v; 
   }
@@ -97,20 +99,19 @@ void Average::Apply(struct xpcs::io::ImmBlock* blk) {
   }
 
   int **new_index = new int*[1];
-  short **new_val = new short*[1];
+  float **new_val = new float*[1];
   int new_frames = 1;
   new_index[0] = new int[pixels_touched.size()];
-  new_val[0] = new short[pixels_touched.size()];
+  new_val[0] = new float[pixels_touched.size()];
   std::vector<int> new_ppf = {(int)pixels_touched.size()};
 
   int ind = 0;
-  for (std::set<int>::iterator it=pixels_touched.begin(); it != pixels_touched.end(); ++it) {
+  for (std::set<int>::iterator it = pixels_touched.begin(); it != pixels_touched.end(); ++it) {
     int px = *it;
     new_index[0][ind] = px;
-    new_val[0][ind] = short(pixels_value_[px] / frames);
+    new_val[0][ind] = pixels_value_[px] / frames;
     ind++;
   }
-
 
   blk->index = new_index;
   blk->value = new_val;
