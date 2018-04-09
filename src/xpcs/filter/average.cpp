@@ -64,8 +64,6 @@ Average::Average() {
   pixels_ = conf->getFrameWidth() * conf->getFrameHeight();
   average_size_ = conf->FrameStride();
   pixels_value_ = new float[pixels_];
-  for (int i = 0; i < pixels_; i++)
-    pixels_value_[i] = 0.0;
 }
 
 Average::~Average() {
@@ -79,6 +77,9 @@ void Average::Apply(struct xpcs::io::ImmBlock* blk) {
   std::vector<int> ppf = blk->pixels_per_frame;
 
   if (frames < 2) return;
+
+  for (int i = 0; i < pixels_; i++)
+    pixels_value_[i] = 0.0;
 
   // The first frame just act as the base. 
   std::set<int> pixels_touched; //(int(0.3 * pixels_));
