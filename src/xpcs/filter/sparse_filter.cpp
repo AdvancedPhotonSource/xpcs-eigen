@@ -104,14 +104,13 @@ SparseFilter::~SparseFilter() {
 
 void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
   int **indx = blk->index;
-  short **val = blk->value;
+  float **val = blk->value;
   int frames = blk->frames;
   std::vector<int> ppf = blk->pixels_per_frame;
-
   for (int i = 0; i < frames; i++) {
     int pixels = ppf[i];
     int *index = indx[i];
-    short *value = val[i];
+    float *value = val[i];
     float f_sum = 0.0f;
     int pix_cnt = frame_width_ * frame_height_;
     int sbin = 0;

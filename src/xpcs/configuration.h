@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 #include "hdf5.h"
+#include "benchmark.h"
 
 namespace xpcs  {
 
@@ -88,6 +89,9 @@ public:
   int getStaticWindowSize();
   int DelaysPerLevel();
 
+  int FrameStride();
+  int FrameAverage();
+
   std::string getFilename();
   std::string& getIMMFilePath();
   std::string& OutputPath();
@@ -118,6 +122,8 @@ private:
   float getFloat(const std::string &path);
 
   int getInteger(const std::string &path);
+
+  long getLong(const std::string &path);
 
   int* get2DTable(const std::string &path);
 
@@ -152,6 +158,9 @@ private:
   int *pixels_per_bin;
   int *dqmap;
   int *sqmap;
+
+  int frame_stride_;
+  int frame_average_;
 
   float m_detDpixX;
   float m_detDpixY;

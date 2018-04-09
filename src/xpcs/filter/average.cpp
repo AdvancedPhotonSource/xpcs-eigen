@@ -44,93 +44,84 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#include "imm_reader.h"
 
+#include "average.h"
+
+#include <set>
+#include <math.h>
 #include <stdio.h>
 #include <iostream>
 
 #include "xpcs/configuration.h"
-#include "xpcs/data_structure/dark_image.h"
+#include "xpcs/io/imm_reader.h"
+#include "xpcs/data_structure/sparse_data.h"
 
 namespace xpcs {
-namespace io {
+namespace filter {
 
-ImmReader::ImmReader(const std::string& filename) {
-    file_ = fopen(filename.c_str(), "rb");
-
-    if (file_ == NULL) return ; //TODO handle error
-
-    header_ = new ImmHeader();
-    fread(header_, 1024, 1, file_);
-    compression_ = header_->compression != 0 ? true : false;
-    rewind(file_);
+Average::Average() {
+  Configuration *conf = Configuration::instance();
+  pixels_ = conf->getFrameWidth() * conf->getFrameHeight();
+  average_size_ = conf->FrameStride();
+  pixels_value_ = new float[pixels_];
 }
 
-ImmReader::~ImmReader() {
+Average::~Average() {
 
 }
 
-ImmBlock* ImmReader::NextFrames(int count) {
-    int **index = new int*[count];
-    float **value = new float*[count];
-    float *clock = new float[count];
-    float *ticks = new float[count];
+void Average::Apply(struct xpcs::io::ImmBlock* blk) {
+  int **indx = blk->index;
+  float **val = blk->value;
+  int frames = blk->frames;
+  std::vector<int> ppf = blk->pixels_per_frame;
 
-    std::vector<int> ppf;
+  if (frames < 2) return;
 
-    int done = 0, pxs = 0;
-    while (done < count) {
-        // printf("inloop ftell(file_) %ld\n", ftell(file_));
-        fread(header_, 1024, 1, file_);
-        pxs = header_->dlen;
-        // printf("Buffer # = %ld, pxs = %d\n", header_->buffer_number, pxs);
+  for (int i = 0; i < pixels_; i++)
+    pixels_value_[i] = 0.0;
 
-        index[done] = new int[pxs];
-        value[done] = new float[pxs];
-        short *tmpmem = new short[pxs];
-        
-        if (compression_) {
-            fread(index[done], pxs * 4, 1, file_);
-        } 
+  // The first frame just act as the base. 
+  std::set<int> pixels_touched; //(int(0.3 * pixels_));
+  for (int j = 0; j < ppf[0]; j++) {
+    int px = indx[0][j];
+    float v = val[0][j];
+    pixels_touched.insert(px);
+    pixels_value_[px] = v; 
+  }
 
-        fread(tmpmem, pxs * 2, 1, file_);
-        std::copy(tmpmem, tmpmem + pxs, value[done]);
-        delete [] tmpmem;
-        ppf.push_back(pxs);
-
-        clock[done] = header_->elapsed;
-        ticks[done] = header_->corecotick;
-        done++;
+  for (int i = 1 ; i < frames; i++) {
+    for (int j = 0; j < ppf[i]; j++) {
+      int px = indx[i][j];
+      float v = val[i][j];
+      pixels_touched.insert(px);
+      pixels_value_[px] += v; 
     }
+  }
 
-    struct ImmBlock *ret = new ImmBlock;
-    ret->index = index;
-    ret->value = value;
-    ret->frames = count;
-    ret->pixels_per_frame = ppf;
-    ret->clock = clock;
-    ret->ticks = ticks;
-    ret->id = 0;
+  int **new_index = new int*[1];
+  float **new_val = new float*[1];
+  int new_frames = 1;
+  new_index[0] = new int[pixels_touched.size()];
+  new_val[0] = new float[pixels_touched.size()];
+  std::vector<int> new_ppf = {(int)pixels_touched.size()};
 
-    return ret;
+  int ind = 0;
+  for (std::set<int>::iterator it = pixels_touched.begin(); it != pixels_touched.end(); ++it) {
+    int px = *it;
+    new_index[0][ind] = px;
+    new_val[0][ind] = pixels_value_[px] / frames;
+    ind++;
+  }
+
+  blk->index = new_index;
+  blk->value = new_val;
+  blk->frames = new_frames;
+  blk->pixels_per_frame = new_ppf;
+
+  //TODO smart pointers to handle memory
 }
 
-void ImmReader::SkipFrames(int count) {
-    int done = 0;
-    int image_bytes = compression_ ? 6 : 2;
-
-    while (done < count) {
-        fread(header_, 1024, 1, file_);
-        fseek(file_, header_->dlen * image_bytes, SEEK_CUR);
-        done++;
-    }
-}
-
-void ImmReader::Reset() {
-    rewind(file_);
-}
-
-bool ImmReader::compression() { return compression_; }
 
 } // namespace io
 } // namespace xpcs
