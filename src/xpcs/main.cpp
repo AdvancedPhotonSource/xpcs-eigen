@@ -206,11 +206,14 @@ int main(int argc, char** argv)
     xpcs::filter::Average average;
 
     int f = 0;
-    int the_stride = stride_factor > 1 ? stride_factor : average_factor;
+    int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
+    if (stride_factor > 1 && average_factor > 1)
+      read_in_count = stride_factor * average_factor;
+    
     // The last frame outside the stride will be ignored. 
-    while (r <= ((frameTo+1) - the_stride)) {
+    while (r <= ((frameTo+1) - read_in_count)) {
       // printf("frame # old = %d, frame # new = %d\n", r, f);
-      struct xpcs::io::ImmBlock* data = reader.NextFrames(the_stride);
+      struct xpcs::io::ImmBlock* data = reader.NextFrames(read_in_count);
       
       if (stride_factor > 1)
         stride.Apply(data);
@@ -223,7 +226,7 @@ int main(int argc, char** argv)
       timestamp_tick[f] = f + 1;
       timestamp_tick[f + frames] = data->ticks[0]; 
       f++;
-      r += the_stride;
+      r += read_in_count;
     }
 
   }

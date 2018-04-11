@@ -70,7 +70,7 @@ public:
   void Apply(struct xpcs::io::ImmBlock* data);
 
 private:
-
+  int stride_size_;
   int average_size_;
   int pixels_;
   // An value array equal to the size of the image. 

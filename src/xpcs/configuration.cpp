@@ -451,12 +451,11 @@ int Configuration::getFrameEnd()
 
 int Configuration::getFrameTodoCount()
 {
-  int denom = 1;
-  if (frame_stride_ > 1)
-    denom = frame_stride_;
-  else if (frame_average_ > 1)
-    denom = frame_average_;
+  int denom = frame_stride_ > 1 ? frame_stride_ : frame_average_;
 
+  if (frame_stride_ > 1 && frame_average_ > 1)
+    denom = frame_stride_ * frame_average_;
+  
   return ((frameEndTodo - frameStartTodo) + 1) / denom;
 }
 

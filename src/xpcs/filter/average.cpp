@@ -62,7 +62,8 @@ namespace filter {
 Average::Average() {
   Configuration *conf = Configuration::instance();
   pixels_ = conf->getFrameWidth() * conf->getFrameHeight();
-  average_size_ = conf->FrameStride();
+  average_size_ = conf->FrameAverage();
+  stride_size_ = conf->FrameStride();
   pixels_value_ = new float[pixels_];
 }
 
@@ -90,7 +91,7 @@ void Average::Apply(struct xpcs::io::ImmBlock* blk) {
     pixels_value_[px] = v; 
   }
 
-  for (int i = 1 ; i < frames; i++) {
+  for (int i = stride_size_ ; i < frames; i+=stride_size_) {
     for (int j = 0; j < ppf[i]; j++) {
       int px = indx[i][j];
       float v = val[i][j];
@@ -121,7 +122,6 @@ void Average::Apply(struct xpcs::io::ImmBlock* blk) {
 
   //TODO smart pointers to handle memory
 }
-
 
 } // namespace io
 } // namespace xpcs
