@@ -100,6 +100,9 @@ private:
   float *data_;
   bool compression_;
 
+  // Linear indices in case the data is compressed. 
+  int *indices_;
+
 };
 
 } //namespace io

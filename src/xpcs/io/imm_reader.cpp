@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace xpcs {
 namespace io {
 
-ImmReader::ImmReader(const std::string& filename) {
+ImmReader::ImmReader(const std::string& filename) : indices_(NULL) {
     file_ = fopen(filename.c_str(), "rb");
 
     if (file_ == NULL) return ; //TODO handle error
@@ -92,6 +92,11 @@ ImmBlock* ImmReader::NextFrames(int count) {
         if (compression_) {
             fread(index[done], pxs * 4, 1, file_);
         } 
+        
+        // else {
+        //     // for (int i = 0 ; i < pxs; i++)
+        //     //     index[done][i] = i;
+        // }
 
         fread(tmpmem, pxs * 2, 1, file_);
         std::copy(tmpmem, tmpmem + pxs, value[done]);

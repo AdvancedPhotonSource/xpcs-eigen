@@ -44,8 +44,8 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#ifndef XPCS_AVERAGE_H
-#define XPCS_AVERAGE_H
+#ifndef XPCS_DENSE_AVERAGE_H
+#define XPCS_DENSE_AVERAGE_H
 
 namespace xpcs {
 
@@ -60,12 +60,12 @@ namespace io {
 
 namespace filter {  
 
-class Average {
+class DenseAverage {
 
 public:
-  Average();
+  DenseAverage();
 
-  ~Average();
+  ~DenseAverage();
 
   void Apply(struct xpcs::io::ImmBlock* data);
 

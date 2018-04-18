@@ -44,40 +44,77 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#ifndef XPCS_AVERAGE_H
-#define XPCS_AVERAGE_H
+
+#include "dense_average.h"
+
+#include <set>
+#include <math.h>
+#include <stdio.h>
+#include <iostream>
+
+#include "xpcs/configuration.h"
+#include "xpcs/io/imm_reader.h"
+#include "xpcs/data_structure/sparse_data.h"
 
 namespace xpcs {
+namespace filter {
 
-namespace data_structure {
-  class SparseData;
-  class DarkImage;
+DenseAverage::DenseAverage() {
+  Configuration *conf = Configuration::instance();
+  pixels_ = conf->getFrameWidth() * conf->getFrameHeight();
+  average_size_ = conf->FrameAverage();
+  stride_size_ = conf->FrameStride();
+  pixels_value_ = new float[pixels_];
 }
 
-namespace io {
-  struct ImmBlock;
+DenseAverage::~DenseAverage() {
+
 }
 
-namespace filter {  
+void DenseAverage::Apply(struct xpcs::io::ImmBlock* blk) {
+  int **indx = blk->index;
+  float **val = blk->value;
+  int frames = blk->frames;
+  std::vector<int> ppf = blk->pixels_per_frame;
 
-class Average {
+  if (frames < 2) return;
 
-public:
-  Average();
+  for (int j = 0; j < ppf[0]; j++) {
+    int px = j;
+    float v = val[0][j];
+    pixels_value_[px] = v; 
+  }
 
-  ~Average();
+  for (int i = stride_size_ ; i < frames; i+=stride_size_) {
+    for (int j = 0; j < ppf[i]; j++) {
+      int px = j;
+      float v = val[i][j];
+      pixels_value_[px] += v; 
+    }
+  }
 
-  void Apply(struct xpcs::io::ImmBlock* data);
+  int **new_index = new int*[1];
+  float **new_val = new float*[1];
+  int new_frames = 1;
+  new_index[0] = new int[ppf[0]];
+  new_val[0] = new float[ppf[0]];
+  std::vector<int> new_ppf = {ppf[0]};
 
-private:
-  int stride_size_;
-  int average_size_;
-  int pixels_;
-  // An value array equal to the size of the image. 
-  float *pixels_value_;
-};
+  int ind = 0;
+  for (int i = 0; i < ppf[0]; i++) {
+    int px = i;
+    new_index[0][ind] = px;
+    new_val[0][ind] = pixels_value_[px] / frames;
+    ind++;
+  }
 
-} //namespace filter
-} //namespace xpcs
+  blk->index = new_index;
+  blk->value = new_val;
+  blk->frames = new_frames;
+  blk->pixels_per_frame = new_ppf;
 
-#endif
+  //TODO smart pointers to handle memory
+}
+
+} // namespace io
+} // namespace xpcs

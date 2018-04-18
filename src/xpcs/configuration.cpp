@@ -83,6 +83,7 @@ void Configuration::init(const std::string &path, const std::string& entry)
     file_id = H5Fopen(path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);    
     std::string value = getString(entry + "/compression");
 
+    this->compression = false;
     if (value.compare("ENABLED") == 0)
          this->compression = true;
 
@@ -144,7 +145,7 @@ void Configuration::init(const std::string &path, const std::string& entry)
     this->m_staticWindow = getInteger(entry + "/static_mean_window_size");
 
     value = getString(entry + "/flatfield_enabled");
-    // if (boost::iequals(value, "ENABLED"))
+    this->flatfieldEnabled = false;
     if (value.compare("ENABLED") == 0)
         this->flatfieldEnabled = true;
 
@@ -597,6 +598,11 @@ int Configuration::FrameStride()
 int Configuration::FrameAverage()
 {
   return frame_average_;
+}
+
+bool Configuration::getIsCompressionEnabled()
+{
+  return compression;
 }
 
 }

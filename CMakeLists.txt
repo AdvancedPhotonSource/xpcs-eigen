@@ -21,6 +21,7 @@ set(headers
     src/xpcs/filter/dense_filter.h
     src/xpcs/filter/stride.h
     src/xpcs/filter/average.h
+    src/xpcs/filter/dense_average.h
     src/xpcs/io/imm_header.h
 )
 
@@ -35,6 +36,7 @@ set(sources
     src/xpcs/filter/dense_filter.cpp
     src/xpcs/filter/stride.cpp
     src/xpcs/filter/average.cpp
+    src/xpcs/filter/dense_average.cpp
     src/xpcs/io/imm_reader.cpp
     src/xpcs/main.cpp
 )
@@ -57,3 +59,4 @@ add_subdirectory("src/external/gflags")
 add_executable(corr ${sources})
 
 target_link_libraries(corr hdf5 gflags)
+

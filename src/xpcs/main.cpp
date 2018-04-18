@@ -70,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "xpcs/filter/dense_filter.h"
 #include "xpcs/filter/stride.h"
 #include "xpcs/filter/average.h"
+#include "xpcs/filter/dense_average.h"
 #include "xpcs/data_structure/dark_image.h"
 
 
@@ -204,6 +205,7 @@ int main(int argc, char** argv)
 
     xpcs::filter::Stride stride;
     xpcs::filter::Average average;
+    xpcs::filter::DenseAverage dense_average;
 
     int f = 0;
     int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
@@ -215,10 +217,15 @@ int main(int argc, char** argv)
       // printf("frame # old = %d, frame # new = %d\n", r, f);
       struct xpcs::io::ImmBlock* data = reader.NextFrames(read_in_count);
       
-      if (stride_factor > 1)
+      
+      if (stride_factor >=1 && average_factor > 1) {
+        if (reader.compression())
+          average.Apply(data);
+        else
+          dense_average.Apply(data);
+      } else if (stride_factor > 1 ) {
         stride.Apply(data);
-      else if (average_factor > 1)
-        average.Apply(data);
+      }
 
       filter->Apply(data);
       timestamp_clock[f] = f + 1;
@@ -338,3 +345,4 @@ int main(int argc, char** argv)
     xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF", pixels, delays_per_level.size(), ifs);
   }
 }
+

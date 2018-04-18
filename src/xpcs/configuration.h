@@ -113,6 +113,8 @@ public:
   bool getIsFlatFieldEnabled();
   double* getFlatField();
 
+  bool getIsCompressionEnabled();
+
 private:
 
   Configuration();
