@@ -89,7 +89,7 @@ void DenseAverage::Apply(struct xpcs::io::ImmBlock* blk) {
     for (int j = 0; j < ppf[i]; j++) {
       int px = j;
       float v = val[i][j];
-      pixels_value_[px] += v; 
+      pixels_value_[px] += (float)v; 
       // if (v > 0)
       //   printf("%d - %f\n", px, v);
     }
@@ -106,7 +106,7 @@ void DenseAverage::Apply(struct xpcs::io::ImmBlock* blk) {
   for (int i = 0; i < ppf[0]; i++) {
     int px = i;
     new_index[0][ind] = px;
-    new_val[0][ind] = pixels_value_[px] / average_size_;
+    new_val[0][ind] = pixels_value_[px] / (float)(average_size_);
     ind++;
   }
 
