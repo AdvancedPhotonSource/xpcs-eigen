@@ -211,6 +211,8 @@ int main(int argc, char** argv)
     int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
     if (stride_factor > 1 && average_factor > 1)
       read_in_count = stride_factor * average_factor;
+
+    // printf("Read_in_count %d\n", read_in_count);
     
     // The last frame outside the stride will be ignored. 
     while (r <= ((frameTo+1) - read_in_count)) {
