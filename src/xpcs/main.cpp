@@ -220,14 +220,14 @@ int main(int argc, char** argv)
       struct xpcs::io::ImmBlock* data = reader.NextFrames(read_in_count);
       
       
-      if (stride_factor >=1 && average_factor > 1) {
-        if (reader.compression())
-          average.Apply(data);
-        else
-          dense_average.Apply(data);
-      } else if (stride_factor > 1 ) {
-        stride.Apply(data);
-      }
+      // if (stride_factor >=1 && average_factor > 1) {
+      //   if (reader.compression())
+      //     average.Apply(data);
+      //   else
+      //     dense_average.Apply(data);
+      // } else if (stride_factor > 1 ) {
+      //   stride.Apply(data);
+      // }
 
       filter->Apply(data);
       timestamp_clock[f] = f + 1;

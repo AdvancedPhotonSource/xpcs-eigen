@@ -88,6 +88,8 @@ private:
 
   int *sbin_mask_;
 
+  float *pixels_value_;
+
   float *pixels_sum_;
 
   float *frames_sum_;
@@ -113,6 +115,10 @@ private:
   int swindow_;
 
   int partition_no_;
+
+  int stride_size_;
+
+  int average_size_;
 
   float eff_; 
 

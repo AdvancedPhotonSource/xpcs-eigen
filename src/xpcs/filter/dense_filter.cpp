@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 #include <iostream>
+#include <set>
 
 #include "xpcs/configuration.h"
 #include "xpcs/io/imm_reader.h"
@@ -79,13 +80,17 @@ DenseFilter::DenseFilter(xpcs::data_structure::DarkImage *dark_image) {
   static_window_ = conf->getStaticWindowSize();
   total_static_partns_ = conf->getTotalStaticPartitions();
   swindow_ = conf->getStaticWindowSize();
+  stride_size_ = conf->FrameStride();
+  average_size_ = conf->FrameAverage();
+  sigma_ = conf->getDarkSigma();
+  threshold_ = conf->getDarkThreshold();
+
   int partitions = (int) ceil((double)frames_todo_/swindow_);
   partial_partitions_mean_ = new float[total_static_partns_ * partitions];
   partitions_mean_ = new float[total_static_partns_];
   pixels_sum_ = new float[frame_width_ * frame_height_];
   frames_sum_ =  new float[2 * conf->getFrameTodoCount()];
-  sigma_ = conf->getDarkSigma();
-  threshold_ = conf->getDarkThreshold();
+  pixels_value_ = new float[frame_width_ * frame_height_];
 
   frame_index_ = 0;
   partition_no_ = 0;
@@ -111,6 +116,7 @@ void DenseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
   int **indx = blk->index;
   float **val = blk->value;
   int frames = blk->frames;
+  int pix_cnt = frame_width_ * frame_height_;
 
   double *dark_avg = NULL;
   double *dark_std = NULL;
@@ -122,17 +128,14 @@ void DenseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
 
   std::vector<int> ppf = blk->pixels_per_frame;
 
-  for (int i = 0; i < frames; i++) {
+  for (int j = 0; j < pix_cnt; j++)
+    pixels_value_[j] = 0.0f;
+
+  std::set<int> pixels_touched; 
+  for (int i = 0; i < frames; i+=stride_size_) {
     int pixels = ppf[i];
     int *index = indx[i];
     float *value = val[i];
-    float f_sum = 0.0f;
-    int pix_cnt = frame_width_ * frame_height_;
-    int sbin = 0;
-
-    if (frame_index_ > 0 && (frame_index_ % static_window_) == 0) {
-      partition_no_++;
-    }
 
     for (int j = 0; j < pixels; j++) {
 
@@ -150,26 +153,40 @@ void DenseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
         if (v <= thresh) continue;
 
         v = v * flatfield_[j];
-
-        pixels_sum_[pix] += v;
-        f_sum += v;
-
-        sbin = sbin_mask_[pix] - 1;
-
-        xpcs::data_structure::Row *row = data_->Pixel(pix);
-        row->indxPtr.push_back(frame_index_);
-        row->valPtr.push_back(v);
-
-        partitions_mean_[sbin] += v;
-        partial_partitions_mean_[partition_no_ * total_static_partns_ + sbin ] += v;
-        // pix_cnt++;
+        pixels_value_[pix] += v;
       }
     }
-
-    frames_sum_[frame_index_] = frame_index_ + 1.0;
-    frames_sum_[frame_index_ + frames_todo_] = f_sum / pix_cnt;
-    frame_index_++;
   }
+
+  if (frame_index_ > 0 && (frame_index_ % static_window_) == 0) {
+    partition_no_++;
+  }
+
+  int ind = 0;
+  float f_sum = 0.0f;
+  int sbin = 0;
+
+  for (std::set<int>::iterator it = pixels_touched.begin(); it != pixels_touched.end(); ++it) {
+    int pix = *it;
+    float v = pixels_value_[pix] / average_size_;
+
+    pixels_sum_[pix] += v;
+    f_sum += v;
+
+    xpcs::data_structure::Row *row = data_->Pixel(pix);
+    row->indxPtr.push_back(frame_index_);
+    row->valPtr.push_back(v);
+
+    sbin = sbin_mask_[pix] - 1;
+    partitions_mean_[sbin] += v;
+    partial_partitions_mean_[partition_no_ * total_static_partns_ + sbin ] += v;
+
+  }
+
+  frames_sum_[frame_index_] = frame_index_ + 1.0;
+  frames_sum_[frame_index_ + frames_todo_] = f_sum / pix_cnt;
+  frame_index_++;
+
 
 }
 
