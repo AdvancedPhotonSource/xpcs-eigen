@@ -152,6 +152,7 @@ void DenseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
 
         if (v <= thresh) continue;
 
+	pixels_touched.insert(pix);
         v = v * flatfield_[j];
         pixels_value_[pix] += v;
       }
