@@ -78,6 +78,10 @@ public:
 
   float* PartialPartitionsMean();
 
+  float* TimestampClock();
+
+  float* TimestampTicks();
+
   xpcs::data_structure::SparseData* Data();
 
 private:
@@ -98,6 +102,10 @@ private:
 
   float *partitions_mean_;
 
+  float *timestamp_clock_;
+
+  float *timestamp_ticks_;
+
   double *flatfield_;
 
   int frame_width_;
@@ -110,7 +118,11 @@ private:
 
   int frame_index_;
 
+  int global_frame_index_;
+
   int frames_todo_;
+
+  int real_frames_todo_;
   
   int swindow_;
 

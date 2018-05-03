@@ -460,6 +460,11 @@ int Configuration::getFrameTodoCount()
   return ((frameEndTodo - frameStartTodo) + 1) / denom;
 }
 
+int Configuration::getRealFrameTodoCount()
+{
+  return frameEndTodo - frameStartTodo + 1;
+}
+
 int Configuration::getFrameCount()
 {
     return (frameEnd - frameStart) + 1;
