@@ -456,7 +456,7 @@ int Configuration::getFrameTodoCount()
 
   if (frame_stride_ > 1 && frame_average_ > 1)
     denom = frame_stride_ * frame_average_;
-  
+  printf("%d - %d\n", frameEndTodo, frameStartTodo);  
   return ((frameEndTodo - frameStartTodo) + 1) / denom;
 }
 

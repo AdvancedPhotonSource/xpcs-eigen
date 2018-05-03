@@ -167,8 +167,6 @@ int main(int argc, char** argv)
   }
 
   // printf("Effective frames = %d\n", frames);
-  float *timestamp_clock = new float[2 * frames];
-  float *timestamp_tick = new float[2 * frames];
 
   xpcs::io::ImmReader reader(conf->getIMMFilePath().c_str());
   xpcs::filter::Filter *filter = NULL;
@@ -205,20 +203,16 @@ int main(int argc, char** argv)
     xpcs::filter::Average average;
     xpcs::filter::DenseAverage dense_average;
 
-    int f = 0;
     int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
     if (stride_factor > 1 && average_factor > 1)
       read_in_count = stride_factor * average_factor;
 
     // The last frame outside the stride will be ignored. 
-    while (r <= ((frameTo+1) - read_in_count)) {
+    int f = 0;
+    for (; r < frameTo; r+= read_in_count) {
+      printf("%d,%d\n", ++f, r);
       struct xpcs::io::ImmBlock* data = reader.NextFrames(read_in_count);
-
       filter->Apply(data);
-      timestamp_clock[f + frames] = data->clock[0];
-      timestamp_tick[f + frames] = data->ticks[0]; 
-      f++;
-      r += read_in_count;
     }
 
   }
