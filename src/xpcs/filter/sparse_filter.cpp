@@ -88,8 +88,8 @@ SparseFilter::SparseFilter() {
   pixels_value_ = new float[frame_width_ * frame_height_];
 
   real_frames_todo_ = conf->getRealFrameTodoCount();
-  timestamp_clock_ = new float[2 * real_frames_todo_];
-  timestamp_ticks_ = new float[2 * real_frames_todo_];
+  timestamp_clock_ = new double[2 * real_frames_todo_];
+  timestamp_ticks_ = new double[2 * real_frames_todo_];
 
   frame_index_ = 0;
   global_frame_index_ = 0;
@@ -197,11 +197,11 @@ float* SparseFilter::PartialPartitionsMean() {
   return partial_partitions_mean_;
 }
 
-float* SparseFilter::TimestampClock() {
+double* SparseFilter::TimestampClock() {
   return timestamp_clock_;
 }
 
-float* SparseFilter::TimestampTicks() {
+double* SparseFilter::TimestampTicks() {
   return timestamp_ticks_;
 }
 

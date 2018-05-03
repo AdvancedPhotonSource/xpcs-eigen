@@ -73,8 +73,8 @@ ImmReader::~ImmReader() {
 ImmBlock* ImmReader::NextFrames(int count) {
     int **index = new int*[count];
     float **value = new float*[count];
-    float *clock = new float[count];
-    float *ticks = new float[count];
+    double *clock = new double[count];
+    double *ticks = new double[count];
 
     std::vector<int> ppf;
 

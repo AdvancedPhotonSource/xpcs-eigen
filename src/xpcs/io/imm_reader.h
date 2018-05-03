@@ -67,8 +67,8 @@ struct ImmBlock {
   int frames;
   int id;
   std::vector<int> pixels_per_frame;
-  float* clock;
-  float* ticks;
+  double* clock;
+  double* ticks;
 };
 
 class ImmReader {

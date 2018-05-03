@@ -78,9 +78,9 @@ public:
 
   float* PartialPartitionsMean();
 
-  float* TimestampClock();
+  double* TimestampClock();
 
-  float* TimestampTicks();
+  double* TimestampTicks();
 
   xpcs::data_structure::SparseData* Data();
 
@@ -102,9 +102,9 @@ private:
 
   float *partitions_mean_;
 
-  float *timestamp_clock_;
+  double *timestamp_clock_;
 
-  float *timestamp_ticks_;
+  double *timestamp_ticks_;
 
   double *flatfield_;
 

@@ -93,8 +93,8 @@ DenseFilter::DenseFilter(xpcs::data_structure::DarkImage *dark_image) {
   pixels_value_ = new float[frame_width_ * frame_height_];
 
   real_frames_todo_ = conf->getRealFrameTodoCount();
-  timestamp_clock_ = new float[2 * real_frames_todo_];
-  timestamp_ticks_ = new float[2 * real_frames_todo_];
+  timestamp_clock_ = new double[2 * real_frames_todo_];
+  timestamp_ticks_ = new double[2 * real_frames_todo_];
 
   frame_index_ = 0;
   global_frame_index_ = 0;
@@ -225,11 +225,11 @@ xpcs::data_structure::SparseData* DenseFilter::Data() {
   return data_;
 }
 
-float* DenseFilter::TimestampClock() {
+double* DenseFilter::TimestampClock() {
   return timestamp_clock_;
 }
 
-float* DenseFilter::TimestampTicks() {
+double* DenseFilter::TimestampTicks() {
   return timestamp_ticks_;
 }
 
