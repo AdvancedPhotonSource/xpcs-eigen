@@ -166,8 +166,6 @@ int main(int argc, char** argv)
     ifs[i] = 0.0f;
   }
 
-  // printf("Effective frames = %d\n", frames);
-
   xpcs::io::ImmReader reader(conf->getIMMFilePath().c_str());
   xpcs::filter::Filter *filter = NULL;
   
@@ -210,7 +208,6 @@ int main(int argc, char** argv)
     // The last frame outside the stride will be ignored. 
     int f = 0;
     for (; r < frameTo; r+= read_in_count) {
-      printf("%d,%d\n", ++f, r);
       struct xpcs::io::ImmBlock* data = reader.NextFrames(read_in_count);
       filter->Apply(data);
     }
