@@ -92,7 +92,12 @@ DenseFilter::DenseFilter(xpcs::data_structure::DarkImage *dark_image) {
   frames_sum_ =  new float[2 * conf->getFrameTodoCount()];
   pixels_value_ = new float[frame_width_ * frame_height_];
 
+  real_frames_todo_ = conf->getRealFrameTodoCount();
+  timestamp_clock_ = new float[2 * real_frames_todo_];
+  timestamp_ticks_ = new float[2 * real_frames_todo_];
+
   frame_index_ = 0;
+  global_frame_index_ = 0;
   partition_no_ = 0;
 
   for (int i = 0; i < total_static_partns_; i++) 
@@ -117,6 +122,14 @@ void DenseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
   float **val = blk->value;
   int frames = blk->frames;
   int pix_cnt = frame_width_ * frame_height_;
+
+  for (int i = 0; i < frames; i++) {
+    timestamp_clock_[global_frame_index_] = global_frame_index_ + 1;
+    timestamp_clock_[global_frame_index_ + real_frames_todo_] = blk->clock[i];
+    timestamp_ticks_[global_frame_index_] = global_frame_index_ + 1;
+    timestamp_ticks_[global_frame_index_ + real_frames_todo_] = blk->ticks[i];
+    global_frame_index_++;
+  }
 
   double *dark_avg = NULL;
   double *dark_std = NULL;
@@ -152,7 +165,7 @@ void DenseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
 
         if (v <= thresh) continue;
 
-	pixels_touched.insert(pix);
+        pixels_touched.insert(pix);
         v = v * flatfield_[j];
         pixels_value_[pix] += v;
       }
@@ -210,6 +223,14 @@ float* DenseFilter::PartialPartitionsMean() {
 
 xpcs::data_structure::SparseData* DenseFilter::Data() {
   return data_;
+}
+
+float* DenseFilter::TimestampClock() {
+  return timestamp_clock_;
+}
+
+float* DenseFilter::TimestampTicks() {
+  return timestamp_ticks_;
 }
 
 } // namespace io

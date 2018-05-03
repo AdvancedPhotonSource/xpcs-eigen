@@ -87,7 +87,12 @@ SparseFilter::SparseFilter() {
   frames_sum_ =  new float[2 * conf->getFrameTodoCount()];
   pixels_value_ = new float[frame_width_ * frame_height_];
 
+  real_frames_todo_ = conf->getRealFrameTodoCount();
+  timestamp_clock_ = new float[2 * real_frames_todo_];
+  timestamp_ticks_ = new float[2 * real_frames_todo_];
+
   frame_index_ = 0;
+  global_frame_index_ = 0;
   partition_no_ = 0;
 
   for (int i = 0; i < total_static_partns_; i++) 
@@ -116,6 +121,15 @@ void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
 
   for (int j = 0; j < pix_cnt; j++)
     pixels_value_[j] = 0.0f;
+
+  // Get the clock information from the blks
+  for (int i = 0; i < frames; i++) {
+    timestamp_clock_[global_frame_index_] = global_frame_index_ + 1;
+    timestamp_clock_[global_frame_index_ + real_frames_todo_] = blk->clock[i];
+    timestamp_ticks_[global_frame_index_] = global_frame_index_ + 1;
+    timestamp_ticks_[global_frame_index_ + real_frames_todo_] = blk->ticks[i];
+    global_frame_index_++;
+  }
 
   // Keep track of pixels that were part of any of the frame. 
   std::set<int> pixels_touched; 
@@ -183,6 +197,13 @@ float* SparseFilter::PartialPartitionsMean() {
   return partial_partitions_mean_;
 }
 
+float* SparseFilter::TimestampClock() {
+  return timestamp_clock_;
+}
+
+float* SparseFilter::TimestampTicks() {
+  return timestamp_ticks_;
+}
 
 xpcs::data_structure::SparseData* SparseFilter::Data() {
   return data_;

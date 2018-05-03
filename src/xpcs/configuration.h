@@ -70,11 +70,14 @@ public:
   int getFrameWidth();
   int getFrameHeight();
 
+  // Starting index of frames that we need to process. 
   int getFrameStartTodo();
   int getFrameEndTodo();
   int getFrameStart();
   int getFrameEnd();
   int getFrameTodoCount();
+  // Total number of frames without any stride or average. 
+  int getRealFrameTodoCount();
   int getFrameCount();
   int getDarkFrameStart();
   int getDarkFrameEnd();

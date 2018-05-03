@@ -149,7 +149,6 @@ int main(int argc, char** argv)
   int stride_factor = conf->FrameStride();
   int average_factor = conf->FrameAverage();
 
-
   console->info("Data frames={0} stride={1} average={2}", frames, stride_factor, average_factor);
   console->debug("Frames count={0}, from={1}, todo={2}", frames, frameFrom, frameTo);
 
@@ -168,14 +167,11 @@ int main(int argc, char** argv)
   }
 
   // printf("Effective frames = %d\n", frames);
-  float *timestamp_clock = new float[2 * frames];
-  float *timestamp_tick = new float[2 * frames];
 
   xpcs::io::ImmReader reader(conf->getIMMFilePath().c_str());
   xpcs::filter::Filter *filter = NULL;
   
   xpcs::data_structure::DarkImage *dark_image = NULL;
-
   {
     xpcs::Benchmark benchmark("Loading data");
 
@@ -207,35 +203,16 @@ int main(int argc, char** argv)
     xpcs::filter::Average average;
     xpcs::filter::DenseAverage dense_average;
 
-    int f = 0;
     int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
     if (stride_factor > 1 && average_factor > 1)
       read_in_count = stride_factor * average_factor;
 
-    // printf("Read_in_count %d\n", read_in_count);
-    
     // The last frame outside the stride will be ignored. 
-    while (r <= ((frameTo+1) - read_in_count)) {
-      // printf("frame # old = %d, frame # new = %d\n", r, f);
+    int f = 0;
+    for (; r < frameTo; r+= read_in_count) {
+      printf("%d,%d\n", ++f, r);
       struct xpcs::io::ImmBlock* data = reader.NextFrames(read_in_count);
-      
-      
-      // if (stride_factor >=1 && average_factor > 1) {
-      //   if (reader.compression())
-      //     average.Apply(data);
-      //   else
-      //     dense_average.Apply(data);
-      // } else if (stride_factor > 1 ) {
-      //   stride.Apply(data);
-      // }
-
       filter->Apply(data);
-      timestamp_clock[f] = f + 1;
-      timestamp_clock[f + frames] = data->clock[0];
-      timestamp_tick[f] = f + 1;
-      timestamp_tick[f + frames] = data->ticks[0]; 
-      f++;
-      r += read_in_count;
     }
 
   }
@@ -304,15 +281,15 @@ int main(int argc, char** argv)
                               conf->OutputPath(), 
                               "timestamp_clock", 
                               2, 
-                              frames, 
-                              timestamp_clock);
+                              conf->getRealFrameTodoCount(), 
+                              filter->TimestampClock());
 
   xpcs::H5Result::write2DData(conf->getFilename(), 
                               conf->OutputPath(), 
                               "timestamp_tick", 
                               2, 
-                              frames, 
-                              timestamp_tick);
+                              conf->getRealFrameTodoCount(), 
+                              filter->TimestampTicks());
 
   float *tau = new float[delays_per_level.size()];
   for (int x = 0 ; x < delays_per_level.size(); x++)

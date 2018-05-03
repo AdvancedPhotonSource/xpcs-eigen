@@ -74,6 +74,10 @@ public:
 
   virtual float* PartialPartitionsMean() = 0;
 
+  virtual float* TimestampClock() = 0;
+
+  virtual float* TimestampTicks() = 0;
+
   virtual xpcs::data_structure::SparseData* Data() = 0;
 
   

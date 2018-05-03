@@ -455,6 +455,7 @@ int Configuration::getFrameTodoCount()
   int frames = frameEndTodo - frameStartTodo + 1;
 
   int steps  = frame_stride_ > 1 ? frame_stride_ : frame_average_;
+  
   if (frame_stride_ > 1 && frame_average_ > 1)
     steps = frame_stride_ * frame_average_;
 
@@ -465,6 +466,11 @@ int Configuration::getFrameTodoCount()
   }
   
   return frames;
+}
+
+int Configuration::getRealFrameTodoCount()
+{
+  return frameEndTodo - frameStartTodo + 1;
 }
 
 int Configuration::getFrameCount()
