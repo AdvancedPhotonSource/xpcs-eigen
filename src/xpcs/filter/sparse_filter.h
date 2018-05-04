@@ -92,6 +92,8 @@ private:
 
   int *sbin_mask_;
 
+  short *sparse_map_;
+
   float *pixels_value_;
 
   float *pixels_sum_;

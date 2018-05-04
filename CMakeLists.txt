@@ -2,8 +2,8 @@ project(xpcs-eigen)
 
 cmake_minimum_required(VERSION 3.5)
 
-set(CMAKE_BUILD_TYPE RELEASE)
-#set(CMAKE_BUILD_TYPE DEBUG)
+#set(CMAKE_BUILD_TYPE RELEASE)
+set(CMAKE_BUILD_TYPE DEBUG)
 
 add_definitions(-std=c++0x)
 

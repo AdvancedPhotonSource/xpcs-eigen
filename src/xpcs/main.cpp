@@ -208,6 +208,8 @@ int main(int argc, char** argv)
     // The last frame outside the stride will be ignored. 
     int f = 0;
     for (; r < frameTo; r+= read_in_count) {
+      if (r == 262)
+          printf("%d\n", r);
       struct xpcs::io::ImmBlock* data = reader.NextFrames(read_in_count);
       filter->Apply(data);
     }

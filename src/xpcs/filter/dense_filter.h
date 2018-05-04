@@ -95,6 +95,8 @@ private:
 
   int *sbin_mask_;
 
+  short *sparse_map_;
+
   float sigma_;
 
   float threshold_;

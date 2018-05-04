@@ -86,7 +86,7 @@ SparseFilter::SparseFilter() {
   pixels_sum_ = new float[frame_width_ * frame_height_];
   frames_sum_ =  new float[2 * conf->getFrameTodoCount()];
   pixels_value_ = new float[frame_width_ * frame_height_];
-
+  sparse_map_ = new short[frame_width_ * frame_height_];
   real_frames_todo_ = conf->getRealFrameTodoCount();
   timestamp_clock_ = new double[2 * real_frames_todo_];
   timestamp_ticks_ = new double[2 * real_frames_todo_];
@@ -119,8 +119,10 @@ void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
   int pix_cnt = frame_width_ * frame_height_;
   std::vector<int> ppf = blk->pixels_per_frame;
 
-  for (int j = 0; j < pix_cnt; j++)
+  for (int j = 0; j < pix_cnt; j++) {
     pixels_value_[j] = 0.0f;
+    sparse_map_[j] = 0;
+  }
 
   // Get the clock information from the blks
   for (int i = 0; i < frames; i++) {
@@ -132,7 +134,6 @@ void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
   }
 
   // Keep track of pixels that were part of any of the frame. 
-  std::set<int> pixels_touched; 
   for (int i = 0; i < frames; i+=stride_size_) {
     int pixels = ppf[i];
     int *index = indx[i];
@@ -145,7 +146,7 @@ void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
         float v = (float)value[j] * flatfield_[pix];
 
         pixels_value_[pix] += v;
-        pixels_touched.insert(pix);
+        sparse_map_[pix] = 1; 
       }
     }
   }
@@ -158,8 +159,10 @@ void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
   float f_sum = 0.0f;
   int sbin = 0;
 
-  for (std::set<int>::iterator it = pixels_touched.begin(); it != pixels_touched.end(); ++it) {
-    int pix = *it;
+  for (int i = 0 ; i < pix_cnt; i++) {
+    if (sparse_map_[i] == 0) continue;
+
+    int pix = i;
     float v = pixels_value_[pix] / average_size_;
 
     pixels_sum_[pix] += v;
