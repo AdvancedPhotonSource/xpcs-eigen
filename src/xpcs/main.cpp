@@ -155,6 +155,16 @@ int main(int argc, char** argv)
   int pixels = conf->getFrameWidth() * conf->getFrameHeight();
   int maxLevel = xpcs::Corr::calculateLevelMax(frames, conf->DelaysPerLevel());
   vector<std::tuple<int,int> > delays_per_level = xpcs::Corr::delaysPerLevel(frames, conf->DelaysPerLevel(), maxLevel);
+  
+  /* Print block to debug delays_per_level aka tau values. 
+  int maxLevel_tmp = xpcs::Corr::calculateLevelMax(512, conf->DelaysPerLevel());
+  vector<std::tuple<int,int> > delays_per_level_tmp = xpcs::Corr::delaysPerLevel(512, conf->DelaysPerLevel(), maxLevel_tmp);
+  for (int i = 0; i < delays_per_level_tmp.size(); i++) {
+    std::tuple<int, int> d = delays_per_level_tmp[i];
+    printf("%d - %d\n", std::get<0>(d), std::get<1>(d)); 
+    
+  }
+  return 0;*/
 
   float* g2s = new float[pixels * delays_per_level.size()];
   float* ips = new float[pixels * delays_per_level.size()];
@@ -208,8 +218,6 @@ int main(int argc, char** argv)
     // The last frame outside the stride will be ignored. 
     int f = 0;
     for (; r < frameTo; r+= read_in_count) {
-      if (r == 262)
-          printf("%d\n", r);
       struct xpcs::io::ImmBlock* data = reader.NextFrames(read_in_count);
       filter->Apply(data);
     }

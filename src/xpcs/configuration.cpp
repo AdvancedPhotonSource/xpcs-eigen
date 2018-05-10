@@ -460,9 +460,12 @@ int Configuration::getFrameTodoCount()
     steps = frame_stride_ * frame_average_;
 
   if (steps > 1) {
-    frames = 0;
-    for (int i = frameStartTodo; i < frameEndTodo; i+=steps)
-       frames++;
+    if ((frames % steps) == 0)
+        frames = frames / steps;
+    else
+        frames = frames / steps + 1;
+    //for (int i = frameStartTodo; i < frameEndTodo; i+=steps)
+    //   frames++;
   }
   
   return frames;

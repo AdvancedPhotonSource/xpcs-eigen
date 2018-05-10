@@ -752,7 +752,7 @@ vector<tuple<int, int>> Corr::delaysPerLevel(int frameCount, int dpl, int maxDel
 
         for (int j=0; j<dpll; j++) {
             
-            if ( (ll_dpl+step + pow(2.0, i)) >= frameCount) break;
+            if ( (ll_dpl+step + pow(2.0, i)) > frameCount) break;
 
             result.push_back(std::make_tuple(i, ll_dpl + step));
             ll_dpl = ll_dpl + step;
