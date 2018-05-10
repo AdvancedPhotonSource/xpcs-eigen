@@ -464,8 +464,6 @@ int Configuration::getFrameTodoCount()
         frames = frames / steps;
     else
         frames = frames / steps + 1;
-    //for (int i = frameStartTodo; i < frameEndTodo; i+=steps)
-    //   frames++;
   }
   
   return frames;

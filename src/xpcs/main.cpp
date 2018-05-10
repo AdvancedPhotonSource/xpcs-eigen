@@ -144,7 +144,7 @@ int main(int argc, char** argv)
 
   int frames = conf->getFrameTodoCount();
   int frameFrom = conf->getFrameStartTodo();
-  int frameTo = conf->getFrameEndTodo();
+  int frameTo = frameFrom + frames; //conf->getFrameEndTodo();
   int swindow = conf->getStaticWindowSize();
   int stride_factor = conf->FrameStride();
   int average_factor = conf->FrameAverage();
@@ -218,6 +218,7 @@ int main(int argc, char** argv)
     // The last frame outside the stride will be ignored. 
     int f = 0;
     for (; r <= frameTo; r+= read_in_count) {
+      // print ("r = %d\n", r);
       struct xpcs::io::ImmBlock* data = reader.NextFrames(read_in_count);
       filter->Apply(data);
     }
