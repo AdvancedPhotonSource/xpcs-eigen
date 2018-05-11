@@ -78,6 +78,7 @@ using namespace std;
 namespace spd = spdlog; 
 
 DEFINE_bool(g2out, false, "Write intermediate output from G2 computation");
+DEFINE_bool(darkout, false, "Write dark average and std-data");
 DEFINE_string(imm, "", "The path to IMM file. By default the file specified in HDF5 metadata is used");
 DEFINE_string(inpath, "", "The path prefix to replace");
 DEFINE_string(outpath, "", "The path prefix to replace with");
@@ -202,10 +203,13 @@ int main(int argc, char** argv)
       r += (frameFrom - r);
     }
 
-    if (reader.compression())
+    if (reader.compression()) {
       filter = new xpcs::filter::SparseFilter();
-    else
+    }
+    else {
       filter = new xpcs::filter::DenseFilter(dark_image);
+
+    }
 
     xpcs::filter::Stride stride;
     xpcs::filter::Average average;
@@ -217,10 +221,10 @@ int main(int argc, char** argv)
 
     // The last frame outside the stride will be ignored. 
     int f = 0;
-    for (; r <= frameTo; r+= read_in_count) {
-      // print ("r = %d\n", r);
+    while (f < frames) {
       struct xpcs::io::ImmBlock* data = reader.NextFrames(read_in_count);
       filter->Apply(data);
+      f++;
     }
 
   }
@@ -330,6 +334,27 @@ int main(int argc, char** argv)
     xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "G2", pixels, delays_per_level.size(), g2s);
     xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IP", pixels, delays_per_level.size(), ips);
     xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF", pixels, delays_per_level.size(), ifs);
+  }
+
+  if (FLAGS_darkout) {
+    xpcs::Benchmark b("Writing Dark average and std image");
+    if (dark_image != NULL) {
+      double* dark_avg = dark_image->dark_avg();
+      double* dark_std = dark_image->dark_std();
+      xpcs::H5Result::write2DData(conf->getFilename(), 
+                                  conf->OutputPath(), 
+                                  "DarkAvg", 
+                                  conf->getFrameHeight(),
+                                  conf->getFrameWidth(), 
+                                  dark_avg);
+      
+      xpcs::H5Result::write2DData(conf->getFilename(), 
+                                  conf->OutputPath(), 
+                                  "DarkStd", 
+                                  conf->getFrameHeight(),
+                                  conf->getFrameWidth(),
+                                  dark_std);
+    }
   }
 }
 
