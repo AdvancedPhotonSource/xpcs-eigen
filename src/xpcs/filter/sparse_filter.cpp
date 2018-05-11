@@ -143,7 +143,7 @@ void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
 
       if (pixel_mask_[index[j]] != 0) {
         int pix = index[j];
-        float v = (float)value[j] * flatfield_[pix];
+        float v = value[j] * flatfield_[pix];
 
         pixels_value_[pix] += v;
         sparse_map_[pix] = 1; 
@@ -163,7 +163,7 @@ void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
     if (sparse_map_[i] == 0) continue;
 
     int pix = i;
-    float v = pixels_value_[pix] / average_size_;
+    float v = pixels_value_[pix] /(float)average_size_;
 
     pixels_sum_[pix] += v;
     f_sum += v;
@@ -179,7 +179,7 @@ void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
   }
 
   frames_sum_[frame_index_] = frame_index_ + 1.0;
-  frames_sum_[frame_index_ + frames_todo_] = f_sum / pix_cnt;
+  frames_sum_[frame_index_ + frames_todo_] = f_sum / (float)pix_cnt;
   frame_index_++;
 
 }
