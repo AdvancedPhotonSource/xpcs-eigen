@@ -222,7 +222,7 @@ void Configuration::BuildQMap() {
   }
 
   // remove duplicates.
-  for (auto it =  sbin_to_qbin.begin(); it != sbin_to_qbin.end(); it++) {
+  /*for (auto it =  sbin_to_qbin.begin(); it != sbin_to_qbin.end(); it++) {
     int sbin = it->first;
     std::set<int> qbins = it->second;
 
@@ -262,7 +262,7 @@ void Configuration::BuildQMap() {
         m1.erase(m1.find(sbin));
       }
     }
-  }
+  }*/
 
   pixels_per_bin = new int[m_totalStaticPartitions];
   for (int i = 0; i < m_totalStaticPartitions; i++) {
