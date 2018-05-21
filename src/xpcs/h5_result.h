@@ -85,6 +85,15 @@ public:
                         int size1,
                         double* data);
 
+
+    static void write3DData(const std::string &file, 
+                        const std::string &grpname,
+                        const std::string &nodename,
+                        int size0,
+                        int size1,
+                        int size2,
+                        float* data);
+
     static void writePixelSum(const std::string &file, 
                               const std::string &grpname,
                               Eigen::Ref<Eigen::VectorXf> pixelSum);

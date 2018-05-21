@@ -72,13 +72,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "xpcs/filter/average.h"
 #include "xpcs/filter/dense_average.h"
 #include "xpcs/data_structure/dark_image.h"
-
+#include "xpcs/data_structure/sparse_data.h"
+#include "xpcs/data_structure/row.h"
 
 using namespace std;
 namespace spd = spdlog; 
 
 DEFINE_bool(g2out, false, "Write intermediate output from G2 computation");
 DEFINE_bool(darkout, false, "Write dark average and std-data");
+DEFINE_bool(frameout, false, "Write out post-processed frames");
 DEFINE_string(imm, "", "The path to IMM file. By default the file specified in HDF5 metadata is used");
 DEFINE_string(inpath, "", "The path prefix to replace");
 DEFINE_string(outpath, "", "The path prefix to replace with");
@@ -227,6 +229,37 @@ int main(int argc, char** argv)
       f++;
     }
 
+    if (FLAGS_frameout) {
+      xpcs::data_structure::SparseData *data = filter->Data();
+      f = 0;
+
+      float* data_out = new float[pixels * 12];
+
+      for (int i = 0; i < (pixels*12); i++)
+        data_out[i] = 0.0f;
+
+      for (int j = 0; j < pixels; j++) {
+        if (!data->Exists(j)) continue;
+
+        xpcs::data_structure::Row *row = data->Pixel(j);
+        for (int x = 0; x < row->indxPtr.size(); x++) {
+          int f = row->indxPtr[x];
+          float v = row->valPtr[x];
+
+          if (f >= 12) break;
+
+          data_out[f*pixels+j] = v;
+        }
+      }
+
+      xpcs::H5Result::write3DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "frames_out", 
+                        conf->getFrameHeight(), 
+                        conf->getFrameWidth(),
+                        12, 
+                        data_out);
+    }
   }
   
   float* pixels_sum = filter->PixelsSum();

@@ -61,9 +61,12 @@ SparseData::SparseData(int rows, int initialSize)
     m_rows = rows;
     m_initSize = initialSize;
     m_data = new Row*[rows];
+    valid_pixels_ = new short[rows];
 
-    for (int i = 0; i < m_rows; i++)
-        m_data[i] = NULL;
+    for (int i = 0; i < m_rows; i++) {
+      m_data[i] = NULL;
+      valid_pixels_[i] = 0;
+    }
 }
 
 SparseData::~SparseData()
@@ -73,6 +76,7 @@ SparseData::~SparseData()
 
 Row* SparseData::Pixel(int index)
 {
+    // printf("index = %d\n", index);
     assert(index < m_rows);
     Row *r = m_data[index];
     
@@ -80,6 +84,7 @@ Row* SparseData::Pixel(int index)
         r = new Row(m_initSize);
         m_data[index] = r;
         m_validPixels.push_back(index);
+        valid_pixels_[index] = 1;
     }
 
     return r;
@@ -88,6 +93,12 @@ Row* SparseData::Pixel(int index)
 std::vector<int>& SparseData::ValidPixels()
 {
     return m_validPixels;
+}
+
+bool SparseData::Exists(int index) {
+
+  assert (index < m_rows);
+  return valid_pixels_[index] == 1;
 }
 
 } //namespace data_structure

@@ -66,11 +66,14 @@ public:
 
   std::vector<int>& ValidPixels();
 
+  bool Exists(int index);
+
 private:
   Row** m_data;
   
   int m_rows;
   int m_initSize;
+  short* valid_pixels_;
 
   std::vector<int> m_validPixels;
 };

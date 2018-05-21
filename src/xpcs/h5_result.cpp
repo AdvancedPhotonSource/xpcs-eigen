@@ -130,6 +130,67 @@ void H5Result::write2DData(const std::string &file,
 }
 
 
+void H5Result::write3DData(const std::string &file, 
+                           const std::string &grpname,
+                           const std::string &nodename,
+                           int size0,
+                           int size1,
+                           int size2,
+                           float* data)
+{
+    hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
+    hsize_t dims[3];
+    hsize_t start_3d[3];
+    hsize_t stride_3d[3];
+    hsize_t count_3d[3];
+
+
+    file_id = H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+    // Disable hdf std err printout for opening an non-existing group.
+    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    exchange_grp_id = H5Gopen2(file_id, grpname.c_str(), H5P_DEFAULT);
+    if (exchange_grp_id < 0) {
+        exchange_grp_id = H5Gcreate(file_id, grpname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
+
+    //TODO :: Log error if the grp creation fail. 
+
+    dataset_id = H5Dopen2(exchange_grp_id, nodename.c_str(), H5P_DEFAULT);
+
+    if (dataset_id < 0) {
+
+        dims[0] = size0;
+        dims[1] = size1;
+        dims[2] = size2;
+
+        dataspace_id = H5Screate_simple(3, dims, NULL);
+
+        start_3d[0] = 0;
+        start_3d[1] = 0;
+        start_3d[2] = 0;
+
+        stride_3d[0] = 1;
+        stride_3d[1] = 1;
+        stride_3d[1] = 1;
+
+        count_3d[0] = size0;
+        count_3d[1] = size1;
+        count_3d[2] = size2;
+
+        H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, start_3d, stride_3d, count_3d, NULL);
+
+        dataset_id = H5Dcreate(exchange_grp_id, nodename.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
+
+    hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+
+    H5Dclose(dataset_id);
+    if (dataspace_id) H5Sclose(dataspace_id);
+    H5Gclose(exchange_grp_id);
+    H5Fclose(file_id);    
+}
+
+
 void H5Result::write2DData(const std::string &file, 
                            const std::string &grpname,
                            const std::string &nodename,

@@ -78,6 +78,7 @@ public:
 
   virtual double* TimestampTicks() = 0;
 
+  
   virtual xpcs::data_structure::SparseData* Data() = 0;
 
   
