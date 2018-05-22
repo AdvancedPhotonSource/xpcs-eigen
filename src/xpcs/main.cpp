@@ -229,7 +229,7 @@ int main(int argc, char** argv)
       f++;
     }
 
-    if (FLAGS_frameout > 0) {
+    if (FLAGS_frameout > 0 && FLAGS_frameout < frames) {
       xpcs::data_structure::SparseData *data = filter->Data();
       int fcount = FLAGS_frameout;
       f = 0;
