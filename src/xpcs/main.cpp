@@ -80,7 +80,7 @@ namespace spd = spdlog;
 
 DEFINE_bool(g2out, false, "Write intermediate output from G2 computation");
 DEFINE_bool(darkout, false, "Write dark average and std-data");
-DEFINE_bool(frameout, false, "Write out post-processed frames");
+DEFINE_int32(frameout, false, "Number of post-processed frames to write out for debuggin.");
 DEFINE_string(imm, "", "The path to IMM file. By default the file specified in HDF5 metadata is used");
 DEFINE_string(inpath, "", "The path prefix to replace");
 DEFINE_string(outpath, "", "The path prefix to replace with");
@@ -97,7 +97,7 @@ int main(int argc, char** argv)
   xpcs::Benchmark total("Total");
  
   gflags::ParseCommandLineFlags(&argc, &argv, true);
-  
+
   auto console = spd::stdout_color_mt("console");
 
   std::string entry = "/xpcs";
@@ -229,9 +229,9 @@ int main(int argc, char** argv)
       f++;
     }
 
-    if (FLAGS_frameout) {
+    if (FLAGS_frameout > 0) {
       xpcs::data_structure::SparseData *data = filter->Data();
-      int fcount = 2;
+      int fcount = FLAGS_frameout;
       f = 0;
 
       float* data_out = new float[pixels * fcount];
