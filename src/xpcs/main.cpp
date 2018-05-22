@@ -231,11 +231,12 @@ int main(int argc, char** argv)
 
     if (FLAGS_frameout) {
       xpcs::data_structure::SparseData *data = filter->Data();
+      int fcount = 1;
       f = 0;
 
-      float* data_out = new float[pixels * 12];
+      float* data_out = new float[pixels * fcount];
 
-      for (int i = 0; i < (pixels*12); i++)
+      for (int i = 0; i < (pixels*fcount); i++)
         data_out[i] = 0.0f;
 
       for (int j = 0; j < pixels; j++) {
@@ -246,7 +247,7 @@ int main(int argc, char** argv)
           int f = row->indxPtr[x];
           float v = row->valPtr[x];
 
-          if (f >= 12) break;
+          if (f >= fcount) break;
 
           data_out[f*pixels+j] = v;
         }
@@ -257,7 +258,7 @@ int main(int argc, char** argv)
                         "frames_out", 
                         conf->getFrameHeight(), 
                         conf->getFrameWidth(),
-                        12, 
+                        fcount, 
                         data_out);
     }
   }
