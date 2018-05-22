@@ -231,7 +231,7 @@ int main(int argc, char** argv)
 
     if (FLAGS_frameout) {
       xpcs::data_structure::SparseData *data = filter->Data();
-      int fcount = 1;
+      int fcount = 2;
       f = 0;
 
       float* data_out = new float[pixels * fcount];
