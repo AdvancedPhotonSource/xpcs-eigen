@@ -464,9 +464,9 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
                 tau = tau / pow(2, level);
 
             g2Index = tauIndex * pixels + validPixels[i]; // * delays_per_level.size() + tauIndex;
-            //G2s[g2Index]  = 0.0;
-            //IFs[g2Index]  = 0.0;
-            //IPs[g2Index]  = 0.0;
+            G2s[g2Index]  = 0.0;
+            IFs[g2Index]  = 0.0;
+            IPs[g2Index]  = 0.0;
 
             // if (validPixels.at(i) == pix && lastframe == 7) {
             //     printf("last index %d\n", lastIndex);
