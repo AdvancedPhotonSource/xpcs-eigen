@@ -478,8 +478,7 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
                 int dst = src;
                 
                 if (src < (lastframe-tau)) {
-                    // IP is left side of G2 product and IF is right. Moving these to inner loop. 
-                    //IPs[g2Index] += row->valPtr.at(r);
+                    IPs[g2Index] += row->valPtr.at(r);
                     int limit = min(lastIndex, src+tau+1);
                     
                     for (int j = r+1; j < limit; j++)
@@ -487,7 +486,6 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
                         dst = row->indxPtr.at(j);
                         if (dst == (src+tau)) {
                             G2s[g2Index] += row->valPtr.at(r) * row->valPtr.at(j);
-                            IPs[g2Index] += row->valPtr.at(r);
                             IFs[g2Index] += row->valPtr.at(j);
                         }
                     }
