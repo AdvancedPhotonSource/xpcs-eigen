@@ -489,8 +489,10 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
                     }
                 }
 
-                if (src >= tau)
-                    IFs[g2Index] += row->valPtr.at(r);
+                if (src >= tau && src < lastframe) {
+                  if (level > 1) printf("src >= tau %d\n", src);
+                  IFs[g2Index] += row->valPtr.at(r);
+                }
 
             }
 
