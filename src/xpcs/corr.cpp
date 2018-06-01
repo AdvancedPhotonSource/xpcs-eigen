@@ -464,29 +464,27 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
                 tau = tau / pow(2, level);
 
             g2Index = tauIndex * pixels + validPixels[i]; // * delays_per_level.size() + tauIndex;
-            G2s[g2Index]  = 0.0;
-            IFs[g2Index]  = 0.0;
-            IPs[g2Index]  = 0.0;
-
-            // if (validPixels.at(i) == pix && lastframe == 7) {
-            //     printf("last index %d\n", lastIndex);
-            // }
+    
+            if (level > 1)
+              printf("Level = %d, Tau = %d\n", level, tau);
 
             for (int r = 0; r < lastIndex; r++)
             {
-                int src = row->indxPtr.at(r);
+                int src = row->indxPtr[r];
                 int dst = src;
                 
                 if (src < (lastframe-tau)) {
-                    IPs[g2Index] += row->valPtr.at(r);
+                    IPs[g2Index] += row->valPtr[r];
                     int limit = min(lastIndex, src+tau+1);
                     
                     for (int j = r+1; j < limit; j++)
                     {
-                        dst = row->indxPtr.at(j);
+                        dst = row->indxPtr[j];
                         if (dst == (src+tau)) {
-                            G2s[g2Index] += row->valPtr.at(r) * row->valPtr.at(j);
-                            IFs[g2Index] += row->valPtr.at(j);
+                            G2s[g2Index] += row->valPtr[r] * row->valPtr[j];
+                            if (level > 1)
+                               printf("src=%d dst=%d, tau=%d, (src+tau)=%d\n",src, dst, tau, (src+tau));
+                            IFs[g2Index] += row->valPtr[j];
                         }
                     }
                 }
