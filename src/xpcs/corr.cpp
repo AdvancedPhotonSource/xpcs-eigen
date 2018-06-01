@@ -482,15 +482,15 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
                         dst = row->indxPtr[j];
                         if (dst == (src+tau)) {
                             G2s[g2Index] += row->valPtr[r] * row->valPtr[j];
-                            if (level > 1)
-                               printf("level=%d, src=%d dst=%d, tau=%d, (src+tau)=%d\n",level, src, dst, tau, (src+tau));
+                           // if (level > 1)
+                            ///   printf("level=%d, src=%d dst=%d, tau=%d, (src+tau)=%d\n",level, src, dst, tau, (src+tau));
                             //IFs[g2Index] += row->valPtr[j];
                         }
                     }
                 }
 
                 if (src >= tau && src < lastframe) {
-                  if (level > 1) printf("src >= tau %d\n", src);
+                  //if (level > 1) printf("src >= tau %d\n", src);
                   IFs[g2Index] += row->valPtr.at(r);
                 }
 
