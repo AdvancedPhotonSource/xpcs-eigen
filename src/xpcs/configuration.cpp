@@ -116,10 +116,10 @@ void Configuration::init(const std::string &path, const std::string& entry)
         darkFrameStart = darkFrameStart - 1;
         darkFrameEnd = darkFrameEnd - 1;
         darkFrames = darkFrameEnd - darkFrameStart + 1;
-    }
 
-    darkThreshold = getFloat(entry + "/lld");
-    darkSigma = getFloat(entry + "/sigma");
+        darkThreshold = getFloat(entry + "/lld");
+        darkSigma = getFloat(entry + "/sigma");
+    }
 
     this->m_totalStaticPartitions = 0;
     this->m_totalDynamicPartitions = 0;
@@ -334,9 +334,10 @@ std::string Configuration::getString(const std::string &path)
     std::string value;
     if (H5Tis_variable_str(dtype)) 
     {
-        char **str = (char **) malloc(dims[0] * sizeof(char *));
-        hid_t memtype = H5Tcopy(H5T_C_S1);
-        status = H5Tset_size(memtype, H5T_VARIABLE);
+        // char **str = (char **) malloc(dims[0] * sizeof(char *));
+        char *str[2];
+        hid_t memtype = H5Tget_native_type(dtype, H5T_DIR_ASCEND);
+        // status = H5Tget_size(memtype, H5T_VARIABLE);
         status = H5Dread(dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, str);
         value = std::string(str[0]);
     }
