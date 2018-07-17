@@ -566,6 +566,51 @@ void Corr::twotime(data_structure::SparseData *data)
     }
     q++;
   }
+
+  for (auto it = qbin_to_pixels.begin(); it != qbin_to_pixels.end(); it++) {
+    int qbin = it->first;
+    vector<int> plist = it->second;
+
+    float *g2 = new float[frames * frames];
+    for (int f = 0; f < frames*frames; f++)
+      g2[f] = 0.0f;
+
+    for (int i = 0; i < plist.size(); i++) {
+      data_structure::Row *row = data->Pixel(plist[i]);
+      std::vector<int> iptr = row->indxPtr;
+      std::vector<float> vptr = row->valPtr;
+
+      for (int j = 0; j < iptr.size(); j++) {
+        
+        int f0 = iptr[j];
+        float val0 = vptr[j];
+        // val0 = val0 / sg[(qbin-1) * qbin_to_pixels.size() + f0];
+
+        for (int k = j; k < iptr.size(); k++) {
+          int f1 = iptr[k];
+          float val1 = vptr[k];
+          // val = val / sg[(qbin-1) * qbin_to_pixels.size() + f]
+          g2[f0 * frames + f1] += val0 * val1;
+        }
+      }       
+    }
+
+    std::string g2_name("g2_");
+    std::string q_name = std::to_string(qbin);
+    std::string f_name = g2_name + q_name;
+
+    xpcs::H5Result::write2DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        f_name.c_str(),
+                        frames, 
+                        frames, 
+                        g2);
+    
+    delete[] g2;
+    q++;
+  }
+
+
   xpcs::H5Result::write2DData(conf->getFilename(), 
                         conf->OutputPath(), 
                         "sg", 
