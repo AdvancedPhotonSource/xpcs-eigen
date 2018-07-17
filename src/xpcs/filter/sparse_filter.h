@@ -142,6 +142,8 @@ private:
 
   float normFactor_; 
 
+  bool normalizedByFramesum_;
+
 };
 
 } //namespace filter

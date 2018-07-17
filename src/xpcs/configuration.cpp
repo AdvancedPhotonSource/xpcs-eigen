@@ -88,8 +88,8 @@ void Configuration::init(const std::string &path, const std::string& entry)
          this->compression = true;
 
     output_path_ = getString(entry + "/output_data");
-    this->dqmap = get2DTable(entry + "/dqmap");
-    this->sqmap = get2DTable(entry + "/sqmap");
+    dqmap = get2DTable(entry + "/dqmap");
+    sqmap = get2DTable(entry + "/sqmap");
 
     this->xdim = getInteger("/measurement/instrument/detector/x_dimension");
     this->ydim = getInteger("/measurement/instrument/detector/y_dimension");
@@ -104,6 +104,12 @@ void Configuration::init(const std::string &path, const std::string& entry)
     darkFrameEnd = getInteger(entry + "/dark_end_todo");
     frame_stride_ = getLong(entry + "/stride_frames");
     frame_average_ = getLong(entry + "/avg_frames");
+
+    normalizedByFramesum = false;
+    try {
+      int value = getInteger(entry + "/normalize_by_framesum");
+      printf("Normalize by framesum = %d\n", value);
+    } catch (const std::exception& e){}
 
     if (darkFrameStart == darkFrameEnd || darkFrameEnd == 0)
     {
@@ -157,6 +163,21 @@ void Configuration::init(const std::string &path, const std::string& entry)
             flatfield[i] = 1.0;
     }
 
+    twotime_ = false;
+
+    try {
+      value = getString(entry + "/analysis_type");
+      if (value.compare("Twotime") == 0)
+        twotime_ = true;
+    } catch (const std::exception& e){}
+
+    if (twotime_) {
+      int* size = Dim2DTable(entry + "/qphi_bin_to_process");
+      long* qphibins = get2DTableL(entry + "/qphi_bin_to_process");
+      for (int i = 0 ; i < size[0]; i++)
+        qphi_bin_to_process_.push_back((int) qphibins[i]);
+    }
+
     m_immFile = getString(entry + "/input_file_local");
     {
         Benchmark conf("BuildQMap()");
@@ -180,6 +201,7 @@ void Configuration::BuildQMap() {
     m_validPixelMask[i] = 1;
     m_sbin[i] = sqmap[i];
 
+    // {qbins} - > {sbin -> [pixels]}
     std::map<int, std::map<int, std::vector<int>> >::iterator it = m_mapping.find(dqmap[i]);
 
     // Highest q-map value is equal to total number of dynamic partitions. 
@@ -292,6 +314,42 @@ int* Configuration::get2DTable(const std::string &path)
     int *data = new int[dims[0] * dims[1]];
 
     H5Dread(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+
+    H5Dclose(dataset_id);
+
+    return data;
+}
+
+int* Configuration::Dim2DTable(const std::string &path) {
+  hid_t dataset_id;
+
+  dataset_id = H5Dopen(this->file_id, path.c_str(), H5P_DEFAULT);
+  hid_t space = H5Dget_space(dataset_id);
+
+  hsize_t dims[2] = {0, 0};
+  
+  int ndims = H5Sget_simple_extent_dims (space, dims, NULL);
+
+  int *result = new int[2];
+  result[0] = dims[0];
+  result[1] = dims[1];
+
+  return result;
+}
+
+long* Configuration::get2DTableL(const std::string &path)
+{
+    hid_t dataset_id;
+
+    dataset_id = H5Dopen(this->file_id, path.c_str(), H5P_DEFAULT);
+    hid_t space = H5Dget_space(dataset_id);
+
+    hsize_t dims[2] = {0, 0};
+    int ndims = H5Sget_simple_extent_dims (space, dims, NULL);
+
+    long *data = new long[dims[0] * dims[1]];
+
+    H5Dread(dataset_id, H5T_NATIVE_LONG, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
 
     H5Dclose(dataset_id);
 
@@ -608,6 +666,21 @@ int Configuration::FrameAverage()
 bool Configuration::getIsCompressionEnabled()
 {
   return compression;
+}
+
+bool Configuration::IsNormalizedByFramesum()
+{
+  return normalizedByFramesum;
+}
+
+bool Configuration::IsTwoTime()
+{
+  return twotime_;
+}
+
+std::vector<int>& Configuration::TwoTimeQMask()
+{
+  return qphi_bin_to_process_;
 }
 
 }

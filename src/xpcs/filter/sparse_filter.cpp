@@ -79,6 +79,7 @@ SparseFilter::SparseFilter() {
   swindow_ = conf->getStaticWindowSize();
   stride_size_ = conf->FrameStride();
   average_size_ = conf->FrameAverage();
+  normalizedByFramesum_ = conf->IsNormalizedByFramesum();
 
   int partitions = (int) ceil((double)frames_todo_/swindow_);
   partial_partitions_mean_ = new float[total_static_partns_ * partitions];

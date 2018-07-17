@@ -508,33 +508,70 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
     }
 }
 
-void Corr::twoTimesVec(Eigen::Ref<Eigen::MatrixXf> pixelData)
+void Corr::twotime(data_structure::SparseData *data)
 {
+  Configuration* conf = Configuration::instance();
+  int frames = conf->getFrameTodoCount();
 
-    Configuration* conf = Configuration::instance();
-    int frames = conf->getFrameTodoCount();
+  vector<int> qphi_bins_to_process = conf->TwoTimeQMask();
+  std::map<int, vector<int>> qbin_to_pixels;
 
-    MatrixXf g2(pixelData.rows(), int(0.5 * frames * (frames - 1)) );
+  float* SG = new float[qphi_bins_to_process.size()];
 
-    int index = 0;
-    for (int i = 0; i < frames; i++)
-    {
-        for (int j = i+1; j < frames; j++)
-        {
-            // g2.col(index) = pixelData.col(i) * pixelData.col(j);
-            index++;
+  std::map<int, std::map<int, vector<int>> > qbins = conf->getBinMaps();
+
+  // 1. Go over each qbin to sbin mapping
+  for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
+    it != qbins.end(); it++) {
+    int q = it->first;
+    map<int, vector<int> > values =  it->second;
+
+    // 2. For each qbin if that qbin is in 
+    if (std::find(qphi_bins_to_process.begin(), qphi_bins_to_process.end(), q) 
+                        != qphi_bins_to_process.end()) {
+      std::vector<int> plist;
+      for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
+        int sbin = it2->first;
+
+        vector<int> pixels = it2->second;
+        for(vector<int>::const_iterator pind = pixels.begin(); pind != pixels.end(); pind++) {    
+          int p = *pind;
+          plist.push_back(p);
         }
+
+        qbin_to_pixels[q] = plist;
+      } 
     }
+  }
 
-    // For self dot product of two times, create an upper triangular view of the original data
-    // MatrixXf pixelData2 = MatrixXf(pixelData.triangularView<Eigen::Uppper>());
-    // MatrixXf prod = pixelData.array() * pixelData2.array();
+  float *sg = new float[qbin_to_pixels.size() * frames];
+  for (int i = 0; i < qbin_to_pixels.size() * frames; i++)
+    sg[i] = 0.0;
 
-    // Sum products based on the q-bin pixels
+  int q = 0;
+  for (auto it = qbin_to_pixels.begin(); it != qbin_to_pixels.end(); it++) {
+    int qbin = it->first;
+    vector<int> plist = it->second;
 
-    // map<int, map<int, vector<int>> > qbins = conf->getBinMaps();
+    for (int i = 0; i < plist.size(); i++) {
+      data_structure::Row *row = data->Pixel(plist[i]);
+      std::vector<int> iptr = row->indxPtr;
+      std::vector<float> vptr = row->valPtr;
 
-
+      for (int j = 0; j < iptr.size(); j++) {
+        int f = iptr[j];
+        float val = vptr[j];
+        sg[q * qbin_to_pixels.size() + f] += val;
+      }       
+    }
+    q++;
+  }
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "sg", 
+                        qbin_to_pixels.size(), 
+                        frames, 
+                        sg);
 }
 
 //TODO: Refactor this function and possibly break into sub function for the unit-tests. 

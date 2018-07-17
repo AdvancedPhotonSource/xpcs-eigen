@@ -210,7 +210,6 @@ int main(int argc, char** argv)
     }
     else {
       filter = new xpcs::filter::DenseFilter(dark_image);
-
     }
 
     xpcs::filter::Stride stride;
@@ -262,6 +261,8 @@ int main(int argc, char** argv)
                         data_out);
     }
   }
+
+
   
   float* pixels_sum = filter->PixelsSum();
   for (int i = 0 ; i < pixels; i++) {
@@ -351,26 +352,34 @@ int main(int argc, char** argv)
                               tau);
 
   {
-    xpcs::Benchmark benchmark("Computing G2");
-    xpcs::Corr::multiTau2(filter->Data(), g2s, ips, ifs);
-  }
+    if (conf->IsTwoTime()) {
+      xpcs::Benchmark benchmark("Computing G2 TwoTimes");
+      xpcs::Corr::twotime(filter->Data());
+      // xpcs::Corr::multiTau2(filter->Data(), g2s, ips, ifs);  
+    } else {
+      xpcs::Benchmark benchmark("Computing G2 MultiTau");
+      xpcs::Corr::multiTau2(filter->Data(), g2s, ips, ifs);
+      {
+        xpcs::Benchmark benchmark("Normalizing Data");
+        Eigen::MatrixXf G2s = Eigen::Map<Eigen::MatrixXf>(g2s, pixels, delays_per_level.size());
+        Eigen::MatrixXf IPs = Eigen::Map<Eigen::MatrixXf>(ips, pixels, delays_per_level.size());
+        Eigen::MatrixXf IFs = Eigen::Map<Eigen::MatrixXf>(ifs, pixels, delays_per_level.size());
 
+        xpcs::Corr::normalizeG2s(G2s, IPs, IFs);
+
+        if (FLAGS_g2out) {
+          xpcs::Benchmark b("Writing G2s, IPs and IFs");
+          xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "G2", pixels, delays_per_level.size(), g2s);
+          xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IP", pixels, delays_per_level.size(), ips);
+          xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF", pixels, delays_per_level.size(), ifs);
+        }
+
+      }
+    }
+    
+  }
   
-  xpcs::Benchmark benchmark("Normalizing Data");
-  Eigen::MatrixXf G2s = Eigen::Map<Eigen::MatrixXf>(g2s, pixels, delays_per_level.size());
-  Eigen::MatrixXf IPs = Eigen::Map<Eigen::MatrixXf>(ips, pixels, delays_per_level.size());
-  Eigen::MatrixXf IFs = Eigen::Map<Eigen::MatrixXf>(ifs, pixels, delays_per_level.size());
-
-  xpcs::Corr::normalizeG2s(G2s, IPs, IFs);
-
-  if (FLAGS_g2out) {
-    xpcs::Benchmark b("Writing G2s, IPs and IFs");
-    xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "G2", pixels, delays_per_level.size(), g2s);
-    xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IP", pixels, delays_per_level.size(), ips);
-    xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF", pixels, delays_per_level.size(), ifs);
-  }
-
-  if (FLAGS_darkout) {
+  if (!reader.compression() && FLAGS_darkout) {
     xpcs::Benchmark b("Writing Dark average and std image");
     if (dark_image != NULL) {
       double* dark_avg = dark_image->dark_avg();

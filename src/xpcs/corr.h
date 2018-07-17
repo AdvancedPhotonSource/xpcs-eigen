@@ -97,7 +97,7 @@ public:
 
   static void multiTau2(data_structure::SparseData *data, float* G2, float* IP, float* IF);
 
-  static void twoTimesVec(Eigen::Ref<Eigen::MatrixXf> pixelData);
+  static void twotime(data_structure::SparseData *data);
 
   static void normalizeG2s(Eigen::Ref<Eigen::MatrixXf> g2,
                     Eigen::Ref<Eigen::MatrixXf> IP, 
