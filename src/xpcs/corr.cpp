@@ -552,8 +552,9 @@ void Corr::twotime(data_structure::SparseData *data)
   for (auto it = qbin_to_pixels.begin(); it != qbin_to_pixels.end(); it++) {
     int qbin = it->first;
     vector<int> plist = it->second;
+    int pixels = plist.size();
 
-    for (int i = 0; i < plist.size(); i++) {
+    for (int i = 0; i < pixels; i++) {
       data_structure::Row *row = data->Pixel(plist[i]);
       std::vector<int> iptr = row->indxPtr;
       std::vector<float> vptr = row->valPtr;
@@ -564,9 +565,15 @@ void Corr::twotime(data_structure::SparseData *data)
         sg[q * qbin_to_pixels.size() + f] += val;
       }       
     }
+
+    for (int ff = 0 ; ff < frames; ff++) {
+      sg[q * qbin_to_pixels.size() + ff] /= pixels;
+    }
+
     q++;
   }
 
+  q = 0;
   for (auto it = qbin_to_pixels.begin(); it != qbin_to_pixels.end(); it++) {
     int qbin = it->first;
     vector<int> plist = it->second;
@@ -574,6 +581,16 @@ void Corr::twotime(data_structure::SparseData *data)
     float *g2 = new float[frames * frames];
     for (int f = 0; f < frames*frames; f++)
       g2[f] = 0.0f;
+
+    for (int i = 0; i < plist.size(); i++) {
+      data_structure::Row *row = data->Pixel(plist[i]);
+      std::vector<int> iptr = row->indxPtr;
+      std::vector<float> vptr = row->valPtr;
+
+      for (int j = 0; j < iptr.size(); j++) {
+        vptr[j] /= sg[q * qbin_to_pixels.size() + iptr[j]];
+      }
+    }
 
     for (int i = 0; i < plist.size(); i++) {
       data_structure::Row *row = data->Pixel(plist[i]);
