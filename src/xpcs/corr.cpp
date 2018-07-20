@@ -557,7 +557,7 @@ void Corr::twotime(data_structure::SparseData *data)
     for (int i = 0; i < pixels; i++) {
       data_structure::Row *row = data->Pixel(plist[i]);
       std::vector<int> iptr = row->indxPtr;
-      std::vector<float> vptr = row->valPtr;
+      std::vector<float>& vptr = row->valPtr;
 
       for (int j = 0; j < iptr.size(); j++) {
         int f = iptr[j];
@@ -586,7 +586,7 @@ void Corr::twotime(data_structure::SparseData *data)
     for (int i = 0; i < plist.size(); i++) {
       data_structure::Row *row = data->Pixel(plist[i]);
       std::vector<int> iptr = row->indxPtr;
-      std::vector<float> vptr = row->valPtr;
+      std::vector<float>& vptr = row->valPtr;
 
       for (int j = 0; j < iptr.size(); j++) {
         vptr[j] /= sg[q * frames + iptr[j]];
@@ -609,6 +609,10 @@ void Corr::twotime(data_structure::SparseData *data)
           g2[f0 * frames + f1] += val0 * val1;
         }
       }       
+    }
+
+    for (int ff = 0; ff < frames*frames; ff++) {
+    	g2[ff] /= plist.size();
     }
 
     std::string g2_name("g2_");
