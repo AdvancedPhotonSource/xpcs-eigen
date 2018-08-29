@@ -547,7 +547,7 @@ void Corr::twotime(data_structure::SparseData *data)
     sg[i] = 0.0;
 
   int q = 0;
-  /*for (auto it = qbin_to_pixels.begin(); it != qbin_to_pixels.end(); it++) {
+  for (auto it = qbin_to_pixels.begin(); it != qbin_to_pixels.end(); it++) {
     int qbin = it->first;
     vector<int> plist = it->second;
     int pixels = plist.size();
@@ -566,11 +566,11 @@ void Corr::twotime(data_structure::SparseData *data)
 
     for (int ff = 0 ; ff < frames; ff++) {
       //sg[q * qbin_to_pixels.size() + ff] /= pixels;
-      //sg[q * frames + ff] /= pixels;
+      sg[q * frames + ff] /= pixels;
     }
 
     q++;
-  }*/
+  }
 
   q = 0;
   for (auto it = qbin_to_pixels.begin(); it != qbin_to_pixels.end(); it++) {
