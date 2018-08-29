@@ -551,7 +551,6 @@ void Corr::twotime(data_structure::SparseData *data)
     int qbin = it->first;
     vector<int> plist = it->second;
     int pixels = plist.size();
-    printf("%d - %d\n", qbin, pixels);
     for (int i = 0; i < pixels; i++) {
       data_structure::Row *row = data->Pixel(plist[i]);
       std::vector<int> iptr = row->indxPtr;
