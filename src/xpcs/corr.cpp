@@ -516,8 +516,6 @@ void Corr::twotime(data_structure::SparseData *data)
   vector<int> qphi_bins_to_process = conf->TwoTimeQMask();
   std::map<int, vector<int>> qbin_to_pixels;
 
-  float* SG = new float[qphi_bins_to_process.size()];
-
   std::map<int, std::map<int, vector<int>> > qbins = conf->getBinMaps();
 
   // 1. Go over each qbin to sbin mapping
@@ -562,12 +560,14 @@ void Corr::twotime(data_structure::SparseData *data)
       for (int j = 0; j < iptr.size(); j++) {
         int f = iptr[j];
         float val = vptr[j];
-        sg[q * qbin_to_pixels.size() + f] += val;
+        //sg[q * qbin_to_pixels.size() + f] += val;
+        sg[q * frames + f] += val;
       }       
     }
 
     for (int ff = 0 ; ff < frames; ff++) {
-      sg[q * qbin_to_pixels.size() + ff] /= pixels;
+      //sg[q * qbin_to_pixels.size() + ff] /= pixels;
+      sg[q * frames + ff] /= pixels;
     }
 
     q++;
