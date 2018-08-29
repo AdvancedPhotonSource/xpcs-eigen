@@ -566,7 +566,7 @@ void Corr::twotime(data_structure::SparseData *data)
 
     for (int ff = 0 ; ff < frames; ff++) {
       //sg[q * qbin_to_pixels.size() + ff] /= pixels;
-      sg[q * frames + ff] /= pixels;
+      //sg[q * frames + ff] /= pixels;
     }
 
     q++;
