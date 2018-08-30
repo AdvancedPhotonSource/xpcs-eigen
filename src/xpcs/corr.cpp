@@ -727,23 +727,29 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
         }
     }
 
-    // // Compute the mean of normalized g2 values per dynamic bin. 
+    // // Compute the mean of normalized g2 values per dynamic bin.
+    VectorXf incrs(g2Sums.cols());
+    incrs.setOnes();
+    VectorXf counts(g2Sums.cols());
+
     for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
             it != qbins.end(); it++) {
 
         int q = it->first;
         map<int, vector<int> > values =  it->second;
+  
+        //int count = 0;
+        counts.setZero();
 
-        int count = 0;
         for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
             int sbin = it2->first;
-            g2.row(q - 1) += g2Sums.row(sbin-1);
-            count++;
+            VectorXf g2sum = g2Sums.row(sbin-1);
+            g2.row(q - 1) += Eigen::isnan(g2sum.array()).select(0.0, g2sum);
+            counts += Eigen::isnan(g2sum.array()).select(0.0, incrs); 
         }
 
-
         // Mean of each G2 across tau values. This is our final g2 Matrix. 
-        g2.row(q - 1).array() = g2.row(q - 1).array() / (float)count;
+        g2.row(q - 1).array() = g2.row(q - 1).array() / counts.array();
     }
 
     // Compute the standard error.
