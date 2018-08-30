@@ -295,13 +295,19 @@ int main(int argc, char** argv)
   float denominator = 1.0f;
   for (int i = 0; i < total_static_partns; i++) {
     for (int j = 0; j < partitions; j++) {
-      denominator = pixels_per_sbin[i] * swindow * norm_factor;
+      // Getting rid of norm factor division for now. 
+      //denominator = pixels_per_sbin[i] * swindow * norm_factor;
+      
+      denominator = pixels_per_sbin[i] * swindow;
       partial_part_mean[j * total_static_partns + i] /= denominator;
     }
   }
 
   for (int i = 0; i < total_static_partns; i++) {
-    denominator = pixels_per_sbin[i] * frames * norm_factor;
+    // Getting rid of norm factor division for now. 
+    //denominator = pixels_per_sbin[i] * frames * norm_factor;
+    
+    denominator = pixels_per_sbin[i] * frames;
     partitions_mean[i] /= denominator;
   }
 
