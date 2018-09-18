@@ -108,7 +108,7 @@ void Configuration::init(const std::string &path, const std::string& entry)
     normalizedByFramesum = false;
     try {
       int value = getInteger(entry + "/normalize_by_framesum");
-      printf("Normalize by framesum = %d\n", value);
+      normalizedByFramesum = value;
     } catch (const std::exception& e){}
 
     if (darkFrameStart == darkFrameEnd || darkFrameEnd == 0)

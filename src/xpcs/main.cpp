@@ -69,8 +69,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "xpcs/filter/sparse_filter.h"
 #include "xpcs/filter/dense_filter.h"
 #include "xpcs/filter/stride.h"
-#include "xpcs/filter/average.h"
-#include "xpcs/filter/dense_average.h"
+// #include "xpcs/filter/average.h"
+// #include "xpcs/filter/dense_average.h"
 #include "xpcs/data_structure/dark_image.h"
 #include "xpcs/data_structure/sparse_data.h"
 #include "xpcs/data_structure/row.h"
@@ -213,8 +213,8 @@ int main(int argc, char** argv)
     }
 
     xpcs::filter::Stride stride;
-    xpcs::filter::Average average;
-    xpcs::filter::DenseAverage dense_average;
+    // xpcs::filter::Average average;
+    // xpcs::filter::DenseAverage dense_average;
 
     int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
     if (stride_factor > 1 && average_factor > 1)
@@ -262,14 +262,30 @@ int main(int argc, char** argv)
     }
   }
 
+  float* frames_sum = filter->FramesSum();
+  if (conf->IsNormalizedByFramesum()) {
+    xpcs::Benchmark benchmark("Normalize by Frame-sum took ");
+    float sum_of_framesums = 0.0f;
+    for (int i = 0 ; i < frames; i++) {
+      sum_of_framesums += frames_sum[i];
+    }
 
+    xpcs::data_structure::SparseData *data = filter->Data();
+    for (int j = 0; j < pixels; j++) {
+      if (!data->Exists(j)) continue;
+
+      xpcs::data_structure::Row *row = data->Pixel(j);
+      for (int x = 0; x < row->indxPtr.size(); x++) {
+        int f = row->indxPtr[x];
+        row->valPtr[x] = row->valPtr[x] / (frames_sum[f] / sum_of_framesums);
+      }
+    }
+  }
   
   float* pixels_sum = filter->PixelsSum();
   for (int i = 0 ; i < pixels; i++) {
     pixels_sum[i] /= frames;
   }
-
-  float* frames_sum = filter->FramesSum();
 
   xpcs::H5Result::write2DData(conf->getFilename(), 
                         conf->OutputPath(), 
