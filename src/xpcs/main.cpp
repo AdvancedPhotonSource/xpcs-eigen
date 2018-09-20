@@ -278,10 +278,9 @@ int main(int argc, char** argv)
       xpcs::data_structure::Row *row = data->Pixel(j);
       for (int x = 0; x < row->indxPtr.size(); x++) {
         int f = row->indxPtr[x];
-        printf("value for pixel=%d, frame=%d before %f\n", row->valPtr[x]);
+        printf("value for pixel=%d, frame=%d before %f\n", j, f, row->valPtr[x]);
         row->valPtr[x] = row->valPtr[x] / (frames_sum[f] / sum_of_framesums);
         printf("value after %f with frame_sum %f\n", row->valPtr[x], (frames_sum[f]/sum_of_framesums));
-        break;
       }
     }
   }
