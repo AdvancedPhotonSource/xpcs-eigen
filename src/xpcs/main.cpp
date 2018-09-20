@@ -284,6 +284,10 @@ int main(int argc, char** argv)
       }
     }
   }
+
+    /*xpcs::data_structure::SparseData *data = filter->Data();
+  xpcs::data_structure::Row *arow = data->Pixel(1133);
+  printf("Value = %f\n", arow->valPtr[0]);*/
   
   float* pixels_sum = filter->PixelsSum();
   for (int i = 0 ; i < pixels; i++) {
