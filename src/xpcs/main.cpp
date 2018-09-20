@@ -269,6 +269,7 @@ int main(int argc, char** argv)
     for (int i = 0 ; i < frames; i++) {
       sum_of_framesums += frames_sum[i];
     }
+    sum_of_framesums /= frames;
 
     xpcs::data_structure::SparseData *data = filter->Data();
     for (int j = 0; j < pixels; j++) {
@@ -277,7 +278,7 @@ int main(int argc, char** argv)
       xpcs::data_structure::Row *row = data->Pixel(j);
       for (int x = 0; x < row->indxPtr.size(); x++) {
         int f = row->indxPtr[x];
-        printf("value before %f\n", row->valPtr[x]);
+        printf("value for pixel=%d, frame=%d before %f\n", row->valPtr[x]);
         row->valPtr[x] = row->valPtr[x] / (frames_sum[f] / sum_of_framesums);
         printf("value after %f with frame_sum %f\n", row->valPtr[x], (frames_sum[f]/sum_of_framesums));
         break;
