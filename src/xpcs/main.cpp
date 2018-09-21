@@ -266,13 +266,11 @@ int main(int argc, char** argv)
   if (conf->IsNormalizedByFramesum()) {
     xpcs::Benchmark benchmark("Normalize by Frame-sum took ");
     float sum_of_framesums = 0.0f;
+    float framesums_mean = 0.0f;
     for (int i = 0 ; i < frames; i++) {
-      printf("%d, %f\n", i, frames_sum[i+frames]);
       sum_of_framesums += frames_sum[i+frames];
     }
-    printf("Sum = %f\n", sum_of_framesums);
-    sum_of_framesums /= frames;
-    printf("Mean = %f\n", sum_of_framesums);
+    framesums_mean = sum_of_framesums / frames;
 
     xpcs::data_structure::SparseData *data = filter->Data();
     for (int j = 0; j < pixels; j++) {
@@ -281,9 +279,7 @@ int main(int argc, char** argv)
       xpcs::data_structure::Row *row = data->Pixel(j);
       for (int x = 0; x < row->indxPtr.size(); x++) {
         int f = row->indxPtr[x];
-        //printf("value for pixel=%d, frame=%d before %f\n", j, f, row->valPtr[x]);
-        row->valPtr[x] = row->valPtr[x] / (frames_sum[f] / sum_of_framesums);
-        //printf("value after %f with frame_sum %f\n", row->valPtr[x], (frames_sum[f]/sum_of_framesums));
+        row->valPtr[x] = row->valPtr[x] / (frames_sum[f] / framesums_mean);
       }
     }
   }
