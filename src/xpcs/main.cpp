@@ -267,8 +267,8 @@ int main(int argc, char** argv)
     xpcs::Benchmark benchmark("Normalize by Frame-sum took ");
     float sum_of_framesums = 0.0f;
     for (int i = 0 ; i < frames; i++) {
-      printf("%d - %f\n", i+1, frames_sum[i]);
-      sum_of_framesums += frames_sum[i];
+      printf("%d, %f\n", i, frames_sum[i+frames]);
+      sum_of_framesums += frames_sum[i+frames];
     }
     printf("Sum = %f\n", sum_of_framesums);
     sum_of_framesums /= frames;
