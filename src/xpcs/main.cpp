@@ -373,17 +373,18 @@ int main(int argc, char** argv)
     tau[x] = std::get<1>(value);
   }
 
-  xpcs::H5Result::write1DData(conf->getFilename(), 
+  if (!conf->IsTwoTime()) {
+    xpcs::H5Result::write1DData(conf->getFilename(), 
                               conf->OutputPath(), 
                               "tau", 
                               (int)delays_per_level.size(), 
                               tau);
-
+  }
+  
   {
     if (conf->IsTwoTime()) {
       xpcs::Benchmark benchmark("Computing G2 TwoTimes");
       xpcs::Corr::twotime(filter->Data());
-      // xpcs::Corr::multiTau2(filter->Data(), g2s, ips, ifs);  
     } else {
       xpcs::Benchmark benchmark("Computing G2 MultiTau");
       xpcs::Corr::multiTau2(filter->Data(), g2s, ips, ifs);

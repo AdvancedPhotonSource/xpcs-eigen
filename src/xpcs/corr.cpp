@@ -225,14 +225,6 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
                 lastframe -= 1;
 
             lastframe = lastframe / 2;
-
-            printf("Last frame %d\n", lastframe);
-            // int ij = 0;
-
-            // for (int k = 0; k < lastframe; k+=2) {
-            //     pixelData.row(ij) = 0.5 * (pixelData.row(k) + pixelData.row(k+1));
-            //     ij++;
-            // }
             float* vals = pixelData.valuePtr();
             int *ind = pixelData.innerIndexPtr();
             int *outer = pixelData.outerIndexPtr();
@@ -304,8 +296,6 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
         // Get lastframe-tau number of cols starting at 0 for c0 and tau for c1. 
         const SparseMatrix<float, RowMajor> c0 = pixelData.block(0, 0, pixels, lastframe-tau);
         const SparseMatrix<float, RowMajor> c1 = pixelData.block(0, tau, pixels, lastframe-tau);
-
-        printf("%d - %d\n", c0.cols(), c1.cols());
 
         // G2.col(i) = c0.cwiseProduct(c1) * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
         // IP.col(i) = c0 * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
@@ -564,7 +554,6 @@ void Corr::twotime(data_structure::SparseData *data)
       }       
     }
 
-    printf("q-bin = %d, pixels = %d\n", q, pixels);
     for (int ff = 0 ; ff < frames; ff++) {
       //sg[q * qbin_to_pixels.size() + ff] /= pixels;
       //printf("q-bin = %d, frame # = %d, sg = %f\n", q, ff, sg[q * frames + ff]);
@@ -615,13 +604,14 @@ void Corr::twotime(data_structure::SparseData *data)
     	g2[ff] /= plist.size();
     }
 
-    std::string g2_name("g2_");
-    std::string q_name = std::to_string(qbin);
-    std::string f_name = g2_name + q_name;
+    char buffer[100];
+    sprintf(buffer, "g2_%05d", qbin);
+    std::string g2_name(buffer);
+    std::string path = conf->OutputPath() + "/C2T_all/";
 
     xpcs::H5Result::write2DData(conf->getFilename(), 
-                        conf->OutputPath(), 
-                        f_name.c_str(),
+                        path.c_str(), 
+                        g2_name.c_str(),
                         frames, 
                         frames, 
                         g2);
@@ -629,7 +619,6 @@ void Corr::twotime(data_structure::SparseData *data)
     delete[] g2;
     q++;
   }
-
 
   xpcs::H5Result::write2DData(conf->getFilename(), 
                         conf->OutputPath(), 
