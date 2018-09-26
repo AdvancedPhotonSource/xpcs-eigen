@@ -559,14 +559,16 @@ void Corr::twotime(data_structure::SparseData *data)
       for (int j = 0; j < iptr.size(); j++) {
         int f = iptr[j];
         float val = vptr[j];
-        //sg[q * qbin_to_pixels.size() + f] += val;
+	//printf("q-bin = %d, frame = %d, pixel = %d, value=%f\n", q, f, plist[i], val);
         sg[q * frames + f] += val;
       }       
     }
 
+    printf("q-bin = %d, pixels = %d\n", q, pixels);
     for (int ff = 0 ; ff < frames; ff++) {
       //sg[q * qbin_to_pixels.size() + ff] /= pixels;
-      sg[q * frames + ff] /= pixels;
+      //printf("q-bin = %d, frame # = %d, sg = %f\n", q, ff, sg[q * frames + ff]);
+      sg[q * frames + ff] /= (float)pixels;
     }
 
     q++;

@@ -279,7 +279,7 @@ int main(int argc, char** argv)
       xpcs::data_structure::Row *row = data->Pixel(j);
       for (int x = 0; x < row->indxPtr.size(); x++) {
         int f = row->indxPtr[x];
-        row->valPtr[x] = row->valPtr[x] / (frames_sum[f] / framesums_mean);
+        row->valPtr[x] = row->valPtr[x] / (frames_sum[f+frames] / framesums_mean);
       }
     }
   }
