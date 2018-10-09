@@ -563,8 +563,12 @@ void Corr::twotime(data_structure::SparseData *data)
     q++;
   }
 
-  q = 0;
-  for (auto it = qbin_to_pixels.begin(); it != qbin_to_pixels.end(); it++) {
+  float **g2_pointers = new float*[qbin_to_pixels.size()];
+  #pragma omp parallel for default(none) schedule(dynamic) shared(g2_pointers, sg, qbin_to_pixels, data, frames)
+  for (int binIdx = 0; binIdx < qbin_to_pixels.size(); binIdx++) {
+    auto it = qbin_to_pixels.begin();
+    advance(it, binIdx);
+
     int qbin = it->first;
     vector<int> plist = it->second;
 
@@ -578,7 +582,7 @@ void Corr::twotime(data_structure::SparseData *data)
       std::vector<float>& vptr = row->valPtr;
 
       for (int j = 0; j < iptr.size(); j++) {
-        vptr[j] /= sg[q * frames + iptr[j]];
+        vptr[j] /= sg[binIdx * frames + iptr[j]];
       }
     }
 
@@ -601,23 +605,33 @@ void Corr::twotime(data_structure::SparseData *data)
     }
 
     for (int ff = 0; ff < frames*frames; ff++) {
-    	g2[ff] /= plist.size();
+      g2[ff] /= plist.size();
+
     }
+
+    g2_pointers[binIdx] = g2;
+  }
+
+  for (int i = 0; i < qbin_to_pixels.size(); i++) {
+    auto it = qbin_to_pixels.begin();
+    advance(it, i);
+
+    int qbin = it->first;
+
+    float* ptrg2 = g2_pointers[i];
 
     char buffer[100];
     sprintf(buffer, "g2_%05d", qbin);
     std::string g2_name(buffer);
     std::string path = conf->OutputPath() + "/C2T_all/";
 
+
     xpcs::H5Result::write2DData(conf->getFilename(), 
                         path.c_str(), 
                         g2_name.c_str(),
                         frames, 
                         frames, 
-                        g2);
-    
-    delete[] g2;
-    q++;
+                        ptrg2);
   }
 
   xpcs::H5Result::write2DData(conf->getFilename(), 
