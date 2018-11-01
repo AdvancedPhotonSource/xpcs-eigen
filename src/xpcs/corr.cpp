@@ -555,8 +555,6 @@ void Corr::twotime(data_structure::SparseData *data)
     }
 
     for (int ff = 0 ; ff < frames; ff++) {
-      //sg[q * qbin_to_pixels.size() + ff] /= pixels;
-      //printf("q-bin = %d, frame # = %d, sg = %f\n", q, ff, sg[q * frames + ff]);
       sg[q * frames + ff] /= (float)pixels;
     }
 
@@ -564,7 +562,10 @@ void Corr::twotime(data_structure::SparseData *data)
   }
 
   float **g2_pointers = new float*[qbin_to_pixels.size()];
-  #pragma omp parallel for default(none) schedule(dynamic) shared(g2_pointers, sg, qbin_to_pixels, data, frames)
+  float **g2full_pointers = new float*[qbin_to_pixels.size()];
+
+  float *g2full = new float[qbin_to_pixels.size()];
+  #pragma omp parallel for default(none) schedule(dynamic) shared(g2_pointers, g2full_pointers, sg, qbin_to_pixels, data, frames)
   for (int binIdx = 0; binIdx < qbin_to_pixels.size(); binIdx++) {
     auto it = qbin_to_pixels.begin();
     advance(it, binIdx);
@@ -573,8 +574,13 @@ void Corr::twotime(data_structure::SparseData *data)
     vector<int> plist = it->second;
 
     float *g2 = new float[frames * frames];
+    float *g2full = new float[frames];
+
     for (int f = 0; f < frames*frames; f++)
       g2[f] = 0.0f;
+
+    for (int f = 0; f < frames; f++)
+        g2full[f] = 0.0f;
 
     for (int i = 0; i < plist.size(); i++) {
       data_structure::Row *row = data->Pixel(plist[i]);
@@ -605,10 +611,24 @@ void Corr::twotime(data_structure::SparseData *data)
     }
 
     for (int ff = 0; ff < frames*frames; ff++) {
-      g2[ff] /= plist.size();
-
+        g2[ff] /= plist.size();
     }
 
+    for (int ff = 0; ff < frames; ff++) {
+        int count = 0;
+        for (int fx = 0, fy = ff; fx < frames - ff; fx++, fy++) {
+            // if (qbin == 1 && ff == 0) {
+            //     printf("%f\n", g2[fx*frames+fy]);
+            // }
+
+            g2full[ff] += g2[fx*frames + fy];
+            count++;
+        }
+
+        g2full[ff] /= count;
+    }
+    
+    g2full_pointers[binIdx] = g2full;
     g2_pointers[binIdx] = g2;
   }
 
@@ -633,6 +653,22 @@ void Corr::twotime(data_structure::SparseData *data)
                         frames, 
                         ptrg2);
   }
+
+  float* g2full_result = new float[qbin_to_pixels.size() * frames];
+  
+  for (int j = 0; j < frames; j++) {
+    for (int i = 0; i < qbin_to_pixels.size(); i++) {
+        g2full_result[j * qbin_to_pixels.size() + i] = g2full_pointers[i][j];
+    }
+  }
+
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "g2full", 
+                        frames, 
+                        qbin_to_pixels.size(), 
+                        g2full_result);  
+
 
   xpcs::H5Result::write2DData(conf->getFilename(), 
                         conf->OutputPath(), 
