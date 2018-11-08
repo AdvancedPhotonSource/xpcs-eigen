@@ -97,13 +97,19 @@ void Configuration::init(const std::string &path, const std::string& entry)
     // Subtract 1 to make the index zero based. 
     this->frameStart = getInteger(entry + "/data_begin");
     this->frameEnd = getInteger(entry + "/data_end");
-    this->frameStartTodo = getInteger(entry + "/data_begin_todo");
-    this->frameEndTodo = getInteger(entry + "/data_end_todo");
+    frameStartTodo = getInteger(entry + "/data_begin_todo");
+    frameEndTodo = getInteger(entry + "/data_end_todo");
     delays_per_level_ = getInteger(entry + "/delays_per_level");
     darkFrameStart = getInteger(entry + "/dark_begin_todo");
     darkFrameEnd = getInteger(entry + "/dark_end_todo");
+
+    try {
+      two2one_window_size_ = getInteger(entry + "/twotime2onetime_window_size");
+    } catch (const std::exception& e){two2one_window_size_ = 1;}
+
     frame_stride_ = getLong(entry + "/stride_frames");
     frame_average_ = getLong(entry + "/avg_frames");
+
 
     normalizedByFramesum = false;
     try {
@@ -663,6 +669,7 @@ int Configuration::FrameAverage()
   return frame_average_;
 }
 
+
 bool Configuration::getIsCompressionEnabled()
 {
   return compression;
@@ -683,4 +690,10 @@ std::vector<int>& Configuration::TwoTimeQMask()
   return qphi_bin_to_process_;
 }
 
+int Configuration::Two2OneWindowSize()
+{
+  return two2one_window_size_;
 }
+
+}
+

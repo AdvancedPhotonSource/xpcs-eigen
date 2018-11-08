@@ -95,6 +95,8 @@ public:
   int FrameStride();
   int FrameAverage();
 
+  int Two2OneWindowSize();
+  
   std::string getFilename();
   std::string& getIMMFilePath();
   std::string& OutputPath();
@@ -166,6 +168,7 @@ private:
   int darkFrames;
   int m_staticWindow;
   int delays_per_level_;
+  int two2one_window_size_;
 
   int *pixels_per_bin;
   int *dqmap;
