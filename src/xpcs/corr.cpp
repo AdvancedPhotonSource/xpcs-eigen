@@ -628,8 +628,7 @@ void Corr::twotime(data_structure::SparseData *data)
 
 
             if (windowno < total_partials && ff < wsize) {
-              // printf("%d - %d - %d - %d\n", windowno, ff, wsize, (windowno*wsize+ff));
-              g2partial[windowno * wsize + ff] += g2[fx*frames + fy];
+              g2partial[ff * total_partials + windowno] += g2[fx*frames + fy];
             }
             
             windowno = fx / wsize;
@@ -642,11 +641,11 @@ void Corr::twotime(data_structure::SparseData *data)
     
     g2full_pointers[binIdx] = g2full;
     g2_pointers[binIdx] = g2;
-    g2partial_pointers[binIdx] = g2partial;
 
     for (int f = 0; f < (wsize * total_partials); f++)
       g2partial[f] /= wsize;
 
+    g2partial_pointers[binIdx] = g2partial;
   }
 
   for (int i = 0; i < qbin_to_pixels.size(); i++) {
@@ -679,10 +678,13 @@ void Corr::twotime(data_structure::SparseData *data)
         g2full_result[j * qbin_to_pixels.size() + i] = g2full_pointers[i][j];
     }
   }
-
-  for (int j = 0; j < qbin_to_pixels.size(); j++) {
-    for (int k = 0; k < (wsize*total_partials); k++) {
-      g2partial_result[j * (wsize*total_partials) + k] = g2partial_pointers[j][k];
+ 
+  int idd = 0;
+  for (int i = 0; i < wsize; i++){
+    for (int j = 0; j < total_partials; j++) {
+      for (int k = 0; k < qbin_to_pixels.size(); k++) {
+        g2partial_result[idd++] = g2partial_pointers[k][i*total_partials + j];
+      }
     }
   }
 
@@ -695,7 +697,7 @@ void Corr::twotime(data_structure::SparseData *data)
 
   xpcs::H5Result::write3DData(conf->getFilename(), 
                         conf->OutputPath(), 
-                        "g2partial", 
+                        "g2partials", 
                         wsize, 
                         total_partials,
                         qbin_to_pixels.size(),
