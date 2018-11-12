@@ -171,7 +171,7 @@ void H5Result::write3DData(const std::string &file,
 
         stride_3d[0] = 1;
         stride_3d[1] = 1;
-        stride_3d[1] = 1;
+        stride_3d[2] = 1;
 
         count_3d[0] = size0;
         count_3d[1] = size1;
