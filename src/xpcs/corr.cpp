@@ -631,8 +631,7 @@ void Corr::twotime(data_structure::SparseData *data)
               g2partial[ff * total_partials + windowno] += g2[fx*frames + fy];
             }
             
-            windowno = fx / wsize;
-
+            windowno = (fx+1) / wsize;
             count++;
         }
 
