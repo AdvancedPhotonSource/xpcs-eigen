@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 #include "xpcs/configuration.h"
-#include "xpcs/io/imm_reader.h"
+#include "xpcs/io/reader.h"
 #include "xpcs/data_structure/sparse_data.h"
 
 namespace xpcs {
@@ -113,7 +113,7 @@ SparseFilter::~SparseFilter() {
 
 }
 
-void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
+void SparseFilter::Apply(xpcs::io::ImmBlock* blk) {
   int **indx = blk->index;
   float **val = blk->value;
   int frames = blk->frames;

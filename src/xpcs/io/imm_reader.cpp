@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 **/
 #include "imm_reader.h"
+// #include "reader.h"
 
 #include <stdio.h>
 #include <iostream>
@@ -55,7 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace xpcs {
 namespace io {
 
-ImmReader::ImmReader(const std::string& filename) : indices_(NULL) {
+ImmReader::ImmReader(const std::string& filename)  {
     file_ = fopen(filename.c_str(), "rb");
 
     if (file_ == NULL) return ; //TODO handle error

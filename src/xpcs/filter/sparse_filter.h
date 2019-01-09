@@ -68,7 +68,7 @@ public:
 
   ~SparseFilter();
 
-  void Apply(struct xpcs::io::ImmBlock* data);
+  void Apply(xpcs::io::ImmBlock* data);
 
   float* PixelsSum();
 

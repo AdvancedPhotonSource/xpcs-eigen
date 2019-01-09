@@ -64,13 +64,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "xpcs/configuration.h"
 #include "h5_result.h"
 #include "benchmark.h"
+#include "xpcs/io/reader.h"
 #include "xpcs/io/imm_reader.h"
+#include "xpcs/io/ufxc_reader.h"
 #include "xpcs/filter/filter.h"
 #include "xpcs/filter/sparse_filter.h"
 #include "xpcs/filter/dense_filter.h"
 #include "xpcs/filter/stride.h"
-// #include "xpcs/filter/average.h"
-// #include "xpcs/filter/dense_average.h"
 #include "xpcs/data_structure/dark_image.h"
 #include "xpcs/data_structure/sparse_data.h"
 #include "xpcs/data_structure/row.h"
@@ -80,6 +80,7 @@ namespace spd = spdlog;
 
 DEFINE_bool(g2out, false, "Write intermediate output from G2 computation");
 DEFINE_bool(darkout, false, "Write dark average and std-data");
+DEFINE_bool(binary, false, "IF the file format is from photon counting detector.");
 DEFINE_int32(frameout, false, "Number of post-processed frames to write out for debuggin.");
 DEFINE_string(imm, "", "The path to IMM file. By default the file specified in HDF5 metadata is used");
 DEFINE_string(inpath, "", "The path prefix to replace");
@@ -179,7 +180,15 @@ int main(int argc, char** argv)
     ifs[i] = 0.0f;
   }
 
-  xpcs::io::ImmReader reader(conf->getIMMFilePath().c_str());
+  xpcs::io::Reader *reader = NULL; 
+
+  if (FLAGS_binary) {
+    printf("Loading it as binary\n");
+    reader = new xpcs::io::UfxcReader(conf->getIMMFilePath().c_str());
+  } else {
+    reader = new xpcs::io::ImmReader(conf->getIMMFilePath().c_str());
+  }
+
   xpcs::filter::Filter *filter = NULL;
   
   xpcs::data_structure::DarkImage *dark_image = NULL;
@@ -188,24 +197,24 @@ int main(int argc, char** argv)
 
     int r = 0;
 
-    if (!reader.compression()) {
+    if (!reader->compression()) {
       int dark_s = conf->getDarkFrameStart();
       int dark_e = conf->getDarkFrameEnd();
       int darks = conf->getDarkFrames();
 
       if (dark_s != dark_e) {
-        struct xpcs::io::ImmBlock *data = reader.NextFrames(darks);
+        struct xpcs::io::ImmBlock *data = reader->NextFrames(darks);
         dark_image = new xpcs::data_structure::DarkImage(data->value, darks, pixels, conf->getFlatField());
         r += darks;
       }
     }
     
     if (frameFrom > 0 && r < frameFrom) {
-      reader.SkipFrames(frameFrom - r);
+      reader->SkipFrames(frameFrom - r);
       r += (frameFrom - r);
     }
 
-    if (reader.compression()) {
+    if (reader->compression()) {
       filter = new xpcs::filter::SparseFilter();
     }
     else {
@@ -223,7 +232,7 @@ int main(int argc, char** argv)
     // The last frame outside the stride will be ignored. 
     int f = 0;
     while (f < frames) {
-      struct xpcs::io::ImmBlock* data = reader.NextFrames(read_in_count);
+      struct xpcs::io::ImmBlock* data = reader->NextFrames(read_in_count);
       filter->Apply(data);
       f++;
     }
@@ -408,7 +417,7 @@ int main(int argc, char** argv)
     
   }
   
-  if (!reader.compression() && FLAGS_darkout) {
+  if (!reader->compression() && FLAGS_darkout) {
     xpcs::Benchmark b("Writing Dark average and std image");
     if (dark_image != NULL) {
       double* dark_avg = dark_image->dark_avg();

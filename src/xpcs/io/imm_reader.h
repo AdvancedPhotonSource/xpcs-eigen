@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define XPCS_IMMREADER_H
 
 #include "imm_header.h"
+#include "reader.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,32 +58,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "spdlog/spdlog.h"
 
-
 namespace xpcs {
 namespace io {
 
-struct ImmBlock {
-  int** index;
-  float** value;
-  int frames;
-  int id;
-  std::vector<int> pixels_per_frame;
-  double* clock;
-  double* ticks;
-};
 
-class ImmReader {
+class ImmReader : public Reader {
 
 public:
+
   ImmReader(const std::string& filename);
    
   ~ImmReader();
 
   bool compression();
-
-  // float* TimestampClock();
-
-  // float* TimestampTick();
 
   ImmBlock* NextFrames(int count = 1);
 
@@ -95,14 +83,12 @@ private:
   std::shared_ptr<spdlog::logger> logger_;
 
   ImmHeader *header_;
+
   FILE *file_;
   // Internal data pointer for storing pixels. 
   float *data_;
+
   bool compression_;
-
-  // Linear indices in case the data is compressed. 
-  int *indices_;
-
 };
 
 } //namespace io

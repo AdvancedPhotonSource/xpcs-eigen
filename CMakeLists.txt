@@ -2,8 +2,8 @@ project(xpcs-eigen)
 
 cmake_minimum_required(VERSION 3.5)
 
-set(CMAKE_BUILD_TYPE RELEASE)
-#set(CMAKE_BUILD_TYPE DEBUG)
+#set(CMAKE_BUILD_TYPE RELEASE)
+set(CMAKE_BUILD_TYPE DEBUG)
 
 add_definitions(-std=c++0x)
 
@@ -16,13 +16,15 @@ set(headers
     src/xpcs/h5_result.h
     src/xpcs/data_structure/row.h
     src/xpcs/data_structure/sparse_data.h
+    src/xpcs/io/reader.h
+    src/xpcs/io/imm_header.h
+    src/xpcs/io/ufxc_reader.h
     src/xpcs/filter/filter.h
     src/xpcs/filter/sparse_filter.h
     src/xpcs/filter/dense_filter.h
     src/xpcs/filter/stride.h
     src/xpcs/filter/average.h
     src/xpcs/filter/dense_average.h
-    src/xpcs/io/imm_header.h
 )
 
 set(sources
@@ -32,12 +34,13 @@ set(sources
     src/xpcs/funcs.cpp
     src/xpcs/data_structure/dark_image.cpp
     src/xpcs/data_structure/sparse_data.cpp
+    src/xpcs/io/imm_reader.cpp
+    src/xpcs/io/ufxc_reader.cpp
     src/xpcs/filter/sparse_filter.cpp
     src/xpcs/filter/dense_filter.cpp
     src/xpcs/filter/stride.cpp
     src/xpcs/filter/average.cpp
     src/xpcs/filter/dense_average.cpp
-    src/xpcs/io/imm_reader.cpp
     src/xpcs/main.cpp
 )
 
