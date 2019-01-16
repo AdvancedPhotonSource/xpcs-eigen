@@ -83,7 +83,7 @@ private:
 
   int last_frame_index;
 
-  std::unordered_map<short, std::vector<uint> > data_frames_;
+  std::unordered_map<int, std::vector<uint> > data_frames_;
 
 };
 

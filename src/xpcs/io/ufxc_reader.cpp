@@ -76,12 +76,13 @@ UfxcReader::UfxcReader(const std::string& filename) {
     uint f0 = value;
     int counter = 0;
     int idx = 1;
-    ++it;
     data_frames_[value - f0] = std::vector<uint>();
     data_frames_[value-f0].push_back(*it);
 
+    ++it;
     int bf = 0;
     int ff = 0; // frame number
+    int tmp_count = 0;
     for(; it != data.end(); ++it) {
         int diff = (*it >> 21) - value;
         if (diff < -2000) {
@@ -90,12 +91,13 @@ UfxcReader::UfxcReader(const std::string& filename) {
             bf -= 2048;
         } 
         ff = (*it >> 21) + bf - f0;
-        if (data_frames_.find(ff) == data_frames_.end())
+        if (data_frames_.find(ff) == data_frames_.end()) { 
             data_frames_[ff] = std::vector<uint>();
+	}
         data_frames_[ff].push_back(*it);
         value = *it >> 21;
     }
-
+   
     last_frame_index = 0;
 
 }
@@ -139,6 +141,7 @@ ImmBlock* UfxcReader::NextFrames(int count) {
             float val = (it >> 15) & 0x3;
             index[done][idx] = pix;
             value[done][idx] = val;
+	    idx++;
         }
         done++;
         last_frame_index++;
