@@ -85,6 +85,9 @@ private:
 
   std::unordered_map<int, std::vector<uint> > data_frames_;
 
+  int frame_width_;
+  int frame_height_;
+
 };
 
 } //namespace io

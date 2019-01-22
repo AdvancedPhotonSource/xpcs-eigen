@@ -100,6 +100,11 @@ UfxcReader::UfxcReader(const std::string& filename) {
    
     last_frame_index = 0;
 
+    xpcs::Configuration *conf = xpcs::Configuration::instance();
+    frame_width_ = conf->getFrameWidth();
+    frame_height_ = conf->getFrameHeight();
+
+    printf("frame widht %d, frame height %d\n", frame_width_, frame_height_);
 }
 
 UfxcReader::~UfxcReader() {
@@ -137,11 +142,14 @@ ImmBlock* UfxcReader::NextFrames(int count) {
 
         int idx = 0;
         for (auto& it : frame) {
-            int pix = it & 0x7fff;
+            uint pix = (it & 0x7fff);
+            int row = pix % frame_height_;
+            int col = pix / frame_height_;
+
             float val = (it >> 15) & 0x3;
-            index[done][idx] = pix;
+            index[done][idx] = row * frame_width_ + col;
             value[done][idx] = val;
-	    idx++;
+	        idx++;
         }
         done++;
         last_frame_index++;
