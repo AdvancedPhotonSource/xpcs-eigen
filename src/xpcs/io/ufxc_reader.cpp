@@ -44,34 +44,73 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#include "imm_reader.h"
-// #include "reader.h"
+#include "ufxc_reader.h"
 
 #include <stdio.h>
 #include <iostream>
+#include <vector>
+#include <iterator>
 
 #include "xpcs/configuration.h"
-#include "xpcs/data_structure/dark_image.h"
 
 namespace xpcs {
 namespace io {
 
-ImmReader::ImmReader(const std::string& filename)  {
+UfxcReader::UfxcReader(const std::string& filename) {
     file_ = fopen(filename.c_str(), "rb");
-
     if (file_ == NULL) return ; //TODO handle error
 
-    header_ = new ImmHeader();
-    fread(header_, 1024, 1, file_);
-    compression_ = header_->compression != 0 ? true : false;
-    rewind(file_);
+    std::vector<uint> data;
+
+    uint buffer[4096];
+    size_t read = fread(&buffer, sizeof(uint), 4096, file_);
+    while (read) {
+        for (int i = 0; i < read; i++) {
+            data.push_back(buffer[i]);
+        }
+        read = fread(&buffer, sizeof(uint), 4096, file_);
+    }
+
+    auto it = data.begin();
+    uint value = *it >> 21;
+    uint f0 = value;
+    int counter = 0;
+    int idx = 1;
+    data_frames_[value - f0] = std::vector<uint>();
+    data_frames_[value-f0].push_back(*it);
+
+    ++it;
+    int bf = 0;
+    int ff = 0; // frame number
+    int tmp_count = 0;
+    for(; it != data.end(); ++it) {
+        int diff = (*it >> 21) - value;
+        if (diff < -2000) {
+            bf += 2048;
+        } else if (diff > 2000) {
+            bf -= 2048;
+        } 
+        ff = (*it >> 21) + bf - f0;
+        if (data_frames_.find(ff) == data_frames_.end()) { 
+            data_frames_[ff] = std::vector<uint>();
+	}
+        data_frames_[ff].push_back(*it);
+        value = *it >> 21;
+    }
+   
+    last_frame_index = 0;
+
+    xpcs::Configuration *conf = xpcs::Configuration::instance();
+    frame_width_ = conf->getFrameWidth();
+    frame_height_ = conf->getFrameHeight();
+
+    printf("frame widht %d, frame height %d\n", frame_width_, frame_height_);
 }
 
-ImmReader::~ImmReader() {
-
+UfxcReader::~UfxcReader() {
 }
 
-ImmBlock* ImmReader::NextFrames(int count) {
+ImmBlock* UfxcReader::NextFrames(int count) {
     int **index = new int*[count];
     float **value = new float*[count];
     double *clock = new double[count];
@@ -79,64 +118,64 @@ ImmBlock* ImmReader::NextFrames(int count) {
 
     std::vector<int> ppf;
 
+
     int done = 0, pxs = 0;
+
     while (done < count) {
-        // printf("inloop ftell(file_) %ld\n", ftell(file_));
-        fread(header_, 1024, 1, file_);
-        pxs = header_->dlen;
-        // printf("Buffer # = %ld, pxs = %d\n", header_->buffer_number, pxs);
+        clock[done] = last_frame_index;
+        ticks[done] = last_frame_index;
 
-        index[done] = new int[pxs];
-        value[done] = new float[pxs];
-        short *tmpmem = new short[pxs];
-        
-        if (compression_) {
-            fread(index[done], pxs * 4, 1, file_);
-        } 
-        
-        // else {
-        //     // for (int i = 0 ; i < pxs; i++)
-        //     //     index[done][i] = i;
-        // }
+        if (data_frames_.find(last_frame_index) == data_frames_.end()) {
+            index[done] = new int[0];
+            value[done] = new float[0];
 
-        fread(tmpmem, pxs * 2, 1, file_);
-        std::copy(tmpmem, tmpmem + pxs, value[done]);
-        delete [] tmpmem;
-        ppf.push_back(pxs);
+            ppf.push_back(0);
+            last_frame_index++;
+            done++;
+            continue;
+        }
 
-        clock[done] = header_->elapsed;
-        ticks[done] = header_->corecotick;
+        std::vector<uint> frame = data_frames_[last_frame_index];
+        index[done] = new int[frame.size()];
+        value[done] = new float[frame.size()];
+        ppf.push_back(frame.size());
+
+        int idx = 0;
+        for (auto& it : frame) {
+            uint pix = (it & 0x7fff);
+            int row = pix % frame_height_;
+            int col = pix / frame_height_;
+
+            float val = (it >> 15) & 0x3;
+            index[done][idx] = row * frame_width_ + col;
+            value[done][idx] = val;
+	        idx++;
+        }
         done++;
+        last_frame_index++;
     }
-
-    struct ImmBlock *ret = new ImmBlock;
+   
+    ImmBlock *ret = new ImmBlock;
     ret->index = index;
     ret->value = value;
     ret->frames = count;
     ret->pixels_per_frame = ppf;
     ret->clock = clock;
     ret->ticks = ticks;
-    ret->id = 0;
+    ret->id = 1;
 
     return ret;
 }
 
-void ImmReader::SkipFrames(int count) {
+void UfxcReader::SkipFrames(int count) {
     int done = 0;
-    int image_bytes = compression_ ? 6 : 2;
-
-    while (done < count) {
-        fread(header_, 1024, 1, file_);
-        fseek(file_, header_->dlen * image_bytes, SEEK_CUR);
-        done++;
-    }
 }
 
-void ImmReader::Reset() {
+void UfxcReader::Reset() {
     rewind(file_);
 }
 
-bool ImmReader::compression() { return compression_; }
+bool UfxcReader::compression() { return true; }
 
 } // namespace io
 } // namespace xpcs

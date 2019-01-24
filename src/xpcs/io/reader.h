@@ -45,55 +45,47 @@ POSSIBILITY OF SUCH DAMAGE.
 
 **/
 
-#include "stride.h"
+#ifndef XPCS_READER_H
+#define XPCS_READER_H
 
-#include <math.h>
-
-#include <stdio.h>
-#include <iostream>
-
-#include "xpcs/configuration.h"
-#include "xpcs/io/reader.h"
-#include "xpcs/data_structure/sparse_data.h"
+#include <vector>
+#include <string>
 
 namespace xpcs {
-namespace filter {
+namespace io {  
+
+struct ImmBlock {
+  int** index;
+  float** value;
+  int frames;
+  int id;
+  std::vector<int> pixels_per_frame;
+  double* clock;
+  double* ticks;
+};
 
 
-Stride::Stride() {
-  Configuration *conf = Configuration::instance();
-  stride_size_ = conf->FrameStride();
-}
+class Reader  {
 
-Stride::~Stride() {
+public:
 
-}
+  // Reader(){}
 
-void Stride::Apply(struct xpcs::io::ImmBlock* blk) {
-  int **indx = blk->index;
-  float **val = blk->value;
-  int frames = blk->frames;
-  std::vector<int> ppf = blk->pixels_per_frame;
+  // Reader(const std::string& filename) {}
 
-  int pixels = ppf[0];
+  // virtual ~Reader();
 
-  int **new_index = new int*[1];
-  new_index[0] = indx[0];
+  virtual  bool compression() = 0;
+  
+  virtual ImmBlock* NextFrames(int count = 1) = 0;
 
-  float **new_val = new float*[1];
-  new_val[0] = val[0];
+  virtual void SkipFrames(int count = 1) = 0;
 
-  int new_frames = 1;
-  std::vector<int> new_ppf = {pixels};
+  virtual void Reset() = 0;
+  
+};
 
-  blk->index = new_index;
-  blk->value = new_val;
-  blk->frames = new_frames;
-  blk->pixels_per_frame = new_ppf;
+} //namespace io
+} //namespace xpcs
 
-  //TODO smart pointers to handle memory
-}
-
-
-} // namespace io
-} // namespace xpcs
+#endif
