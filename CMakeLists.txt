@@ -50,16 +50,17 @@ if (OPENMP_FOUND)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
+# hdf5
+find_package(HDF5 REQUIRED)
 
-# TODO. Fix the hard-coded path. 
-include_directories("/usr/local/hdf5/include" 
-                    "src" 
-                    "src/external")
+# eigen3
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
-link_directories("/usr/local/hdf5/lib")
+# gflags
+find_package(gflags REQUIRED)
 
-add_subdirectory("src/external/gflags")
+include_directories("src" "src/external")
+
 add_executable(corr ${sources})
 
 target_link_libraries(corr hdf5 gflags)
-
