@@ -321,9 +321,7 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
 
     vector<tuple<int,int> > delays_per_level = delaysPerLevel(frames, conf->DelaysPerLevel(), maxLevel);
 
-    int pix = 355517;
-
-    #pragma omp parallel for default(none) schedule(dynamic) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
+    #pragma omp parallel for default(none) schedule(dynamic, 20) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
     for (int i = 0; i < validPixels.size(); i++)
     {
         data_structure::Row *row = data->Pixel(validPixels.at(i));
@@ -334,30 +332,17 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
         int lastIndex = row->indxPtr.size();
         int tauIndex = 0;
         int g2Index = 0;
-        
-        // if (validPixels.at(i) == pix) {
-        //     printf("Last Index %d\n", lastIndex);
-        // }
 
         for (vector<tuple<int, int> >::iterator it = delays_per_level.begin() ;
                 it != delays_per_level.end(); ++it)
         {
-
             // View of pixel data at two different tau values. 
             tuple<int, int> tau_level = *it;
             int level = get<0>(tau_level);
             int tau = get<1>(tau_level);
-            // int lastIndex;
-
-            // if (level == 0)
-            //     lastIndex = row->indxPtr.size();
-
+            
             if (ll != level)
             {   
-                // if (level == 7 and validPixels.at(i) == pix)
-                // {
-                //     printf ("...");
-                // }
                 if (lastframe % 2)
                     lastframe -= 1;
 
@@ -397,67 +382,13 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
 
                 for (int i = 0 ; i < lastIndex; i++) 
                     row->valPtr[i] /= 2.0f;
-
-
-
-                // if (row->indxPtr.size() == 1) {
-                //     row->indxPtr[index] = i0;
-                //     row->valPtr[index] = row->valPtr[index]/2.0f;
-                // }
-
-                // int inc;
-                // while (i1 < lastframe && cnt < lastIndex-1)
-                // {   
-                //     i0 = row->indxPtr[cnt] / 2;
-                //     i1 = row->indxPtr[cnt+1] / 2;
-                    
-                //     inc = 0;
-                //     if (i0 == i1)
-                //     {
-                //         row->indxPtr[index] = i0;
-                //         row->valPtr[index] = (row->valPtr[cnt] + row->valPtr[cnt+1]) / 2.0f;
-                //         inc = 2;
-                //     }
-                //     else
-                //     {
-                //         row->indxPtr[index] = i0;
-                //         row->valPtr[index] = row->valPtr[cnt] / 2.0f;
-                //         inc = 1;
-                //     }
-
-                //     cnt += inc;
-                //     index++; 
-
-                // }
-
-                // // In case,we are left with one off element
-                // if (i0 != i1 && i1 < lastframe && cnt < lastIndex)
-                // {
-                //     row->indxPtr[index] = i1;
-                //     row->valPtr[index] = row->valPtr[cnt] / 2.0f;
-                //     index++;
-                // }
-
-                // lastIndex = index;
-                
-
-                // if (validPixels.at(i) == pix) {
-                //     printf("level = %d, lastframe = %d, lastIndex = %d\n", level, lastframe, lastIndex);
-                //     for (int ii = 0; ii < lastIndex; ii++) {
-                //         printf("%d -> %f\n", row->indxPtr[ii], row->valPtr[ii]);
-                //     }
-                //     printf("\n");
-                // }
             }
 
             if (level > 0)
                 tau = tau / pow(2, level);
 
-            g2Index = tauIndex * pixels + validPixels[i]; // * delays_per_level.size() + tauIndex;
-    
-            //if (level > 1)
-             // printf("Level = %d, Tau = %d\n", level, tau);
-
+            g2Index = tauIndex * pixels + validPixels[i]; 
+            
             for (int r = 0; r < lastIndex; r++)
             {
                 int src = row->indxPtr[r];
@@ -467,23 +398,21 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
                     IPs[g2Index] += row->valPtr[r];
                     int limit = min(lastIndex, src+tau+1);
                     
+
                     for (int j = r+1; j < limit; j++)
                     {
                         dst = row->indxPtr[j];
                         if (dst == (src+tau)) {
                             G2s[g2Index] += row->valPtr[r] * row->valPtr[j];
-                           // if (level > 1)
-                            ///   printf("level=%d, src=%d dst=%d, tau=%d, (src+tau)=%d\n",level, src, dst, tau, (src+tau));
-                            //IFs[g2Index] += row->valPtr[j];
                         }
                     }
+
+
                 }
 
                 if (src >= tau && src < lastframe) {
-                  //if (level > 1) printf("src >= tau %d\n", src);
                   IFs[g2Index] += row->valPtr.at(r);
                 }
-
             }
 
             if ( (lastframe - tau) > 0) {
@@ -495,6 +424,7 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
             ll = level;
             tauIndex++;
         }
+    
     }
 }
 
@@ -549,7 +479,6 @@ void Corr::twotime(data_structure::SparseData *data)
       for (int j = 0; j < iptr.size(); j++) {
         int f = iptr[j];
         float val = vptr[j];
-	//printf("q-bin = %d, frame = %d, pixel = %d, value=%f\n", q, f, plist[i], val);
         sg[q * frames + f] += val;
       }       
     }
@@ -877,7 +806,6 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
 
     H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "norm-0-g2", g2);
     H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "norm-0-stderr", stdError);
-
 }
 
 double* Corr::computeG2Levels(const Eigen::MatrixXf &pixelData, 
