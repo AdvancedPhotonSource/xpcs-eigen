@@ -392,22 +392,24 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
             for (int r = 0; r < lastIndex; r++)
             {
                 int src = row->indxPtr[r];
-                int dst = src;
+                // int dst = src;
                 
                 if (src < (lastframe-tau)) {
                     IPs[g2Index] += row->valPtr[r];
                     int limit = min(lastIndex, src+tau+1);
+                    int pos = lower_bound(row->indxPtr.begin(), row->indxPtr.end(), src+tau) - (row->indxPtr.begin());
+                    if (row->indxPtr[pos] == (src+tau))
+                        G2s[g2Index] += row->valPtr[r] * row->valPtr[pos];
+
                     
-
-                    for (int j = r+1; j < limit; j++)
-                    {
-                        dst = row->indxPtr[j];
-                        if (dst == (src+tau)) {
-                            G2s[g2Index] += row->valPtr[r] * row->valPtr[j];
-                        }
-                    }
-
-
+                    // for (int j = r+1; j < limit; j++)
+                    // {
+                    //     dst = row->indxPtr[j];
+                    //     if (dst == (src+tau)) {
+                    //         G2s[g2Index] += row->valPtr[r] * row->valPtr[j];
+                    //         break;
+                    //     }
+                    // }
                 }
 
                 if (src >= tau && src < lastframe) {
@@ -424,7 +426,7 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
             ll = level;
             tauIndex++;
         }
-    
+        // break;
     }
 }
 
