@@ -395,8 +395,12 @@ int main(int argc, char** argv)
       xpcs::Benchmark benchmark("Computing G2 TwoTimes");
       xpcs::Corr::twotime(filter->Data());
     } else {
-      xpcs::Benchmark benchmark("Computing G2 MultiTau");
-      xpcs::Corr::multiTau2(filter->Data(), g2s, ips, ifs);
+
+      {
+        xpcs::Benchmark benchmark("Computing G2 MultiTau");
+        xpcs::Corr::multiTau2(filter->Data(), g2s, ips, ifs);
+      }
+      
       {
         xpcs::Benchmark benchmark("Normalizing Data");
         Eigen::MatrixXf G2s = Eigen::Map<Eigen::MatrixXf>(g2s, pixels, delays_per_level.size());
