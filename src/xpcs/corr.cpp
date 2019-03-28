@@ -398,7 +398,7 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
                     IPs[g2Index] += row->valPtr[r];
                     int limit = min(lastIndex, src+tau+1);
                     int pos = lower_bound(row->indxPtr.begin(), row->indxPtr.end(), src+tau) - (row->indxPtr.begin());
-                    if (row->indxPtr[pos] == (src+tau))
+                    if (pos < lastIndex && row->indxPtr[pos] == (src+tau))
                         G2s[g2Index] += row->valPtr[r] * row->valPtr[pos];
 
                     
