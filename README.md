@@ -17,12 +17,15 @@ You will need to have a latest (>= 3.5) version of```cmake``` installed in order
 
 Next, follow these steps:
 
-* Edit the CMakeLists.txt file:
-** Update the path to the HDF5 include file at line # 14
-** Update the path to the HDF5 library file at line # 15
-* Create a build directory under the root of the project ```mkdir build``
-* Run ```cmake ../``` from the build directory. 
-* Run ```make```
+* Install using ```apt```, ```yum```, ```pacman``` or your favourite package manager:
+    1. eigen3
+    2. hdf5
+    3. gflags
+    4. spdlog
+* Create a build directory under the root of the project 
+  ```mkdir build && cd build```
+* ```cmake ../``` 
+* ```make -j```
 
 
 This will generate the binary executable ```corr```. 
@@ -30,7 +33,7 @@ This will generate the binary executable ```corr```.
 ### Running
 ----
 
-The ```corr`` executable accepts two input arguments. The HDF5 containing the configuration for the analysis job and an `IMM` file containing the binary data. 
+The ```corr``` executable accepts two input arguments. The HDF5 containing the configuration for the analysis job and an `IMM` file containing the binary data. 
 
 ```
 ./corr configuration.hdf5 data.imm
