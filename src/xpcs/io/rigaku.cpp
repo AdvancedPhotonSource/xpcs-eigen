@@ -44,7 +44,7 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#include "ufxc_reader.h"
+#include "rigaku.h"
 
 #include <stdio.h>
 #include <iostream>
@@ -56,46 +56,35 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace xpcs {
 namespace io {
 
-UfxcReader::UfxcReader(const std::string& filename) {
+Rigaku::Rigaku(const std::string& filename) {
     file_ = fopen(filename.c_str(), "rb");
     if (file_ == NULL) return ; //TODO handle error
 
-    std::vector<uint> data;
+    std::vector<long long> data;
 
-    uint buffer[4096];
-    size_t read = fread(&buffer, sizeof(uint), 4096, file_);
+    long long buffer[4096];
+    size_t read = fread(&buffer, sizeof(long long), 4096, file_);
     while (read) {
         for (int i = 0; i < read; i++) {
             data.push_back(buffer[i]);
         }
-        read = fread(&buffer, sizeof(uint), 4096, file_);
+        read = fread(&buffer, sizeof(long long), 4096, file_);
     }
 
     auto it = data.begin();
-    uint value = *it >> 21;
-    uint f0 = value;
-    int counter = 0;
-    int idx = 1;
-    data_frames_[value - f0] = std::vector<uint>();
-    data_frames_[value-f0].push_back(*it);
+
+    uint frame = *it >> 40;
+   
+    data_frames_[frame] = std::vector<long long>();
+    data_frames_[frame].push_back(*it);
 
     ++it;
-    int bf = 0;
-    int ff = 0; // frame number
-    int tmp_count = 0;
     for(; it != data.end(); ++it) {
-        int diff = (*it >> 21) - value;
-        if (diff < -2000) {
-            bf += 2048;
-        } else if (diff > 2000) {
-            bf -= 2048;
-        } 
-        ff = (*it >> 21) + bf - f0;
-        if (data_frames_.find(ff) == data_frames_.end()) { 
-            data_frames_[ff] = std::vector<uint>();
-	}
-        data_frames_[ff].push_back(*it);
-        value = *it >> 21;
+        frame = *it >> 40;
+        if (data_frames_.find(frame) == data_frames_.end()) { 
+            data_frames_[frame] = std::vector<long long>();
+	    }
+        data_frames_[frame].push_back(*it);
     }
    
     last_frame_index = 0;
@@ -107,18 +96,16 @@ UfxcReader::UfxcReader(const std::string& filename) {
     printf("frame widht %d, frame height %d\n", frame_width_, frame_height_);
 }
 
-UfxcReader::~UfxcReader() {
+Rigaku::~Rigaku() {
 }
 
-ImmBlock* UfxcReader::NextFrames(int count) {
+ImmBlock* Rigaku::NextFrames(int count) {
     int **index = new int*[count];
     float **value = new float*[count];
     double *clock = new double[count];
     double *ticks = new double[count];
 
     std::vector<int> ppf;
-
-
     int done = 0, pxs = 0;
 
     while (done < count) {
@@ -135,18 +122,19 @@ ImmBlock* UfxcReader::NextFrames(int count) {
             continue;
         }
 
-        std::vector<uint> frame = data_frames_[last_frame_index];
+        std::vector<long long> frame = data_frames_[last_frame_index];
         index[done] = new int[frame.size()];
         value[done] = new float[frame.size()];
         ppf.push_back(frame.size());
 
         int idx = 0;
         for (auto& it : frame) {
-            uint pix = (it & 0x7fff);
+            uint pix = (it >> 16) & 0xFFFFF;
+            
             int row = pix % frame_height_;
             int col = pix / frame_height_;
 
-            float val = (it >> 15) & 0x3;
+            float val = it & 0x7FF;
             index[done][idx] = row * frame_width_ + col;
             value[done][idx] = val;
 	        idx++;
@@ -167,15 +155,15 @@ ImmBlock* UfxcReader::NextFrames(int count) {
     return ret;
 }
 
-void UfxcReader::SkipFrames(int count) {
+void Rigaku::SkipFrames(int count) {
     int done = 0;
 }
 
-void UfxcReader::Reset() {
+void Rigaku::Reset() {
     rewind(file_);
 }
 
-bool UfxcReader::compression() { return true; }
+bool Rigaku::compression() { return true; }
 
 } // namespace io
 } // namespace xpcs

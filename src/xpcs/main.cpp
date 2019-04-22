@@ -65,8 +65,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "h5_result.h"
 #include "benchmark.h"
 #include "xpcs/io/reader.h"
-#include "xpcs/io/imm_reader.h"
-#include "xpcs/io/ufxc_reader.h"
+#include "xpcs/io/imm.h"
+#include "xpcs/io/ufxc.h"
+#include "xpcs/io/rigaku.h"
 #include "xpcs/filter/filter.h"
 #include "xpcs/filter/sparse_filter.h"
 #include "xpcs/filter/dense_filter.h"
@@ -80,7 +81,8 @@ namespace spd = spdlog;
 
 DEFINE_bool(g2out, false, "Write intermediate output from G2 computation");
 DEFINE_bool(darkout, false, "Write dark average and std-data");
-DEFINE_bool(binary, false, "IF the file format is from photon counting detector.");
+DEFINE_bool(ufxc, false, "IF the file format is from ufxc photon counting detector.");
+DEFINE_bool(rigaku, false, "IF the file format is from rigaku photon counting detector.");
 DEFINE_int32(frameout, false, "Number of post-processed frames to write out for debuggin.");
 DEFINE_string(imm, "", "The path to IMM file. By default the file specified in HDF5 metadata is used");
 DEFINE_string(inpath, "", "The path prefix to replace");
@@ -182,11 +184,14 @@ int main(int argc, char** argv)
 
   xpcs::io::Reader *reader = NULL; 
 
-  if (FLAGS_binary) {
-    printf("Loading it as binary\n");
-    reader = new xpcs::io::UfxcReader(conf->getIMMFilePath().c_str());
+  if (FLAGS_ufxc) {
+    printf("Loading UFXC as binary\n");
+    reader = new xpcs::io::Ufxc(conf->getIMMFilePath().c_str());
+  } else if (FLAGS_rigaku) {
+    printf("Loading Rigaku as binary\n");
+    reader = new xpcs::io::Rigaku(conf->getIMMFilePath().c_str());
   } else {
-    reader = new xpcs::io::ImmReader(conf->getIMMFilePath().c_str());
+    reader = new xpcs::io::Imm(conf->getIMMFilePath().c_str());
   }
 
   xpcs::filter::Filter *filter = NULL;

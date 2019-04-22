@@ -45,15 +45,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 **/
 
-#ifndef XPCS_IMMHEADER_H
-#define XPCS_IMMHEADER_H
 
-#include <stdint.h>
+#ifndef XPCS_IMM_H
+#define XPCS_IMM_H
+
+#include "reader.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+
+#include "spdlog/spdlog.h"
 
 namespace xpcs {
 namespace io {
 
-class ImmHeader {
+class Header {
 
 public:
   int32_t             mode;               //comp mode
@@ -136,7 +143,36 @@ public:
   
 };
 
-} // namespace io
-} // namespace xpcs
+class Imm : public Reader {
+
+public:
+
+  Imm(const std::string& filename);
+   
+  ~Imm();
+
+  bool compression();
+
+  ImmBlock* NextFrames(int count = 1);
+
+  void SkipFrames(int count = 1);
+
+  void Reset();
+
+private:
+  
+  std::shared_ptr<spdlog::logger> logger_;
+
+  Header *header_;
+
+  FILE *file_;
+  // Internal data pointer for storing pixels. 
+  float *data_;
+
+  bool compression_;
+};
+
+} //namespace io
+} //namespace xpcs
 
 #endif
