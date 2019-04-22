@@ -44,54 +44,95 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-
-
-#ifndef XPCS_IMMREADER_H
-#define XPCS_IMMREADER_H
-
-#include "imm_header.h"
-#include "reader.h"
+#include "imm.h"
+// #include "reader.h"
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string>
+#include <iostream>
 
-#include "spdlog/spdlog.h"
+#include "xpcs/configuration.h"
+#include "xpcs/data_structure/dark_image.h"
 
 namespace xpcs {
 namespace io {
 
+Imm::Imm(const std::string& filename)  {
+    file_ = fopen(filename.c_str(), "rb");
 
-class ImmReader : public Reader {
+    if (file_ == NULL) return ; //TODO handle error
 
-public:
+    header_ = new Header();
+    fread(header_, 1024, 1, file_);
+    compression_ = header_->compression != 0 ? true : false;
+    rewind(file_);
+}
 
-  ImmReader(const std::string& filename);
-   
-  ~ImmReader();
+ImmBlock* Imm::NextFrames(int count) {
+    int **index = new int*[count];
+    float **value = new float*[count];
+    double *clock = new double[count];
+    double *ticks = new double[count];
 
-  bool compression();
+    std::vector<int> ppf;
 
-  ImmBlock* NextFrames(int count = 1);
+    int done = 0, pxs = 0;
+    while (done < count) {
+        // printf("inloop ftell(file_) %ld\n", ftell(file_));
+        fread(header_, 1024, 1, file_);
+        pxs = header_->dlen;
+        // printf("Buffer # = %ld, pxs = %d\n", header_->buffer_number, pxs);
 
-  void SkipFrames(int count = 1);
+        index[done] = new int[pxs];
+        value[done] = new float[pxs];
+        short *tmpmem = new short[pxs];
+        
+        if (compression_) {
+            fread(index[done], pxs * 4, 1, file_);
+        } 
+        
+        // else {
+        //     // for (int i = 0 ; i < pxs; i++)
+        //     //     index[done][i] = i;
+        // }
 
-  void Reset();
+        fread(tmpmem, pxs * 2, 1, file_);
+        std::copy(tmpmem, tmpmem + pxs, value[done]);
+        delete [] tmpmem;
+        ppf.push_back(pxs);
 
-private:
-  
-  std::shared_ptr<spdlog::logger> logger_;
+        clock[done] = header_->elapsed;
+        ticks[done] = header_->corecotick;
+        done++;
+    }
 
-  ImmHeader *header_;
+    struct ImmBlock *ret = new ImmBlock;
+    ret->index = index;
+    ret->value = value;
+    ret->frames = count;
+    ret->pixels_per_frame = ppf;
+    ret->clock = clock;
+    ret->ticks = ticks;
+    ret->id = 0;
 
-  FILE *file_;
-  // Internal data pointer for storing pixels. 
-  float *data_;
+    return ret;
+}
 
-  bool compression_;
-};
+void Imm::SkipFrames(int count) {
+    int done = 0;
+    int image_bytes = compression_ ? 6 : 2;
 
-} //namespace io
-} //namespace xpcs
+    while (done < count) {
+        fread(header_, 1024, 1, file_);
+        fseek(file_, header_->dlen * image_bytes, SEEK_CUR);
+        done++;
+    }
+}
 
-#endif
+void Imm::Reset() {
+    rewind(file_);
+}
+
+bool Imm::compression() { return compression_; }
+
+} // namespace io
+} // namespace xpcs
