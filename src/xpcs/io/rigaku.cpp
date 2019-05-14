@@ -52,23 +52,26 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 
 #include "xpcs/configuration.h"
+#include "../benchmark.h"
 
 namespace xpcs {
 namespace io {
 
 Rigaku::Rigaku(const std::string& filename) {
+    xpcs::Benchmark benchmark("Reading rigaku file");
     file_ = fopen(filename.c_str(), "rb");
     if (file_ == NULL) return ; //TODO handle error
 
     std::vector<long long> data;
 
-    long long buffer[4096];
-    size_t read = fread(&buffer, sizeof(long long), 4096, file_);
+    long buffer_size = 4096 * 10;
+    long long buffer[buffer_size];
+    size_t read = fread(&buffer, sizeof(long long), buffer_size, file_);
     while (read) {
         for (int i = 0; i < read; i++) {
             data.push_back(buffer[i]);
         }
-        read = fread(&buffer, sizeof(long long), 4096, file_);
+        read = fread(&buffer, sizeof(long long), buffer_size, file_);
     }
 
     auto it = data.begin();
