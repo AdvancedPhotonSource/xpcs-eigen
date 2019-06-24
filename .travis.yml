@@ -1,0 +1,29 @@
+dist: xenial
+language: c++
+sudo: false
+
+cache:
+  directories:
+    - $HOME/.cache/pip
+    - $HOME/.cache/ccache
+
+addons:
+  apt:
+    packages:
+      - libeigen3-dev
+      - libhdf5-dev
+      - libgflags-dev
+      - libspdlog-dev
+
+before_install:
+  - git submodule update --init --recursive
+
+install:
+  - cd build/
+  - cmake ../
+  - make -j
+
+# TODO
+# Run tests here.
+# script:
+#   - 
