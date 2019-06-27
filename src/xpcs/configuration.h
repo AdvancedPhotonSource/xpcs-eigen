@@ -91,11 +91,11 @@ public:
   int getTotalDynamicPartitions();
   int getStaticWindowSize();
   int DelaysPerLevel();
-
+  int DelaysPerLevelBursts();
   int FrameStride();
   int FrameAverage();
-
   int Two2OneWindowSize();
+  int NumberOfBursts();
   
   std::string getFilename();
   std::string& getIMMFilePath();
@@ -168,6 +168,7 @@ private:
   int darkFrames;
   int m_staticWindow;
   int delays_per_level_;
+  int delays_per_level_burst_;
   int two2one_window_size_;
 
   int *pixels_per_bin;
@@ -176,6 +177,8 @@ private:
   
   int frame_stride_;
   int frame_average_;
+
+  int number_of_bursts_;
 
   float m_detDpixX;
   float m_detDpixY;

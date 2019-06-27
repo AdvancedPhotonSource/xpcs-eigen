@@ -89,191 +89,42 @@ DEFINE_string(inpath, "", "The path prefix to replace");
 DEFINE_string(outpath, "", "The path prefix to replace with");
 DEFINE_string(entry, "", "The metadata path in HDF5 file");
 
-int main(int argc, char** argv)
+void run(xpcs::Configuration *conf,
+        xpcs::filter::Filter *filter,
+        struct xpcs::io::ImmBlock* data
+        )
 {
+  if (FLAGS_frameout > 0 && FLAGS_frameout < frames) {
+    xpcs::data_structure::SparseData *data = filter->Data();
+    int fcount = FLAGS_frameout;
+    f = 0;
 
-  if (argc < 2) {
-      fprintf(stderr, "Please specify a HDF5 metadata file\n");
-      return 1;
-  }
+    float* data_out = new float[pixels * fcount];
 
-  xpcs::Benchmark total("Total");
- 
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+    for (int i = 0; i < (pixels*fcount); i++)
+      data_out[i] = 0.0f;
 
-  auto console = spd::stdout_color_mt("console");
+    for (int j = 0; j < pixels; j++) {
+      if (!data->Exists(j)) continue;
 
-  std::string entry = "/xpcs";
+      xpcs::data_structure::Row *row = data->Pixel(j);
+      for (int x = 0; x < row->indxPtr.size(); x++) {
+        int f = row->indxPtr[x];
+        float v = row->valPtr[x];
 
-  if (!FLAGS_entry.empty())
-      entry = FLAGS_entry;
+        if (f >= fcount) break;
 
-  console->info("H5 metadata path {}", entry.c_str());
-
-  xpcs::Configuration *conf = xpcs::Configuration::instance();
-  conf->init(argv[1], entry);
-
-  if (!FLAGS_imm.empty())
-      conf->setIMMFilePath(FLAGS_imm);
-
-  if (!FLAGS_inpath.empty() and !FLAGS_outpath.empty())
-  {
-      std::string file = conf->getIMMFilePath();
-      std::string::size_type pos = file.find(FLAGS_inpath);
-
-      if (pos != std::string::npos)
-      {
-          file.replace(file.begin()+pos,
-                       file.end()-(strlen(file.c_str()) - strlen(FLAGS_inpath.c_str())),
-                       FLAGS_outpath.begin(), FLAGS_outpath.end());
-      }
-
-      conf->setIMMFilePath(file);
-  }
-
-  console->info("Processing IMM file at path {}..", conf->getIMMFilePath().c_str());
-  struct stat st;
-  if(stat(conf->getIMMFilePath().c_str(), &st) == 0) {
-    char prefix[] = {' ', 'K', 'M', 'G', 'T'};
-    unsigned long size = st.st_size;
-    int suffix = 0;
-    while (size >= 1024) {
-       size = size / 1024;
-       suffix++;
-    }
-
-    console->info("File size {0} {1}bytes", suffix > 0 ? (float)st.st_size/ pow(1024.0, suffix) : st.st_size, prefix[suffix]);
-  }
-
-  int* dqmap = conf->getDQMap();
-  int *sqmap = conf->getSQMap();
-
-  int frames = conf->getFrameTodoCount();
-  int frameFrom = conf->getFrameStartTodo();
-  int frameTo = frameFrom + frames; //conf->getFrameEndTodo();
-  int swindow = conf->getStaticWindowSize();
-  int stride_factor = conf->FrameStride();
-  int average_factor = conf->FrameAverage();
-
-  console->info("Data frames={0} stride={1} average={2}", frames, stride_factor, average_factor);
-  console->debug("Frames count={0}, from={1}, todo={2}", frames, frameFrom, frameTo);
-
-  int pixels = conf->getFrameWidth() * conf->getFrameHeight();
-  int maxLevel = xpcs::Corr::calculateLevelMax(frames, conf->DelaysPerLevel());
-  vector<std::tuple<int,int> > delays_per_level = xpcs::Corr::delaysPerLevel(frames, conf->DelaysPerLevel(), maxLevel);
-  
-  /* Print block to debug delays_per_level aka tau values. 
-  int maxLevel_tmp = xpcs::Corr::calculateLevelMax(512, conf->DelaysPerLevel());
-  vector<std::tuple<int,int> > delays_per_level_tmp = xpcs::Corr::delaysPerLevel(512, conf->DelaysPerLevel(), maxLevel_tmp);
-  for (int i = 0; i < delays_per_level_tmp.size(); i++) {
-    std::tuple<int, int> d = delays_per_level_tmp[i];
-    printf("%d - %d\n", std::get<0>(d), std::get<1>(d)); 
-    
-  }
-  return 0;*/
-
-  float* g2s = new float[pixels * delays_per_level.size()];
-  float* ips = new float[pixels * delays_per_level.size()];
-  float* ifs = new float[pixels * delays_per_level.size()];
-
-  for (int i = 0; i < (pixels * delays_per_level.size()); i++) {
-    g2s[i] = 0.0f;
-    ips[i] = 0.0f;
-    ifs[i] = 0.0f;
-  }
-
-  xpcs::io::Reader *reader = NULL; 
-
-  if (FLAGS_ufxc) {
-    printf("Loading UFXC as binary\n");
-    reader = new xpcs::io::Ufxc(conf->getIMMFilePath().c_str());
-  } else if (FLAGS_rigaku) {
-    printf("Loading Rigaku as binary\n");
-    reader = new xpcs::io::Rigaku(conf->getIMMFilePath().c_str());
-  } else {
-    reader = new xpcs::io::Imm(conf->getIMMFilePath().c_str());
-  }
-
-  xpcs::filter::Filter *filter = NULL;
-  
-  xpcs::data_structure::DarkImage *dark_image = NULL;
-  {
-    xpcs::Benchmark benchmark("Loading data");
-
-    int r = 0;
-
-    if (!reader->compression()) {
-      int dark_s = conf->getDarkFrameStart();
-      int dark_e = conf->getDarkFrameEnd();
-      int darks = conf->getDarkFrames();
-
-      if (dark_s != dark_e) {
-        struct xpcs::io::ImmBlock *data = reader->NextFrames(darks);
-        dark_image = new xpcs::data_structure::DarkImage(data->value, darks, pixels, conf->getFlatField());
-        r += darks;
+        data_out[f*pixels+j] = v;
       }
     }
-    
-    if (frameFrom > 0 && r < frameFrom) {
-      reader->SkipFrames(frameFrom - r);
-      r += (frameFrom - r);
-    }
 
-    if (reader->compression()) {
-      filter = new xpcs::filter::SparseFilter();
-    }
-    else {
-      filter = new xpcs::filter::DenseFilter(dark_image);
-    }
-
-    xpcs::filter::Stride stride;
-    // xpcs::filter::Average average;
-    // xpcs::filter::DenseAverage dense_average;
-
-    int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
-    if (stride_factor > 1 && average_factor > 1)
-      read_in_count = stride_factor * average_factor;
-
-    // The last frame outside the stride will be ignored. 
-    int f = 0;
-    while (f < frames) {
-      struct xpcs::io::ImmBlock* data = reader->NextFrames(read_in_count);
-      filter->Apply(data);
-      f++;
-    }
-
-    if (FLAGS_frameout > 0 && FLAGS_frameout < frames) {
-      xpcs::data_structure::SparseData *data = filter->Data();
-      int fcount = FLAGS_frameout;
-      f = 0;
-
-      float* data_out = new float[pixels * fcount];
-
-      for (int i = 0; i < (pixels*fcount); i++)
-        data_out[i] = 0.0f;
-
-      for (int j = 0; j < pixels; j++) {
-        if (!data->Exists(j)) continue;
-
-        xpcs::data_structure::Row *row = data->Pixel(j);
-        for (int x = 0; x < row->indxPtr.size(); x++) {
-          int f = row->indxPtr[x];
-          float v = row->valPtr[x];
-
-          if (f >= fcount) break;
-
-          data_out[f*pixels+j] = v;
-        }
-      }
-
-      xpcs::H5Result::write3DData(conf->getFilename(), 
-                        conf->OutputPath(), 
-                        "frames_out", 
-                        conf->getFrameHeight(), 
-                        conf->getFrameWidth(),
-                        fcount, 
-                        data_out);
-    }
+    xpcs::H5Result::write3DData(conf->getFilename(), 
+                      conf->OutputPath(), 
+                      "frames_out", 
+                      conf->getFrameHeight(), 
+                      conf->getFrameWidth(),
+                      fcount, 
+                      data_out);
   }
 
   float* frames_sum = filter->FramesSum();
@@ -298,10 +149,6 @@ int main(int argc, char** argv)
     }
   }
 
-    /*xpcs::data_structure::SparseData *data = filter->Data();
-  xpcs::data_structure::Row *arow = data->Pixel(1133);
-  printf("Value = %f\n", arow->valPtr[0]);*/
-  
   float* pixels_sum = filter->PixelsSum();
   for (int i = 0 ; i < pixels; i++) {
     pixels_sum[i] /= frames;
@@ -446,5 +293,148 @@ int main(int argc, char** argv)
                                   dark_std);
     }
   }
+
 }
 
+
+int main(int argc, char** argv)
+{
+
+  if (argc < 2) {
+      fprintf(stderr, "Please specify a HDF5 metadata file\n");
+      return 1;
+  }
+
+  xpcs::Benchmark total("Total");
+ 
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+
+  auto console = spd::stdout_color_mt("console");
+
+  std::string entry = "/xpcs";
+
+  if (!FLAGS_entry.empty())
+      entry = FLAGS_entry;
+
+  console->info("H5 metadata path {}", entry.c_str());
+
+  xpcs::Configuration *conf = xpcs::Configuration::instance();
+  conf->init(argv[1], entry);
+
+  if (!FLAGS_imm.empty())
+      conf->setIMMFilePath(FLAGS_imm);
+
+  if (!FLAGS_inpath.empty() and !FLAGS_outpath.empty())
+  {
+      std::string file = conf->getIMMFilePath();
+      std::string::size_type pos = file.find(FLAGS_inpath);
+
+      if (pos != std::string::npos)
+      {
+          file.replace(file.begin()+pos,
+                       file.end()-(strlen(file.c_str()) - strlen(FLAGS_inpath.c_str())),
+                       FLAGS_outpath.begin(), FLAGS_outpath.end());
+      }
+
+      conf->setIMMFilePath(file);
+  }
+
+  console->info("Processing IMM file at path {}..", conf->getIMMFilePath().c_str());
+  struct stat st;
+  if(stat(conf->getIMMFilePath().c_str(), &st) == 0) {
+    char prefix[] = {' ', 'K', 'M', 'G', 'T'};
+    unsigned long size = st.st_size;
+    int suffix = 0;
+    while (size >= 1024) {
+       size = size / 1024;
+       suffix++;
+    }
+
+    console->info("File size {0} {1}bytes", suffix > 0 ? (float)st.st_size/ pow(1024.0, suffix) : st.st_size, prefix[suffix]);
+  }
+
+  int* dqmap = conf->getDQMap();
+  int *sqmap = conf->getSQMap();
+
+  int frames = conf->getFrameTodoCount();
+  int frameFrom = conf->getFrameStartTodo();
+  int frameTo = frameFrom + frames; //conf->getFrameEndTodo();
+  int swindow = conf->getStaticWindowSize();
+  int stride_factor = conf->FrameStride();
+  int average_factor = conf->FrameAverage();
+  int bursts = conf->NumberOfBursts();
+
+  console->info("Data frames={0} stride={1} average={2}", frames, stride_factor, average_factor);
+  console->debug("Frames count={0}, from={1}, todo={2}", frames, frameFrom, frameTo);
+  console->debug("Brust count={0}", bursts);
+
+  int pixels = conf->getFrameWidth() * conf->getFrameHeight();
+  int maxLevel = xpcs::Corr::calculateLevelMax(frames, conf->DelaysPerLevel());
+  vector<std::tuple<int,int> > delays_per_level = xpcs::Corr::delaysPerLevel(frames, conf->DelaysPerLevel(), maxLevel);
+
+  float* g2s = new float[pixels * delays_per_level.size()];
+  float* ips = new float[pixels * delays_per_level.size()];
+  float* ifs = new float[pixels * delays_per_level.size()];
+
+  for (int i = 0; i < (pixels * delays_per_level.size()); i++) {
+    g2s[i] = 0.0f;
+    ips[i] = 0.0f;
+    ifs[i] = 0.0f;
+  }
+
+  xpcs::io::Reader *reader = NULL; 
+
+  if (FLAGS_ufxc) {
+    printf("Loading UFXC as binary\n");
+    reader = new xpcs::io::Ufxc(conf->getIMMFilePath().c_str());
+  } else if (FLAGS_rigaku) {
+    printf("Loading Rigaku as binary\n");
+    reader = new xpcs::io::Rigaku(conf->getIMMFilePath().c_str());
+  } else {
+    reader = new xpcs::io::Imm(conf->getIMMFilePath().c_str());
+  }
+
+  xpcs::filter::Filter *filter = NULL;
+  xpcs::data_structure::DarkImage *dark_image = NULL;
+  {
+    xpcs::Benchmark benchmark("Loading data");
+
+    int r = 0;
+
+    if (!reader->compression()) {
+      int dark_s = conf->getDarkFrameStart();
+      int dark_e = conf->getDarkFrameEnd();
+      int darks = conf->getDarkFrames();
+
+      if (dark_s != dark_e) {
+        struct xpcs::io::ImmBlock *data = reader->NextFrames(darks);
+        dark_image = new xpcs::data_structure::DarkImage(data->value, darks, pixels, conf->getFlatField());
+        r += darks;
+      }
+    }
+    
+    if (frameFrom > 0 && r < frameFrom) {
+      reader->SkipFrames(frameFrom - r);
+      r += (frameFrom - r);
+    }
+
+    if (reader->compression()) {
+      filter = new xpcs::filter::SparseFilter();
+    }
+    else {
+      filter = new xpcs::filter::DenseFilter(dark_image);
+    }
+
+    int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
+    if (stride_factor > 1 && average_factor > 1)
+      read_in_count = stride_factor * average_factor;
+
+    // The last frame outside the stride will be ignored. 
+    int f = 0;
+    while (f < frames) {
+      struct xpcs::io::ImmBlock* data = reader->NextFrames(read_in_count);
+      filter->Apply(data);
+      f++;
+    }
+  }
+}

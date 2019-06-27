@@ -186,9 +186,17 @@ void Configuration::init(const std::string &path, const std::string& entry)
 
     m_immFile = getString(entry + "/input_file_local");
     {
-        Benchmark conf("BuildQMap()");
-        BuildQMap();
+      Benchmark conf("BuildQMap()");
+      BuildQMap();
     }
+
+    // Burst mode
+    number_of_bursts_ = 0;
+    delays_per_level_burst_ = delays_per_level_;
+    try {
+      number_of_bursts_ = getLong("/measurement/instrument/detector/burst/number_of_bursts");
+      delays_per_level_burst_ = getLong(entry + "/delays_per_level_burst");
+    } catch (const std::exception& e) {}
     
 
     H5Fclose(file_id);
@@ -693,6 +701,11 @@ std::vector<int>& Configuration::TwoTimeQMask()
 int Configuration::Two2OneWindowSize()
 {
   return two2one_window_size_;
+}
+
+int Configuration::NumberOfBursts()
+{
+  return number_of_bursts_;
 }
 
 }

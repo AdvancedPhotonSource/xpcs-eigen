@@ -219,13 +219,12 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
 
         if (ll != level)
         {
-
             // level change, smooth out intensities.
             if (lastframe % 2)
                 lastframe -= 1;
 
             lastframe = lastframe / 2;
-            float* vals = pixelData.valuePtr();
+            float *vals = pixelData.valuePtr();
             int *ind = pixelData.innerIndexPtr();
             int *outer = pixelData.outerIndexPtr();
 
