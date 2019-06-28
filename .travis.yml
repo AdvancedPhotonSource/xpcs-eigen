@@ -19,6 +19,7 @@ before_install:
   - git submodule update --init --recursive
 
 install:
+  - mkdir build
   - cd build/
   - cmake ../
   - make -j
