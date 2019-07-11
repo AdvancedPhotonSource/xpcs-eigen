@@ -89,13 +89,13 @@ DEFINE_string(inpath, "", "The path prefix to replace");
 DEFINE_string(outpath, "", "The path prefix to replace with");
 DEFINE_string(entry, "", "The metadata path in HDF5 file");
 
-void run(xpcs::Configuration *conf,
+void compute(xpcs::Configuration *conf,
         xpcs::filter::Filter *filter,
         struct xpcs::io::ImmBlock* data
         )
 {
+  
   float* frames_sum = filter->FramesSum();
-
   // if (conf->IsNormalizedByFramesum()) {
   //   xpcs::Benchmark benchmark("Normalize by Frame-sum took ");
   //   float sum_of_framesums = 0.0f;
@@ -392,18 +392,29 @@ int main(int argc, char** argv)
       filter = new xpcs::filter::DenseFilter(dark_image);
     }
 
-    int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
-    if (stride_factor > 1 && average_factor > 1)
-      read_in_count = stride_factor * average_factor;
+    int burst_size = conf->NumberOfBursts();
+    int read_in_count = 1;
+
+    if (burst_size > 1) {
+      read_in_count = burst_size;
+      frames = frames / burst_size;
+    } else {
+      stride_factor > 1 ? stride_factor : average_factor;
+      if (stride_factor > 1 && average_factor > 1)
+        read_in_count = stride_factor * average_factor;
+    }
 
     // The last frame outside the stride will be ignored. 
     int f = 0;
     while (f < frames) {
       struct xpcs::io::ImmBlock* data = reader->NextFrames(read_in_count);
       filter->Apply(data);
+
+      compute(conf, filter, data);
+
       f++;
     }
-    
+
   }
 
 }

@@ -95,6 +95,14 @@ void Configuration::init(const std::string &path, const std::string& entry)
     this->ydim = getInteger("/measurement/instrument/detector/y_dimension");
 
     // Subtract 1 to make the index zero based. 
+     // Burst mode
+    number_of_bursts_ = 1;
+    delays_per_level_burst_ = delays_per_level_;
+    try {
+      number_of_bursts_ = getLong("/measurement/instrument/detector/burst/number_of_bursts");
+      delays_per_level_burst_ = getLong(entry + "/delays_per_level_burst");
+    } catch (const std::exception& e) {}
+    
     this->frameStart = getInteger(entry + "/data_begin");
     this->frameEnd = getInteger(entry + "/data_end");
     frameStartTodo = getInteger(entry + "/data_begin_todo");
@@ -189,15 +197,6 @@ void Configuration::init(const std::string &path, const std::string& entry)
       Benchmark conf("BuildQMap()");
       BuildQMap();
     }
-
-    // Burst mode
-    number_of_bursts_ = 0;
-    delays_per_level_burst_ = delays_per_level_;
-    try {
-      number_of_bursts_ = getLong("/measurement/instrument/detector/burst/number_of_bursts");
-      delays_per_level_burst_ = getLong(entry + "/delays_per_level_burst");
-    } catch (const std::exception& e) {}
-    
 
     H5Fclose(file_id);
 }

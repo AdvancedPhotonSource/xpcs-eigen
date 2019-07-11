@@ -80,12 +80,19 @@ SparseFilter::SparseFilter() {
   stride_size_ = conf->FrameStride();
   average_size_ = conf->FrameAverage();
   normalizedByFramesum_ = conf->IsNormalizedByFramesum();
+  int burst_size = conf->NumberOfBursts();
 
   int partitions = (int) ceil((double)frames_todo_/swindow_);
   partial_partitions_mean_ = new float[total_static_partns_ * partitions];
   partitions_mean_ = new float[total_static_partns_];
   pixels_sum_ = new float[frame_width_ * frame_height_];
-  frames_sum_ =  new float[2 * conf->getFrameTodoCount()];
+  int frames_sum_count = conf->getFrameTodoCount();
+  
+  if (burst_size > 1) {
+    frames_sum_count = burst_size;
+  }
+
+  frames_sum_ =  new float[2 * frames_sum_count];
   pixels_value_ = new float[frame_width_ * frame_height_];
   sparse_map_ = new short[frame_width_ * frame_height_];
   real_frames_todo_ = conf->getRealFrameTodoCount();
@@ -126,13 +133,13 @@ void SparseFilter::Apply(xpcs::io::ImmBlock* blk) {
   }
 
   // Get the clock information from the blks
-  for (int i = 0; i < frames; i++) {
-    timestamp_clock_[global_frame_index_] = global_frame_index_ + 1;
-    timestamp_clock_[global_frame_index_ + real_frames_todo_] = blk->clock[i];
-    timestamp_ticks_[global_frame_index_] = global_frame_index_ + 1;
-    timestamp_ticks_[global_frame_index_ + real_frames_todo_] = blk->ticks[i];
-    global_frame_index_++;
-  }
+  // for (int i = 0; i < frames; i++) {
+  //   timestamp_clock_[global_frame_index_] = global_frame_index_ + 1;
+  //   timestamp_clock_[global_frame_index_ + real_frames_todo_] = blk->clock[i];
+  //   timestamp_ticks_[global_frame_index_] = global_frame_index_ + 1;
+  //   timestamp_ticks_[global_frame_index_ + real_frames_todo_] = blk->ticks[i];
+  //   global_frame_index_++;
+  // }
 
   // Keep track of pixels that were part of any of the frame. 
   for (int i = 0; i < frames; i+=stride_size_) {
