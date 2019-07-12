@@ -416,9 +416,9 @@ int main(int argc, char** argv)
 
         if (FLAGS_g2out) {
           xpcs::Benchmark b("Writing G2s, IPs and IFs");
-          xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "G2", pixels, delays_per_level.size(), g2s);
-          xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IP", pixels, delays_per_level.size(), ips);
-          xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF", pixels, delays_per_level.size(), ifs);
+          xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "G2", G2s);
+          xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IP", IPs);
+          xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF", IFs);
         }
 
       }
