@@ -174,7 +174,9 @@ void SparseFilter::Apply(xpcs::io::ImmBlock* blk) {
     row->valPtr.push_back(v);
 
     sbin = sbin_mask_[pix] - 1;
+    
     partitions_mean_[sbin] += v;
+
     partial_partitions_mean_[partition_no_ * total_static_partns_ + sbin ] += v;
 
   }
