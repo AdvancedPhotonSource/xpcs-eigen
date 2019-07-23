@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 **/
 
-#include "sparse_filter.h"
+#include "sparse_filter_burst.h"
 
 #include <math.h>
 #include <set>
@@ -61,7 +61,7 @@ namespace xpcs {
 namespace filter {
 
 
-SparseFilter::SparseFilter() {
+SparseBurstFilter::SparseBurstFilter() {
   Configuration *conf = Configuration::instance();
 
   pixel_mask_ = conf->getPixelMask();
@@ -80,7 +80,7 @@ SparseFilter::SparseFilter() {
   stride_size_ = conf->FrameStride();
   average_size_ = conf->FrameAverage();
   normalizedByFramesum_ = conf->IsNormalizedByFramesum();
-  int burst_size = conf->NumberOfBursts();
+  burst_size_ = conf->NumberOfBursts();
 
   int partitions = (int) ceil((double)frames_todo_/swindow_);
   partial_partitions_mean_ = new float[total_static_partns_ * partitions];
@@ -96,9 +96,7 @@ SparseFilter::SparseFilter() {
   pixels_value_ = new float[frame_width_ * frame_height_];
   sparse_map_ = new short[frame_width_ * frame_height_];
   real_frames_todo_ = conf->getRealFrameTodoCount();
-  timestamp_clock_ = new double[2 * real_frames_todo_];
-  timestamp_ticks_ = new double[2 * real_frames_todo_];
-
+  
   frame_index_ = 0;
   global_frame_index_ = 0;
   partition_no_ = 0;
@@ -112,15 +110,14 @@ SparseFilter::SparseFilter() {
   for (int i = 0; i < (frame_width_ * frame_height_); i++)
     pixels_sum_[i] = 0.0f;
 
-  data_ = new xpcs::data_structure::SparseData(frame_width_ * frame_height_);
+  data_ = new new xpcs::data_structure::SparseData(frame_width_ * frame_height_);
+}
+
+SparseBurstFilter::~SparseBurstFilter() {
 
 }
 
-SparseFilter::~SparseFilter() {
-
-}
-
-void SparseFilter::Apply(xpcs::io::ImmBlock* blk) {
+void SparseBurstFilter::Apply(xpcs::io::ImmBlock* blk) {
   int **indx = blk->index;
   float **val = blk->value;
   int frames = blk->frames;
@@ -132,17 +129,15 @@ void SparseFilter::Apply(xpcs::io::ImmBlock* blk) {
     sparse_map_[j] = 0;
   }
 
-  // Get the clock information from the blks
-  // for (int i = 0; i < frames; i++) {
-  //   timestamp_clock_[global_frame_index_] = global_frame_index_ + 1;
-  //   timestamp_clock_[global_frame_index_ + real_frames_todo_] = blk->clock[i];
-  //   timestamp_ticks_[global_frame_index_] = global_frame_index_ + 1;
-  //   timestamp_ticks_[global_frame_index_ + real_frames_todo_] = blk->ticks[i];
-  //   global_frame_index_++;
-  // }
+  if (burst_data_) {
+    //TODO
+  }
+
+  bust_data_ = new xpcs::data_structure::SparseData(frame_width_ * frame_height_);
+  assert(frames == burst_size_);
 
   // Keep track of pixels that were part of any of the frame. 
-  for (int i = 0; i < frames; i+= stride_size_) {
+  for (int i = 0; i < frames; i++) {
     int pixels = ppf[i];
     int *index = indx[i];
     float *value = val[i];
@@ -153,14 +148,14 @@ void SparseFilter::Apply(xpcs::io::ImmBlock* blk) {
         int pix = index[j];
         float v = value[j] * flatfield_[pix];
 
+        xpcs::data_structure::Row *row = dbust_data_ata_->Pixel(pix);
+        row->indxPtr.push_back(pix);
+        row->valPtr.push_back(v);
+
         pixels_value_[pix] += v;
         sparse_map_[pix] = 1; 
       }
     }
-  }
-
-  if (frame_index_ > 0 && (frame_index_ % static_window_) == 0) {
-    partition_no_++;
   }
 
   int ind = 0;
@@ -171,6 +166,7 @@ void SparseFilter::Apply(xpcs::io::ImmBlock* blk) {
     if (sparse_map_[i] == 0) continue;
 
     int pix = i;
+
     float v = pixels_value_[pix] /(float)average_size_;
 
     pixels_sum_[pix] += v;
@@ -180,44 +176,42 @@ void SparseFilter::Apply(xpcs::io::ImmBlock* blk) {
     row->indxPtr.push_back(frame_index_);
     row->valPtr.push_back(v);
 
-    sbin = sbin_mask_[pix] - 1;
-    partitions_mean_[sbin] += v;
-    partial_partitions_mean_[partition_no_ * total_static_partns_ + sbin ] += v;
-
   }
 
-  frames_sum_[frame_index_] = frame_index_ + 1.0;
-  frames_sum_[frame_index_ + frames_todo_] = f_sum / (float)pix_cnt;
+  // frames_sum_[frame_index_] = f_sum / (float)pix_cnt;
   frame_index_++;
-
 }
 
-float* SparseFilter::PixelsSum() {
+float* SparseBurstFilter::PixelsSum() {
   return pixels_sum_;
 }
 
-float* SparseFilter::FramesSum() {
+float* SparseBurstFilter::FramesSum() {
   return frames_sum_;
 }
 
-float* SparseFilter::PartitionsMean() {
+float* SparseBurstFilter::PartitionsMean() {
   return partitions_mean_;
 }
 
-float* SparseFilter::PartialPartitionsMean() {
+float* SparseBurstFilter::PartialPartitionsMean() {
   return partial_partitions_mean_;
 }
 
-double* SparseFilter::TimestampClock() {
+double* SparseBurstFilter::TimestampClock() {
   return timestamp_clock_;
 }
 
-double* SparseFilter::TimestampTicks() {
+double* SparseBurstFilter::TimestampTicks() {
   return timestamp_ticks_;
 }
 
-xpcs::data_structure::SparseData* SparseFilter::Data() {
+xpcs::data_structure::SparseData* SparseBurstFilter::Data() {
   return data_;
+}
+
+xpcs::data_structure::SparseData* SparseBurstFilter::BurstData() {
+  return burst_data_;
 }
 
 } // namespace io

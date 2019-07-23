@@ -89,111 +89,50 @@ DEFINE_string(inpath, "", "The path prefix to replace");
 DEFINE_string(outpath, "", "The path prefix to replace with");
 DEFINE_string(entry, "", "The metadata path in HDF5 file");
 
-void compute(xpcs::Configuration *conf,
-        xpcs::filter::Filter *filter,
-        struct xpcs::io::ImmBlock* data
-        )
+void compute_burst_data(xpcs::Configuration *conf)
 {
-  
-  float* frames_sum = filter->FramesSum();
-  // if (conf->IsNormalizedByFramesum()) {
-  //   xpcs::Benchmark benchmark("Normalize by Frame-sum took ");
-  //   float sum_of_framesums = 0.0f;
-  //   float framesums_mean = 0.0f;
-  //   for (int i = 0 ; i < frames; i++) {
-  //     sum_of_framesums += frames_sum[i+frames];
-  //   }
-  //   framesums_mean = sum_of_framesums / frames;
+  int frames = conf->getFrameTodoCount();
 
-  //   xpcs::data_structure::SparseData *data = filter->Data();
-  //   for (int j = 0; j < pixels; j++) {
-  //     if (!data->Exists(j)) continue;
+  int pixels = conf->getFrameWidth() * conf->getFrameHeight();
+  int maxLevel = xpcs::Corr::calculateLevelMax(frames, conf->DelaysPerLevel());
+  vector<std::tuple<int,int> > delays_per_level = xpcs::Corr::delaysPerLevel(frames, conf->DelaysPerLevel(), maxLevel);
 
-  //     xpcs::data_structure::Row *row = data->Pixel(j);
-  //     for (int x = 0; x < row->indxPtr.size(); x++) {
-  //       int f = row->indxPtr[x];
-  //       row->valPtr[x] = row->valPtr[x] / (frames_sum[f+frames] / framesums_mean);
-  //     }
-  //   }
-  // }
+  float* g2s = new float[pixels * delays_per_level.size()];
+  float* ips = new float[pixels * delays_per_level.size()];
+  float* ifs = new float[pixels * delays_per_level.size()];
 
-  // float* pixels_sum = filter->PixelsSum();
-  // for (int i = 0 ; i < pixels; i++) {
-  //   pixels_sum[i] /= frames;
-  // }
+  for (int i = 0; i < (pixels * delays_per_level.size()); i++) {
+    g2s[i] = 0.0f;
+    ips[i] = 0.0f;
+    ifs[i] = 0.0f;
+  }
 
-  // xpcs::H5Result::write2DData(conf->getFilename(), 
-  //                       conf->OutputPath(), 
-  //                       "pixelSum", 
-  //                       conf->getFrameHeight(), 
-  //                       conf->getFrameWidth(), 
-  //                       pixels_sum);
+  xpcs::io::Reader *reader = NULL; 
 
-  // xpcs::H5Result::write2DData(conf->getFilename(), 
-  //                             conf->OutputPath(), 
-  //                             "frameSum", 
-  //                             2, 
-  //                             frames, 
-  //                             frames_sum);
+  if (FLAGS_ufxc) {
+    printf("Loading UFXC as binary\n");
+    reader = new xpcs::io::Ufxc(conf->getIMMFilePath().c_str());
+  } else if (FLAGS_rigaku) {
+    printf("Loading Rigaku as binary\n");
+    reader = new xpcs::io::Rigaku(conf->getIMMFilePath().c_str());
+  } else {
+    reader = new xpcs::io::Imm(conf->getIMMFilePath().c_str());
+  }
 
-  // float *partitions_mean = filter->PartitionsMean();
-  // float *partial_part_mean = filter->PartialPartitionsMean();
-  // int total_static_partns = conf->getTotalStaticPartitions();
-  // int partitions = (int) floor((double) frames/ swindow);
-  // int *pixels_per_sbin = conf->PixelsPerStaticBin();
-  // float norm_factor = conf->getNormFactor();
+  xpcs::filter::Filter *filter = new xpcs::filter::SparseFilterDense();
 
-  // float denominator = 1.0f;
-  // for (int i = 0; i < total_static_partns; i++) {
-  //   for (int j = 0; j < partitions; j++) {
-  //     // Getting rid of norm factor division for now. 
-  //     //denominator = pixels_per_sbin[i] * swindow * norm_factor;
-      
-  //     denominator = pixels_per_sbin[i] * swindow;
-  //     partial_part_mean[j * total_static_partns + i] /= denominator;
-  //   }
-  // }
+  int burst_size = conf->NumberOfBursts();
+  frames = frames / burst_size;
 
-  // for (int i = 0; i < total_static_partns; i++) {
-  //   // Getting rid of norm factor division for now. 
-  //   //denominator = pixels_per_sbin[i] * frames * norm_factor;
-    
-  //   denominator = pixels_per_sbin[i] * frames;
-  //   partitions_mean[i] /= denominator;
-  // }
+  // The last frame outside the stride will be ignored. 
+  int f = 0;
+  while (f < frames) {
+    struct xpcs::io::ImmBlock* data = reader->NextFrames(burst_size);
+    filter->Apply(data);
+    // If mode == burst
 
-  // xpcs::H5Result::write1DData(conf->getFilename(), 
-  //                       conf->OutputPath(), 
-  //                       "partition-mean-total", 
-  //                       total_static_partns,
-  //                       partitions_mean);
-
-  // xpcs::H5Result::write2DData(conf->getFilename(), 
-  //                       conf->OutputPath(), 
-  //                       "partition-mean-partial", 
-  //                       partitions, 
-  //                       total_static_partns,
-  //                       partial_part_mean);
-                        
-  // xpcs::H5Result::write1DData(conf->getFilename(), 
-  //                       conf->OutputPath(), 
-  //                       "partition_norm_factor", 
-  //                       1, 
-  //                       &norm_factor);
-
-  // xpcs::H5Result::write2DData(conf->getFilename(), 
-  //                             conf->OutputPath(), 
-  //                             "timestamp_clock", 
-  //                             2, 
-  //                             conf->getRealFrameTodoCount(), 
-  //                             filter->TimestampClock());
-
-  // xpcs::H5Result::write2DData(conf->getFilename(), 
-  //                             conf->OutputPath(), 
-  //                             "timestamp_tick", 
-  //                             2, 
-  //                             conf->getRealFrameTodoCount(), 
-  //                             filter->TimestampTicks());
+    f++;
+  }
 
   // float *tau = new float[delays_per_level.size()];
   // for (int x = 0 ; x < delays_per_level.size(); x++)
@@ -209,58 +148,55 @@ void compute(xpcs::Configuration *conf,
   //                             (int)delays_per_level.size(), 
   //                             tau);
   // }
-  
-  // {
-  //   if (conf->IsTwoTime()) {
-  //     xpcs::Benchmark benchmark("Computing G2 TwoTimes");
-  //     xpcs::Corr::twotime(filter->Data());
-  //   } else {
 
-  //     {
-  //       xpcs::Benchmark benchmark("Computing G2 MultiTau");
-  //       xpcs::Corr::multiTau2(filter->Data(), g2s, ips, ifs);
-  //     }
-      
-  //     {
-  //       xpcs::Benchmark benchmark("Normalizing Data");
-  //       Eigen::MatrixXf G2s = Eigen::Map<Eigen::MatrixXf>(g2s, pixels, delays_per_level.size());
-  //       Eigen::MatrixXf IPs = Eigen::Map<Eigen::MatrixXf>(ips, pixels, delays_per_level.size());
-  //       Eigen::MatrixXf IFs = Eigen::Map<Eigen::MatrixXf>(ifs, pixels, delays_per_level.size());
+  if (conf->IsTwoTime()) {
+    xpcs::Benchmark benchmark("Computing G2 TwoTimes");
+    xpcs::Corr::twotime(filter->Data());
+  } else {
 
-  //       xpcs::Corr::normalizeG2s(G2s, IPs, IFs);
-
-  //       if (FLAGS_g2out) {
-  //         xpcs::Benchmark b("Writing G2s, IPs and IFs");
-  //         xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "G2", pixels, delays_per_level.size(), g2s);
-  //         xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IP", pixels, delays_per_level.size(), ips);
-  //         xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF", pixels, delays_per_level.size(), ifs);
-  //       }
-
-  //     }
-  //   }
+    {
+      xpcs::Benchmark benchmark("Computing G2 MultiTau");
+      xpcs::Corr::multiTau2(filter->Data(), g2s, ips, ifs);
+    }
     
-  // }
+    {
+      xpcs::Benchmark benchmark("Normalizing Data");
+      Eigen::MatrixXf G2s = Eigen::Map<Eigen::MatrixXf>(g2s, pixels, delays_per_level.size());
+      Eigen::MatrixXf IPs = Eigen::Map<Eigen::MatrixXf>(ips, pixels, delays_per_level.size());
+      Eigen::MatrixXf IFs = Eigen::Map<Eigen::MatrixXf>(ifs, pixels, delays_per_level.size());
+
+      xpcs::Corr::normalizeG2s(G2s, IPs, IFs);
+
+      if (FLAGS_g2out) {
+        xpcs::Benchmark b("Writing G2s, IPs and IFs");
+        xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "G2", pixels, delays_per_level.size(), g2s);
+        xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IP", pixels, delays_per_level.size(), ips);
+        xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF", pixels, delays_per_level.size(), ifs);
+      }
+
+    }
+  }
   
-  // if (!reader->compression() && FLAGS_darkout) {
-  //   xpcs::Benchmark b("Writing Dark average and std image");
-  //   if (dark_image != NULL) {
-  //     double* dark_avg = dark_image->dark_avg();
-  //     double* dark_std = dark_image->dark_std();
-  //     xpcs::H5Result::write2DData(conf->getFilename(), 
-  //                                 conf->OutputPath(), 
-  //                                 "DarkAvg", 
-  //                                 conf->getFrameHeight(),
-  //                                 conf->getFrameWidth(), 
-  //                                 dark_avg);
+  if (!reader->compression() && FLAGS_darkout) {
+    xpcs::Benchmark b("Writing Dark average and std image");
+    if (dark_image != NULL) {
+      double* dark_avg = dark_image->dark_avg();
+      double* dark_std = dark_image->dark_std();
+      xpcs::H5Result::write2DData(conf->getFilename(), 
+                                  conf->OutputPath(), 
+                                  "DarkAvg", 
+                                  conf->getFrameHeight(),
+                                  conf->getFrameWidth(), 
+                                  dark_avg);
       
-  //     xpcs::H5Result::write2DData(conf->getFilename(), 
-  //                                 conf->OutputPath(), 
-  //                                 "DarkStd", 
-  //                                 conf->getFrameHeight(),
-  //                                 conf->getFrameWidth(),
-  //                                 dark_std);
-  //   }
-  // }
+      xpcs::H5Result::write2DData(conf->getFilename(), 
+                                  conf->OutputPath(), 
+                                  "DarkStd", 
+                                  conf->getFrameHeight(),
+                                  conf->getFrameWidth(),
+                                  dark_std);
+    }
+  }
 }
 
 int main(int argc, char** argv)
@@ -333,88 +269,6 @@ int main(int argc, char** argv)
   console->debug("Frames count={0}, from={1}, todo={2}", frames, frameFrom, frameTo);
   console->debug("Brust count={0}", bursts);
 
-  int pixels = conf->getFrameWidth() * conf->getFrameHeight();
-  int maxLevel = xpcs::Corr::calculateLevelMax(frames, conf->DelaysPerLevel());
-  vector<std::tuple<int,int> > delays_per_level = xpcs::Corr::delaysPerLevel(frames, conf->DelaysPerLevel(), maxLevel);
-
-  float* g2s = new float[pixels * delays_per_level.size()];
-  float* ips = new float[pixels * delays_per_level.size()];
-  float* ifs = new float[pixels * delays_per_level.size()];
-
-  for (int i = 0; i < (pixels * delays_per_level.size()); i++) {
-    g2s[i] = 0.0f;
-    ips[i] = 0.0f;
-    ifs[i] = 0.0f;
-  }
-
-  xpcs::io::Reader *reader = NULL; 
-
-  if (FLAGS_ufxc) {
-    printf("Loading UFXC as binary\n");
-    reader = new xpcs::io::Ufxc(conf->getIMMFilePath().c_str());
-  } else if (FLAGS_rigaku) {
-    printf("Loading Rigaku as binary\n");
-    reader = new xpcs::io::Rigaku(conf->getIMMFilePath().c_str());
-  } else {
-    reader = new xpcs::io::Imm(conf->getIMMFilePath().c_str());
-  }
-
-  xpcs::filter::Filter *filter = NULL;
-  xpcs::data_structure::DarkImage *dark_image = NULL;
-
-
-  {
-    xpcs::Benchmark benchmark("Loading data");
-
-    int r = 0;
-
-    if (!reader->compression()) {
-      int dark_s = conf->getDarkFrameStart();
-      int dark_e = conf->getDarkFrameEnd();
-      int darks = conf->getDarkFrames();
-
-      if (dark_s != dark_e) {
-        struct xpcs::io::ImmBlock *data = reader->NextFrames(darks);
-        dark_image = new xpcs::data_structure::DarkImage(data->value, darks, pixels, conf->getFlatField());
-        r += darks;
-      }
-    }
-    
-    if (frameFrom > 0 && r < frameFrom) {
-      reader->SkipFrames(frameFrom - r);
-      r += (frameFrom - r);
-    }
-
-    if (reader->compression()) {
-      filter = new xpcs::filter::SparseFilter();
-    }
-    else {
-      filter = new xpcs::filter::DenseFilter(dark_image);
-    }
-
-    int burst_size = conf->NumberOfBursts();
-    int read_in_count = 1;
-
-    if (burst_size > 1) {
-      read_in_count = burst_size;
-      frames = frames / burst_size;
-    } else {
-      stride_factor > 1 ? stride_factor : average_factor;
-      if (stride_factor > 1 && average_factor > 1)
-        read_in_count = stride_factor * average_factor;
-    }
-
-    // The last frame outside the stride will be ignored. 
-    int f = 0;
-    while (f < frames) {
-      struct xpcs::io::ImmBlock* data = reader->NextFrames(read_in_count);
-      filter->Apply(data);
-
-      compute(conf, filter, data);
-
-      f++;
-    }
-
-  }
+  compute_burst();
 
 }
