@@ -36,15 +36,16 @@ Please follwing the instruction here
 
 Next, follow these steps:
 
-* update the git submodules
-** git submodule init
-** git submodule update
-* Edit the CMakeLists.txt file:
-** Update the path to the HDF5 include file at line # 14
-** Update the path to the HDF5 library file at line # 15
-* Create a build directory under the root of the project ```mkdir build``
-* Run ```cmake ../``` from the build directory. 
-* Run ```make```
+
+* Install using ```apt```, ```yum```, ```pacman``` or your favourite package manager:
+    1. eigen3
+    2. hdf5
+    3. gflags
+    4. spdlog
+* Create a build directory under the root of the project 
+  ```mkdir build && cd build```
+* ```cmake ../``` 
+* ```make -j```
 
 
 This will generate the binary executable ```corr```. 

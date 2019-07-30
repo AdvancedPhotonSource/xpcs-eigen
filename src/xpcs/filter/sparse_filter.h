@@ -68,7 +68,7 @@ public:
 
   ~SparseFilter();
 
-  void Apply(struct xpcs::io::ImmBlock* data);
+  void Apply(xpcs::io::ImmBlock* data);
 
   float* PixelsSum();
 
@@ -141,6 +141,8 @@ private:
   float preset_; 
 
   float normFactor_; 
+
+  bool normalizedByFramesum_;
 
 };
 

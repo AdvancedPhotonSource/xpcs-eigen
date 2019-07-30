@@ -88,8 +88,8 @@ void Configuration::init(const std::string &path, const std::string& entry)
          this->compression = true;
 
     output_path_ = getString(entry + "/output_data");
-    this->dqmap = get2DTable(entry + "/dqmap");
-    this->sqmap = get2DTable(entry + "/sqmap");
+    dqmap = get2DTable(entry + "/dqmap");
+    sqmap = get2DTable(entry + "/sqmap");
 
     this->xdim = getInteger("/measurement/instrument/detector/x_dimension");
     this->ydim = getInteger("/measurement/instrument/detector/y_dimension");
@@ -97,13 +97,25 @@ void Configuration::init(const std::string &path, const std::string& entry)
     // Subtract 1 to make the index zero based. 
     this->frameStart = getInteger(entry + "/data_begin");
     this->frameEnd = getInteger(entry + "/data_end");
-    this->frameStartTodo = getInteger(entry + "/data_begin_todo");
-    this->frameEndTodo = getInteger(entry + "/data_end_todo");
+    frameStartTodo = getInteger(entry + "/data_begin_todo");
+    frameEndTodo = getInteger(entry + "/data_end_todo");
     delays_per_level_ = getInteger(entry + "/delays_per_level");
     darkFrameStart = getInteger(entry + "/dark_begin_todo");
     darkFrameEnd = getInteger(entry + "/dark_end_todo");
+
+    try {
+      two2one_window_size_ = getInteger(entry + "/twotime2onetime_window_size");
+    } catch (const std::exception& e){two2one_window_size_ = 1;}
+
     frame_stride_ = getLong(entry + "/stride_frames");
     frame_average_ = getLong(entry + "/avg_frames");
+
+
+    normalizedByFramesum = false;
+    try {
+      int value = getInteger(entry + "/normalize_by_framesum");
+      normalizedByFramesum = value;
+    } catch (const std::exception& e){}
 
     if (darkFrameStart == darkFrameEnd || darkFrameEnd == 0)
     {
@@ -116,10 +128,10 @@ void Configuration::init(const std::string &path, const std::string& entry)
         darkFrameStart = darkFrameStart - 1;
         darkFrameEnd = darkFrameEnd - 1;
         darkFrames = darkFrameEnd - darkFrameStart + 1;
-    }
 
-    darkThreshold = getFloat(entry + "/lld");
-    darkSigma = getFloat(entry + "/sigma");
+        darkThreshold = getFloat(entry + "/lld");
+        darkSigma = getFloat(entry + "/sigma");
+    }
 
     this->m_totalStaticPartitions = 0;
     this->m_totalDynamicPartitions = 0;
@@ -157,6 +169,21 @@ void Configuration::init(const std::string &path, const std::string& entry)
             flatfield[i] = 1.0;
     }
 
+    twotime_ = false;
+
+    try {
+      value = getString(entry + "/analysis_type");
+      if (value.compare("Twotime") == 0)
+        twotime_ = true;
+    } catch (const std::exception& e){}
+
+    if (twotime_) {
+      int* size = Dim2DTable(entry + "/qphi_bin_to_process");
+      long* qphibins = get2DTableL(entry + "/qphi_bin_to_process");
+      for (int i = 0 ; i < size[0]; i++)
+        qphi_bin_to_process_.push_back((int) qphibins[i]);
+    }
+
     m_immFile = getString(entry + "/input_file_local");
     {
         Benchmark conf("BuildQMap()");
@@ -180,6 +207,7 @@ void Configuration::BuildQMap() {
     m_validPixelMask[i] = 1;
     m_sbin[i] = sqmap[i];
 
+    // {qbins} - > {sbin -> [pixels]}
     std::map<int, std::map<int, std::vector<int>> >::iterator it = m_mapping.find(dqmap[i]);
 
     // Highest q-map value is equal to total number of dynamic partitions. 
@@ -298,6 +326,42 @@ int* Configuration::get2DTable(const std::string &path)
     return data;
 }
 
+int* Configuration::Dim2DTable(const std::string &path) {
+  hid_t dataset_id;
+
+  dataset_id = H5Dopen(this->file_id, path.c_str(), H5P_DEFAULT);
+  hid_t space = H5Dget_space(dataset_id);
+
+  hsize_t dims[2] = {0, 0};
+  
+  int ndims = H5Sget_simple_extent_dims (space, dims, NULL);
+
+  int *result = new int[2];
+  result[0] = dims[0];
+  result[1] = dims[1];
+
+  return result;
+}
+
+long* Configuration::get2DTableL(const std::string &path)
+{
+    hid_t dataset_id;
+
+    dataset_id = H5Dopen(this->file_id, path.c_str(), H5P_DEFAULT);
+    hid_t space = H5Dget_space(dataset_id);
+
+    hsize_t dims[2] = {0, 0};
+    int ndims = H5Sget_simple_extent_dims (space, dims, NULL);
+
+    long *data = new long[dims[0] * dims[1]];
+
+    H5Dread(dataset_id, H5T_NATIVE_LONG, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+
+    H5Dclose(dataset_id);
+
+    return data;
+}
+
 double* Configuration::get2DTableD(const std::string &path)
 {
     hid_t dataset_id;
@@ -334,9 +398,10 @@ std::string Configuration::getString(const std::string &path)
     std::string value;
     if (H5Tis_variable_str(dtype)) 
     {
-        char **str = (char **) malloc(dims[0] * sizeof(char *));
-        hid_t memtype = H5Tcopy(H5T_C_S1);
-        status = H5Tset_size(memtype, H5T_VARIABLE);
+        // char **str = (char **) malloc(dims[0] * sizeof(char *));
+        char *str[2];
+        hid_t memtype = H5Tget_native_type(dtype, H5T_DIR_ASCEND);
+        // status = H5Tget_size(memtype, H5T_VARIABLE);
         status = H5Dread(dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, str);
         value = std::string(str[0]);
     }
@@ -604,9 +669,31 @@ int Configuration::FrameAverage()
   return frame_average_;
 }
 
+
 bool Configuration::getIsCompressionEnabled()
 {
   return compression;
 }
 
+bool Configuration::IsNormalizedByFramesum()
+{
+  return normalizedByFramesum;
 }
+
+bool Configuration::IsTwoTime()
+{
+  return twotime_;
+}
+
+std::vector<int>& Configuration::TwoTimeQMask()
+{
+  return qphi_bin_to_process_;
+}
+
+int Configuration::Two2OneWindowSize()
+{
+  return two2one_window_size_;
+}
+
+}
+

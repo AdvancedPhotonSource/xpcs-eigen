@@ -46,10 +46,10 @@ POSSIBILITY OF SUCH DAMAGE.
 **/
 
 
-#ifndef XPCS_IMMREADER_H
-#define XPCS_IMMREADER_H
+#ifndef XPCS_IMM_H
+#define XPCS_IMM_H
 
-#include "imm_header.h"
+#include "reader.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,32 +57,101 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "spdlog/spdlog.h"
 
-
 namespace xpcs {
 namespace io {
 
-struct ImmBlock {
-  int** index;
-  float** value;
-  int frames;
-  int id;
-  std::vector<int> pixels_per_frame;
-  double* clock;
-  double* ticks;
-};
-
-class ImmReader {
+class Header {
 
 public:
-  ImmReader(const std::string& filename);
+  int32_t             mode;               //comp mode
+  int32_t             compression;  //comp?
+  unsigned char       date[32];        //date today
+  unsigned char       prefix[16];       //?
+  int32_t             number;     // filenum
+  unsigned char       suffix[16];
+  int32_t             monitor;    //0
+  int32_t             shutter;    //0
+  int32_t             row_beg;    //
+  int32_t             row_end;      // whatever they are
+  int32_t             col_beg;
+  int32_t             col_end;
+  int32_t             row_bin;      //1
+  int32_t             col_bin;      //1
+  int32_t             rows;         //
+  int32_t             cols;
+  int32_t             bytes;        //2
+  int32_t             kinetics;     //0 part of ccd
+  int32_t             kinwinsize;   //0
+  double              elapsed;      //timestamp
+  double              preset;       //exp time
+  int32_t             topup;     //0
+  int32_t             inject;       //0
+  uint32_t            dlen;
+  int32_t             roi_number;   //1
+
+  int                 buffer_number;  //0
+  unsigned int        systick;//0
+
+  unsigned char       pv1[40];
+  float               pv1VAL;
+  unsigned char       pv2[40];
+  float               pv2VAL;
+  unsigned char       pv3[40];
+  float               pv3VAL;
+  unsigned char       pv4[40];
+  float               pv4VAL;
+  unsigned char       pv5[40];
+  float               pv5VAL;
+  unsigned char       pv6[40];
+  float               pv6VAL;
+  unsigned char       pv7[40];
+  float               pv7VAL;
+  unsigned char       pv8[40];
+  float               pv8VAL;
+  unsigned char       pv9[40];
+  float               pv9VAL;
+  unsigned char       pv10[40];
+  float               pv10VAL;
+
+  float               imageserver;  //make up
+  float               CPUspeed;     //0
+
+  enum {immver=12};
+
+  int32_t             immversion;   //immver
+  int                 corecotick;   //
+  int                 cameratype;//160
+  float               threshhold;   //my val
+
+  //here is 632 bytes- or byte 0 to 631
+
+  char byte632;//the is byte 632 counting from 0 to 632
+
+  // 1024- (633+84 + 12)
+  char empty_space[295];
+
+  enum {z_len=84};
+  enum {f_len = 12};
+
+  //fill with 00's
+  unsigned char ZZZZ[z_len];
+
+  //fill with FF's
+  unsigned char FFFF[f_len];
+
+  enum {header_size=1024};
+  
+};
+
+class Imm : public Reader {
+
+public:
+
+  Imm(const std::string& filename);
    
-  ~ImmReader();
+  ~Imm();
 
   bool compression();
-
-  // float* TimestampClock();
-
-  // float* TimestampTick();
 
   ImmBlock* NextFrames(int count = 1);
 
@@ -94,15 +163,13 @@ private:
   
   std::shared_ptr<spdlog::logger> logger_;
 
-  ImmHeader *header_;
+  Header *header_;
+
   FILE *file_;
   // Internal data pointer for storing pixels. 
   float *data_;
+
   bool compression_;
-
-  // Linear indices in case the data is compressed. 
-  int *indices_;
-
 };
 
 } //namespace io

@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 #include "xpcs/configuration.h"
-#include "xpcs/io/imm_reader.h"
+#include "xpcs/io/reader.h"
 #include "xpcs/data_structure/sparse_data.h"
 
 namespace xpcs {
@@ -79,6 +79,7 @@ SparseFilter::SparseFilter() {
   swindow_ = conf->getStaticWindowSize();
   stride_size_ = conf->FrameStride();
   average_size_ = conf->FrameAverage();
+  normalizedByFramesum_ = conf->IsNormalizedByFramesum();
 
   int partitions = (int) ceil((double)frames_todo_/swindow_);
   partial_partitions_mean_ = new float[total_static_partns_ * partitions];
@@ -112,7 +113,7 @@ SparseFilter::~SparseFilter() {
 
 }
 
-void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
+void SparseFilter::Apply(xpcs::io::ImmBlock* blk) {
   int **indx = blk->index;
   float **val = blk->value;
   int frames = blk->frames;
@@ -173,7 +174,9 @@ void SparseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
     row->valPtr.push_back(v);
 
     sbin = sbin_mask_[pix] - 1;
+    
     partitions_mean_[sbin] += v;
+
     partial_partitions_mean_[partition_no_ * total_static_partns_ + sbin ] += v;
 
   }

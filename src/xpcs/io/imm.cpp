@@ -44,56 +44,95 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-
-#include "stride.h"
-
-#include <math.h>
+#include "imm.h"
+// #include "reader.h"
 
 #include <stdio.h>
 #include <iostream>
 
 #include "xpcs/configuration.h"
-#include "xpcs/io/reader.h"
-#include "xpcs/data_structure/sparse_data.h"
+#include "xpcs/data_structure/dark_image.h"
 
 namespace xpcs {
-namespace filter {
+namespace io {
 
+Imm::Imm(const std::string& filename)  {
+    file_ = fopen(filename.c_str(), "rb");
 
-Stride::Stride() {
-  Configuration *conf = Configuration::instance();
-  stride_size_ = conf->FrameStride();
+    if (file_ == NULL) return ; //TODO handle error
+
+    header_ = new Header();
+    fread(header_, 1024, 1, file_);
+    compression_ = header_->compression != 0 ? true : false;
+    rewind(file_);
 }
 
-Stride::~Stride() {
+ImmBlock* Imm::NextFrames(int count) {
+    int **index = new int*[count];
+    float **value = new float*[count];
+    double *clock = new double[count];
+    double *ticks = new double[count];
 
+    std::vector<int> ppf;
+
+    int done = 0, pxs = 0;
+    while (done < count) {
+        // printf("inloop ftell(file_) %ld\n", ftell(file_));
+        fread(header_, 1024, 1, file_);
+        pxs = header_->dlen;
+        // printf("Buffer # = %ld, pxs = %d\n", header_->buffer_number, pxs);
+
+        index[done] = new int[pxs];
+        value[done] = new float[pxs];
+        short *tmpmem = new short[pxs];
+        
+        if (compression_) {
+            fread(index[done], pxs * 4, 1, file_);
+        } 
+        
+        // else {
+        //     // for (int i = 0 ; i < pxs; i++)
+        //     //     index[done][i] = i;
+        // }
+
+        fread(tmpmem, pxs * 2, 1, file_);
+        std::copy(tmpmem, tmpmem + pxs, value[done]);
+        delete [] tmpmem;
+        ppf.push_back(pxs);
+
+        clock[done] = header_->elapsed;
+        ticks[done] = header_->corecotick;
+        done++;
+    }
+
+    struct ImmBlock *ret = new ImmBlock;
+    ret->index = index;
+    ret->value = value;
+    ret->frames = count;
+    ret->pixels_per_frame = ppf;
+    ret->clock = clock;
+    ret->ticks = ticks;
+    ret->id = 0;
+
+    return ret;
 }
 
-void Stride::Apply(struct xpcs::io::ImmBlock* blk) {
-  int **indx = blk->index;
-  float **val = blk->value;
-  int frames = blk->frames;
-  std::vector<int> ppf = blk->pixels_per_frame;
+void Imm::SkipFrames(int count) {
+    int done = 0;
+    int image_bytes = compression_ ? 6 : 2;
 
-  int pixels = ppf[0];
-
-  int **new_index = new int*[1];
-  new_index[0] = indx[0];
-
-  float **new_val = new float*[1];
-  new_val[0] = val[0];
-
-  int new_frames = 1;
-  std::vector<int> new_ppf = {pixels};
-
-  blk->index = new_index;
-  blk->value = new_val;
-  blk->frames = new_frames;
-  blk->pixels_per_frame = new_ppf;
-
-  //TODO smart pointers to handle memory
+    while (done < count) {
+        fread(header_, 1024, 1, file_);
+        fseek(file_, header_->dlen * image_bytes, SEEK_CUR);
+        done++;
+    }
 }
 
+void Imm::Reset() {
+    rewind(file_);
+}
+
+bool Imm::compression() { return compression_; }
 
 } // namespace io
 } // namespace xpcs
