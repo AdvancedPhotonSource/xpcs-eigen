@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 #include "xpcs/configuration.h"
-#include "xpcs/io/imm_reader.h"
+#include "xpcs/io/reader.h"
 #include "xpcs/data_structure/sparse_data.h"
 
 namespace xpcs {

@@ -225,14 +225,6 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
                 lastframe -= 1;
 
             lastframe = lastframe / 2;
-
-            printf("Last frame %d\n", lastframe);
-            // int ij = 0;
-
-            // for (int k = 0; k < lastframe; k+=2) {
-            //     pixelData.row(ij) = 0.5 * (pixelData.row(k) + pixelData.row(k+1));
-            //     ij++;
-            // }
             float* vals = pixelData.valuePtr();
             int *ind = pixelData.innerIndexPtr();
             int *outer = pixelData.outerIndexPtr();
@@ -305,8 +297,6 @@ void Corr::multiTauVec(SparseRMatF& pixelData,
         const SparseMatrix<float, RowMajor> c0 = pixelData.block(0, 0, pixels, lastframe-tau);
         const SparseMatrix<float, RowMajor> c1 = pixelData.block(0, tau, pixels, lastframe-tau);
 
-        printf("%d - %d\n", c0.cols(), c1.cols());
-
         // G2.col(i) = c0.cwiseProduct(c1) * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
         // IP.col(i) = c0 * (VectorXf::Ones(c0.cols()) * 1.0/c0.cols());
         // IF.col(i) = c1 * (VectorXf::Ones(c1.cols()) * 1.0/c1.cols());
@@ -331,9 +321,7 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
 
     vector<tuple<int,int> > delays_per_level = delaysPerLevel(frames, conf->DelaysPerLevel(), maxLevel);
 
-    int pix = 355517;
-
-    #pragma omp parallel for default(none) schedule(dynamic) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
+    #pragma omp parallel for default(none) schedule(dynamic, 20) shared(validPixels, delays_per_level, frames, pixels, G2s, IFs, IPs, data)
     for (int i = 0; i < validPixels.size(); i++)
     {
         data_structure::Row *row = data->Pixel(validPixels.at(i));
@@ -344,30 +332,17 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
         int lastIndex = row->indxPtr.size();
         int tauIndex = 0;
         int g2Index = 0;
-        
-        // if (validPixels.at(i) == pix) {
-        //     printf("Last Index %d\n", lastIndex);
-        // }
 
         for (vector<tuple<int, int> >::iterator it = delays_per_level.begin() ;
                 it != delays_per_level.end(); ++it)
         {
-
             // View of pixel data at two different tau values. 
             tuple<int, int> tau_level = *it;
             int level = get<0>(tau_level);
             int tau = get<1>(tau_level);
-            // int lastIndex;
-
-            // if (level == 0)
-            //     lastIndex = row->indxPtr.size();
-
+            
             if (ll != level)
             {   
-                // if (level == 7 and validPixels.at(i) == pix)
-                // {
-                //     printf ("...");
-                // }
                 if (lastframe % 2)
                     lastframe -= 1;
 
@@ -407,93 +382,39 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
 
                 for (int i = 0 ; i < lastIndex; i++) 
                     row->valPtr[i] /= 2.0f;
-
-
-
-                // if (row->indxPtr.size() == 1) {
-                //     row->indxPtr[index] = i0;
-                //     row->valPtr[index] = row->valPtr[index]/2.0f;
-                // }
-
-                // int inc;
-                // while (i1 < lastframe && cnt < lastIndex-1)
-                // {   
-                //     i0 = row->indxPtr[cnt] / 2;
-                //     i1 = row->indxPtr[cnt+1] / 2;
-                    
-                //     inc = 0;
-                //     if (i0 == i1)
-                //     {
-                //         row->indxPtr[index] = i0;
-                //         row->valPtr[index] = (row->valPtr[cnt] + row->valPtr[cnt+1]) / 2.0f;
-                //         inc = 2;
-                //     }
-                //     else
-                //     {
-                //         row->indxPtr[index] = i0;
-                //         row->valPtr[index] = row->valPtr[cnt] / 2.0f;
-                //         inc = 1;
-                //     }
-
-                //     cnt += inc;
-                //     index++; 
-
-                // }
-
-                // // In case,we are left with one off element
-                // if (i0 != i1 && i1 < lastframe && cnt < lastIndex)
-                // {
-                //     row->indxPtr[index] = i1;
-                //     row->valPtr[index] = row->valPtr[cnt] / 2.0f;
-                //     index++;
-                // }
-
-                // lastIndex = index;
-                
-
-                // if (validPixels.at(i) == pix) {
-                //     printf("level = %d, lastframe = %d, lastIndex = %d\n", level, lastframe, lastIndex);
-                //     for (int ii = 0; ii < lastIndex; ii++) {
-                //         printf("%d -> %f\n", row->indxPtr[ii], row->valPtr[ii]);
-                //     }
-                //     printf("\n");
-                // }
             }
 
             if (level > 0)
                 tau = tau / pow(2, level);
 
-            g2Index = tauIndex * pixels + validPixels[i]; // * delays_per_level.size() + tauIndex;
-    
-            //if (level > 1)
-             // printf("Level = %d, Tau = %d\n", level, tau);
-
+            g2Index = tauIndex * pixels + validPixels[i]; 
+            
             for (int r = 0; r < lastIndex; r++)
             {
                 int src = row->indxPtr[r];
-                int dst = src;
+                // int dst = src;
                 
                 if (src < (lastframe-tau)) {
                     IPs[g2Index] += row->valPtr[r];
                     int limit = min(lastIndex, src+tau+1);
+                    int pos = lower_bound(row->indxPtr.begin(), row->indxPtr.end(), src+tau) - (row->indxPtr.begin());
+                    if (pos < lastIndex && row->indxPtr[pos] == (src+tau))
+                        G2s[g2Index] += row->valPtr[r] * row->valPtr[pos];
+
                     
-                    for (int j = r+1; j < limit; j++)
-                    {
-                        dst = row->indxPtr[j];
-                        if (dst == (src+tau)) {
-                            G2s[g2Index] += row->valPtr[r] * row->valPtr[j];
-                           // if (level > 1)
-                            ///   printf("level=%d, src=%d dst=%d, tau=%d, (src+tau)=%d\n",level, src, dst, tau, (src+tau));
-                            //IFs[g2Index] += row->valPtr[j];
-                        }
-                    }
+                    // for (int j = r+1; j < limit; j++)
+                    // {
+                    //     dst = row->indxPtr[j];
+                    //     if (dst == (src+tau)) {
+                    //         G2s[g2Index] += row->valPtr[r] * row->valPtr[j];
+                    //         break;
+                    //     }
+                    // }
                 }
 
                 if (src >= tau && src < lastframe) {
-                  //if (level > 1) printf("src >= tau %d\n", src);
                   IFs[g2Index] += row->valPtr.at(r);
                 }
-
             }
 
             if ( (lastframe - tau) > 0) {
@@ -505,36 +426,220 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
             ll = level;
             tauIndex++;
         }
+        // break;
     }
 }
 
-void Corr::twoTimesVec(Eigen::Ref<Eigen::MatrixXf> pixelData)
+void Corr::twotime(data_structure::SparseData *data)
 {
+  Configuration* conf = Configuration::instance();
+  int frames = conf->getFrameTodoCount();
+  int wsize = conf->Two2OneWindowSize();
+  vector<int> qphi_bins_to_process = conf->TwoTimeQMask();
+  std::map<int, vector<int>> qbin_to_pixels;
 
-    Configuration* conf = Configuration::instance();
-    int frames = conf->getFrameTodoCount();
+  std::map<int, std::map<int, vector<int>> > qbins = conf->getBinMaps();
 
-    MatrixXf g2(pixelData.rows(), int(0.5 * frames * (frames - 1)) );
+  // 1. Go over each qbin to sbin mapping
+  for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
+    it != qbins.end(); it++) {
+    int q = it->first;
+    map<int, vector<int> > values =  it->second;
 
-    int index = 0;
-    for (int i = 0; i < frames; i++)
-    {
-        for (int j = i+1; j < frames; j++)
-        {
-            // g2.col(index) = pixelData.col(i) * pixelData.col(j);
-            index++;
+    // 2. For each qbin if that qbin is in 
+    if (std::find(qphi_bins_to_process.begin(), qphi_bins_to_process.end(), q) 
+                        != qphi_bins_to_process.end()) {
+      std::vector<int> plist;
+      for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
+        int sbin = it2->first;
+
+        vector<int> pixels = it2->second;
+        for(vector<int>::const_iterator pind = pixels.begin(); pind != pixels.end(); pind++) {    
+          int p = *pind;
+          plist.push_back(p);
         }
+
+        qbin_to_pixels[q] = plist;
+      } 
+    }
+  }
+
+  float *sg = new float[qbin_to_pixels.size() * frames];
+  for (int i = 0; i < qbin_to_pixels.size() * frames; i++)
+    sg[i] = 0.0;
+
+  int q = 0;
+  for (auto it = qbin_to_pixels.begin(); it != qbin_to_pixels.end(); it++) {
+    int qbin = it->first;
+    vector<int> plist = it->second;
+    int pixels = plist.size();
+    for (int i = 0; i < pixels; i++) {
+      data_structure::Row *row = data->Pixel(plist[i]);
+      std::vector<int> iptr = row->indxPtr;
+      std::vector<float>& vptr = row->valPtr;
+
+      for (int j = 0; j < iptr.size(); j++) {
+        int f = iptr[j];
+        float val = vptr[j];
+        sg[q * frames + f] += val;
+      }       
     }
 
-    // For self dot product of two times, create an upper triangular view of the original data
-    // MatrixXf pixelData2 = MatrixXf(pixelData.triangularView<Eigen::Uppper>());
-    // MatrixXf prod = pixelData.array() * pixelData2.array();
+    for (int ff = 0 ; ff < frames; ff++) {
+      sg[q * frames + ff] /= (float)pixels;
+    }
 
-    // Sum products based on the q-bin pixels
+    q++;
+  }
 
-    // map<int, map<int, vector<int>> > qbins = conf->getBinMaps();
+  float **g2_pointers = new float*[qbin_to_pixels.size()];
+  float **g2full_pointers = new float*[qbin_to_pixels.size()];
+
+  int total_partials = (frames - wsize) / wsize;
+  float **g2partial_pointers = new float*[qbin_to_pixels.size()];
+
+  #pragma omp parallel for schedule(dynamic) 
+  for (int binIdx = 0; binIdx < qbin_to_pixels.size(); binIdx++) {
+    auto it = qbin_to_pixels.begin();
+    advance(it, binIdx);
+
+    int qbin = it->first;
+    vector<int> plist = it->second;
+
+    float *g2 = new float[frames * frames];
+    float *g2full = new float[frames];
+    float *g2partial = new float[wsize * total_partials];
+
+    for (int f = 0; f < frames*frames; f++)
+      g2[f] = 0.0f;
+
+    for (int f = 0; f < (wsize * total_partials); f++)
+      g2partial[f] = 0.0f;
+
+    for (int f = 0; f < frames; f++)
+        g2full[f] = 0.0f;
+
+    for (int i = 0; i < plist.size(); i++) {
+      data_structure::Row *row = data->Pixel(plist[i]);
+      std::vector<int> iptr = row->indxPtr;
+      std::vector<float>& vptr = row->valPtr;
+
+      for (int j = 0; j < iptr.size(); j++) {
+        vptr[j] /= sg[binIdx * frames + iptr[j]];
+      }
+    }
+
+    for (int i = 0; i < plist.size(); i++) {
+      data_structure::Row *row = data->Pixel(plist[i]);
+      std::vector<int> iptr = row->indxPtr;
+      std::vector<float> vptr = row->valPtr;
+
+      for (int j = 0; j < iptr.size(); j++) {
+        
+        int f0 = iptr[j];
+        float val0 = vptr[j];
+
+        for (int k = j; k < iptr.size(); k++) {
+          int f1 = iptr[k];
+          float val1 = vptr[k];
+          g2[f0 * frames + f1] += val0 * val1;
+        }
+      }       
+    }
+
+    for (int ff = 0; ff < frames*frames; ff++) {
+        g2[ff] /= plist.size();
+    }
+
+    for (int ff = 0; ff < frames; ff++) {
+        int count = 0;
+        int windowno = 0;
+        for (int fx = 0, fy = ff; fx < frames - ff; fx++, fy++) {
+            g2full[ff] += g2[fx*frames + fy];
 
 
+            if (windowno < total_partials && ff < wsize) {
+              g2partial[ff * total_partials + windowno] += g2[fx*frames + fy];
+            }
+            
+            windowno = (fx+1) / wsize;
+            count++;
+        }
+
+        g2full[ff] /= count;
+    }
+    
+    g2full_pointers[binIdx] = g2full;
+    g2_pointers[binIdx] = g2;
+
+    for (int f = 0; f < (wsize * total_partials); f++)
+      g2partial[f] /= wsize;
+
+    g2partial_pointers[binIdx] = g2partial;
+  }
+
+  for (int i = 0; i < qbin_to_pixels.size(); i++) {
+    auto it = qbin_to_pixels.begin();
+    advance(it, i);
+
+    int qbin = it->first;
+
+    float* ptrg2 = g2_pointers[i];
+
+    char buffer[100];
+    sprintf(buffer, "g2_%05d", qbin);
+    std::string g2_name(buffer);
+    std::string path = conf->OutputPath() + "/C2T_all/";
+
+
+    xpcs::H5Result::write2DData(conf->getFilename(), 
+                        path.c_str(), 
+                        g2_name.c_str(),
+                        frames, 
+                        frames, 
+                        ptrg2);
+  }
+
+  float* g2full_result = new float[qbin_to_pixels.size() * frames];
+  float* g2partial_result = new float[qbin_to_pixels.size() * wsize * total_partials];
+  
+  for (int j = 0; j < frames; j++) {
+    for (int i = 0; i < qbin_to_pixels.size(); i++) {
+        g2full_result[j * qbin_to_pixels.size() + i] = g2full_pointers[i][j];
+    }
+  }
+ 
+  int idd = 0;
+  for (int i = 0; i < wsize; i++){
+    for (int j = 0; j < total_partials; j++) {
+      for (int k = 0; k < qbin_to_pixels.size(); k++) {
+        g2partial_result[idd++] = g2partial_pointers[k][i*total_partials + j];
+      }
+    }
+  }
+
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "g2full", 
+                        frames, 
+                        qbin_to_pixels.size(), 
+                        g2full_result);  
+
+  xpcs::H5Result::write3DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "g2partials", 
+                        wsize, 
+                        total_partials,
+                        qbin_to_pixels.size(),
+                        g2partial_result);  
+
+
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "sg", 
+                        qbin_to_pixels.size(), 
+                        frames, 
+                        sg);
 }
 
 //TODO: Refactor this function and possibly break into sub function for the unit-tests. 
@@ -627,23 +732,29 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
         }
     }
 
-    // // Compute the mean of normalized g2 values per dynamic bin. 
+    // // Compute the mean of normalized g2 values per dynamic bin.
+    VectorXf incrs(g2Sums.cols());
+    incrs.setOnes();
+    VectorXf counts(g2Sums.cols());
+
     for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
             it != qbins.end(); it++) {
 
         int q = it->first;
         map<int, vector<int> > values =  it->second;
+  
+        //int count = 0;
+        counts.setZero();
 
-        int count = 0;
         for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
             int sbin = it2->first;
-            g2.row(q - 1) += g2Sums.row(sbin-1);
-            count++;
+            VectorXf g2sum = g2Sums.row(sbin-1);
+            g2.row(q - 1) += Eigen::isnan(g2sum.array()).select(0.0, g2sum);
+            counts += Eigen::isnan(g2sum.array()).select(0.0, incrs); 
         }
 
-
         // Mean of each G2 across tau values. This is our final g2 Matrix. 
-        g2.row(q - 1).array() = g2.row(q - 1).array() / (float)count;
+        g2.row(q - 1).array() = g2.row(q - 1).array() / counts.array();
     }
 
     // Compute the standard error.
@@ -697,7 +808,6 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
 
     H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "norm-0-g2", g2);
     H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "norm-0-stderr", stdError);
-
 }
 
 double* Corr::computeG2Levels(const Eigen::MatrixXf &pixelData, 

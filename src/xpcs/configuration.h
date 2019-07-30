@@ -95,6 +95,8 @@ public:
   int FrameStride();
   int FrameAverage();
 
+  int Two2OneWindowSize();
+  
   std::string getFilename();
   std::string& getIMMFilePath();
   std::string& OutputPath();
@@ -102,6 +104,7 @@ public:
 
   short* getPixelMask();
   int* getSbinMask();
+  std::vector<int>& TwoTimeQMask();
 
   float getDetDpixX();
   float getDetDpixY();
@@ -117,6 +120,8 @@ public:
   double* getFlatField();
 
   bool getIsCompressionEnabled();
+  bool IsNormalizedByFramesum();
+  bool IsTwoTime();
 
 private:
 
@@ -130,7 +135,11 @@ private:
 
   long getLong(const std::string &path);
 
+  int* Dim2DTable(const std::string &path);
+
   int* get2DTable(const std::string &path);
+  
+  long* get2DTableL(const std::string &path);
 
   double* get2DTableD(const std::string &path);
 
@@ -159,11 +168,12 @@ private:
   int darkFrames;
   int m_staticWindow;
   int delays_per_level_;
+  int two2one_window_size_;
 
   int *pixels_per_bin;
   int *dqmap;
   int *sqmap;
-
+  
   int frame_stride_;
   int frame_average_;
 
@@ -181,10 +191,14 @@ private:
   // Flags for checkig if certain fields are enabled. 
   bool compression;
   bool flatfieldEnabled;
+  bool normalizedByFramesum;
+  bool twotime_;
 
   std::string m_filename;
   std::string m_immFile;
   std::string output_path_;
+
+  std::vector<int> qphi_bin_to_process_;
 
   static Configuration *s_instance;
 };

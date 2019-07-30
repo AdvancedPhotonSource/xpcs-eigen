@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef XPCS_FILTER_H
 #define XPCS_FILTER_H
 
-
 namespace xpcs {
 
 namespace data_structure {

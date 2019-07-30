@@ -46,97 +46,51 @@ POSSIBILITY OF SUCH DAMAGE.
 **/
 
 
-#ifndef IMM_H
-#define IMM_H
+#ifndef XPCS_UFXC_H
+#define XPCS_UFXC_H
 
-#include "imm_header.h"
+#include "reader.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
-
-#include "Eigen/Dense"
-#include "Eigen/SparseCore"
+#include <unordered_map>
+#include <vector>
 #include "spdlog/spdlog.h"
 
-#include "ds/sparse_data.h"
 
 namespace xpcs {
+namespace io {
 
-typedef Eigen::SparseMatrix<float> SparseMatF;
-typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SparseRMatF;
-
-class IMM {
+class Ufxc : public Reader {
 
 public:
-  IMM(const char* filename, int frameFrom, int frameTo, int pixels_per_frame);
+  Ufxc(const std::string& filename);
    
-  ~IMM();
+  ~Ufxc();
 
-  Eigen::MatrixXf getPixelData();
-   
-  SparseRMatF getSparsePixelData();
+  bool compression();
 
-  bool getIsSparse();
+  ImmBlock* NextFrames(int count = 1);
 
-  float* getTimestampClock();
-  float* getTimestampTick();
+  void SkipFrames(int count = 1);
 
-  float* getFrameSums();
-  float* getPixelSums();
-
-  float* getTotalPartitionMean();
-  float* getPartialPartitionMean();
-
-  ds::SparseData* getSparseData();
+  void Reset();
 
 private:
-
-  long m_frameStartTodo;
-  long m_frameEndTodo;
-  long m_pixelsPerFrame;
-  long m_frames;
-    
-  const char* m_filename;
-  IMMHeader *m_ptrHeader;
-
-  FILE *m_ptrFile;
-
-  // Internal data pointer for storing pixels. 
-  float *m_data;
-  float *m_timestampClock;
-  float *m_timestampTick;
-
-  Eigen::MatrixXf m_pixelData;
-  SparseRMatF m_sparsePixelData;
-    
-  bool m_isSparse;
-
-  // Initialize the file ptr and read-in file header. 
-  void init();
-
-  // Loads the sparse IMM file 
-  void load_sparse();
-
-  // Loads the sparse IMM to internanl structures. Unlinke the load_sparse method
-  // it doesn't generate a matrix. 
-  void load_sparse2();
-
-  // Load non-sparse data. 
-  void load_nonsparse();
-  void load_nonsparse2();
-
-  ds::SparseData *m_sdata;
-
-  std::shared_ptr<spdlog::logger> _logger;
-
-  float* m_pixelSums;
-  float* m_frameSums;
-  float* m_partialPartitionMean;
-  float* m_totalPartitionMean;
   
+  FILE *file_;
+
+  int last_frame_index;
+
+  std::unordered_map<int, std::vector<uint> > data_frames_;
+
+  int frame_width_;
+  int frame_height_;
+
 };
 
-}
+} //namespace io
+} //namespace xpcs
 
 #endif

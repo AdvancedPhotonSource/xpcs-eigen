@@ -64,13 +64,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "xpcs/configuration.h"
 #include "h5_result.h"
 #include "benchmark.h"
-#include "xpcs/io/imm_reader.h"
+#include "xpcs/io/reader.h"
+#include "xpcs/io/imm.h"
+#include "xpcs/io/ufxc.h"
+#include "xpcs/io/rigaku.h"
 #include "xpcs/filter/filter.h"
 #include "xpcs/filter/sparse_filter.h"
 #include "xpcs/filter/dense_filter.h"
 #include "xpcs/filter/stride.h"
-#include "xpcs/filter/average.h"
-#include "xpcs/filter/dense_average.h"
 #include "xpcs/data_structure/dark_image.h"
 #include "xpcs/data_structure/sparse_data.h"
 #include "xpcs/data_structure/row.h"
@@ -80,6 +81,8 @@ namespace spd = spdlog;
 
 DEFINE_bool(g2out, false, "Write intermediate output from G2 computation");
 DEFINE_bool(darkout, false, "Write dark average and std-data");
+DEFINE_bool(ufxc, false, "IF the file format is from ufxc photon counting detector.");
+DEFINE_bool(rigaku, false, "IF the file format is from rigaku photon counting detector.");
 DEFINE_int32(frameout, false, "Number of post-processed frames to write out for debuggin.");
 DEFINE_string(imm, "", "The path to IMM file. By default the file specified in HDF5 metadata is used");
 DEFINE_string(inpath, "", "The path prefix to replace");
@@ -179,7 +182,18 @@ int main(int argc, char** argv)
     ifs[i] = 0.0f;
   }
 
-  xpcs::io::ImmReader reader(conf->getIMMFilePath().c_str());
+  xpcs::io::Reader *reader = NULL; 
+
+  if (FLAGS_ufxc) {
+    printf("Loading UFXC as binary\n");
+    reader = new xpcs::io::Ufxc(conf->getIMMFilePath().c_str());
+  } else if (FLAGS_rigaku) {
+    printf("Loading Rigaku as binary\n");
+    reader = new xpcs::io::Rigaku(conf->getIMMFilePath().c_str());
+  } else {
+    reader = new xpcs::io::Imm(conf->getIMMFilePath().c_str());
+  }
+
   xpcs::filter::Filter *filter = NULL;
   
   xpcs::data_structure::DarkImage *dark_image = NULL;
@@ -188,34 +202,33 @@ int main(int argc, char** argv)
 
     int r = 0;
 
-    if (!reader.compression()) {
+    if (!reader->compression()) {
       int dark_s = conf->getDarkFrameStart();
       int dark_e = conf->getDarkFrameEnd();
       int darks = conf->getDarkFrames();
 
       if (dark_s != dark_e) {
-        struct xpcs::io::ImmBlock *data = reader.NextFrames(darks);
+        struct xpcs::io::ImmBlock *data = reader->NextFrames(darks);
         dark_image = new xpcs::data_structure::DarkImage(data->value, darks, pixels, conf->getFlatField());
         r += darks;
       }
     }
     
     if (frameFrom > 0 && r < frameFrom) {
-      reader.SkipFrames(frameFrom - r);
+      reader->SkipFrames(frameFrom - r);
       r += (frameFrom - r);
     }
 
-    if (reader.compression()) {
+    if (reader->compression()) {
       filter = new xpcs::filter::SparseFilter();
     }
     else {
       filter = new xpcs::filter::DenseFilter(dark_image);
-
     }
 
     xpcs::filter::Stride stride;
-    xpcs::filter::Average average;
-    xpcs::filter::DenseAverage dense_average;
+    // xpcs::filter::Average average;
+    // xpcs::filter::DenseAverage dense_average;
 
     int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
     if (stride_factor > 1 && average_factor > 1)
@@ -224,7 +237,7 @@ int main(int argc, char** argv)
     // The last frame outside the stride will be ignored. 
     int f = 0;
     while (f < frames) {
-      struct xpcs::io::ImmBlock* data = reader.NextFrames(read_in_count);
+      struct xpcs::io::ImmBlock* data = reader->NextFrames(read_in_count);
       filter->Apply(data);
       f++;
     }
@@ -262,13 +275,37 @@ int main(int argc, char** argv)
                         data_out);
     }
   }
+
+  float* frames_sum = filter->FramesSum();
+  if (conf->IsNormalizedByFramesum()) {
+    xpcs::Benchmark benchmark("Normalize by Frame-sum took ");
+    float sum_of_framesums = 0.0f;
+    float framesums_mean = 0.0f;
+    for (int i = 0 ; i < frames; i++) {
+      sum_of_framesums += frames_sum[i+frames];
+    }
+    framesums_mean = sum_of_framesums / frames;
+
+    xpcs::data_structure::SparseData *data = filter->Data();
+    for (int j = 0; j < pixels; j++) {
+      if (!data->Exists(j)) continue;
+
+      xpcs::data_structure::Row *row = data->Pixel(j);
+      for (int x = 0; x < row->indxPtr.size(); x++) {
+        int f = row->indxPtr[x];
+        row->valPtr[x] = row->valPtr[x] / (frames_sum[f+frames] / framesums_mean);
+      }
+    }
+  }
+
+    /*xpcs::data_structure::SparseData *data = filter->Data();
+  xpcs::data_structure::Row *arow = data->Pixel(1133);
+  printf("Value = %f\n", arow->valPtr[0]);*/
   
   float* pixels_sum = filter->PixelsSum();
   for (int i = 0 ; i < pixels; i++) {
     pixels_sum[i] /= frames;
   }
-
-  float* frames_sum = filter->FramesSum();
 
   xpcs::H5Result::write2DData(conf->getFilename(), 
                         conf->OutputPath(), 
@@ -294,13 +331,19 @@ int main(int argc, char** argv)
   float denominator = 1.0f;
   for (int i = 0; i < total_static_partns; i++) {
     for (int j = 0; j < partitions; j++) {
-      denominator = pixels_per_sbin[i] * swindow * norm_factor;
+      // Getting rid of norm factor division for now. 
+      //denominator = pixels_per_sbin[i] * swindow * norm_factor;
+      
+      denominator = (float)pixels_per_sbin[i] * swindow;
       partial_part_mean[j * total_static_partns + i] /= denominator;
     }
   }
 
   for (int i = 0; i < total_static_partns; i++) {
-    denominator = pixels_per_sbin[i] * frames * norm_factor;
+    // Getting rid of norm factor division for now. 
+    //denominator = pixels_per_sbin[i] * frames * norm_factor;
+    
+    denominator = (float)pixels_per_sbin[i] * frames;
     partitions_mean[i] /= denominator;
   }
 
@@ -344,33 +387,46 @@ int main(int argc, char** argv)
     tau[x] = std::get<1>(value);
   }
 
-  xpcs::H5Result::write1DData(conf->getFilename(), 
+  if (!conf->IsTwoTime()) {
+    xpcs::H5Result::write1DData(conf->getFilename(), 
                               conf->OutputPath(), 
                               "tau", 
                               (int)delays_per_level.size(), 
                               tau);
-
-  {
-    xpcs::Benchmark benchmark("Computing G2");
-    xpcs::Corr::multiTau2(filter->Data(), g2s, ips, ifs);
   }
-
   
-  xpcs::Benchmark benchmark("Normalizing Data");
-  Eigen::MatrixXf G2s = Eigen::Map<Eigen::MatrixXf>(g2s, pixels, delays_per_level.size());
-  Eigen::MatrixXf IPs = Eigen::Map<Eigen::MatrixXf>(ips, pixels, delays_per_level.size());
-  Eigen::MatrixXf IFs = Eigen::Map<Eigen::MatrixXf>(ifs, pixels, delays_per_level.size());
+  {
+    if (conf->IsTwoTime()) {
+      xpcs::Benchmark benchmark("Computing G2 TwoTimes");
+      xpcs::Corr::twotime(filter->Data());
+    } else {
 
-  xpcs::Corr::normalizeG2s(G2s, IPs, IFs);
+      {
+        xpcs::Benchmark benchmark("Computing G2 MultiTau");
+        xpcs::Corr::multiTau2(filter->Data(), g2s, ips, ifs);
+      }
+      
+      {
+        xpcs::Benchmark benchmark("Normalizing Data");
+        Eigen::MatrixXf G2s = Eigen::Map<Eigen::MatrixXf>(g2s, pixels, delays_per_level.size());
+        Eigen::MatrixXf IPs = Eigen::Map<Eigen::MatrixXf>(ips, pixels, delays_per_level.size());
+        Eigen::MatrixXf IFs = Eigen::Map<Eigen::MatrixXf>(ifs, pixels, delays_per_level.size());
 
-  if (FLAGS_g2out) {
-    xpcs::Benchmark b("Writing G2s, IPs and IFs");
-    xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "G2", pixels, delays_per_level.size(), g2s);
-    xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IP", pixels, delays_per_level.size(), ips);
-    xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF", pixels, delays_per_level.size(), ifs);
+        xpcs::Corr::normalizeG2s(G2s, IPs, IFs);
+
+        if (FLAGS_g2out) {
+          xpcs::Benchmark b("Writing G2s, IPs and IFs");
+          xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "G2", G2s);
+          xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IP", IPs);
+          xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF", IFs);
+        }
+
+      }
+    }
+    
   }
-
-  if (FLAGS_darkout) {
+  
+  if (!reader->compression() && FLAGS_darkout) {
     xpcs::Benchmark b("Writing Dark average and std image");
     if (dark_image != NULL) {
       double* dark_avg = dark_image->dark_avg();

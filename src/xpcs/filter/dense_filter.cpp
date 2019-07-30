@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 
 #include "xpcs/configuration.h"
-#include "xpcs/io/imm_reader.h"
+#include "xpcs/io/reader.h"
 #include "xpcs/data_structure/sparse_data.h"
 #include "xpcs/data_structure/dark_image.h"
 
@@ -159,13 +159,13 @@ void DenseFilter::Apply(struct xpcs::io::ImmBlock* blk) {
         float v = value[j];
         float thresh = 0.0f;
 
-        if (dark_avg != NULL) {
+        if (dark_avg) {
           v = v - dark_avg[j];
           v = std::max(v, 0.0f);
           thresh = threshold_ + sigma_ * dark_std[j];
         }
-
         if (v <= thresh) continue;
+
         sparse_map_[pix] = 1;
         v = v * flatfield_[j];
         pixels_value_[pix] += v;

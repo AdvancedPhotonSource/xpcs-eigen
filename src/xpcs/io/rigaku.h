@@ -45,55 +45,53 @@ POSSIBILITY OF SUCH DAMAGE.
 
 **/
 
-#include "stride.h"
 
-#include <math.h>
+#ifndef XPCS_RIGAKU_H
+#define XPCS_RIGAKU_H
+
+#include "reader.h"
 
 #include <stdio.h>
-#include <iostream>
+#include <stdlib.h>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include "spdlog/spdlog.h"
 
-#include "xpcs/configuration.h"
-#include "xpcs/io/reader.h"
-#include "xpcs/data_structure/sparse_data.h"
 
 namespace xpcs {
-namespace filter {
+namespace io {
 
+class Rigaku : public Reader {
 
-Stride::Stride() {
-  Configuration *conf = Configuration::instance();
-  stride_size_ = conf->FrameStride();
-}
+public:
+  Rigaku(const std::string& filename);
+   
+  ~Rigaku();
 
-Stride::~Stride() {
+  bool compression();
 
-}
+  ImmBlock* NextFrames(int count = 1);
 
-void Stride::Apply(struct xpcs::io::ImmBlock* blk) {
-  int **indx = blk->index;
-  float **val = blk->value;
-  int frames = blk->frames;
-  std::vector<int> ppf = blk->pixels_per_frame;
+  void SkipFrames(int count = 1);
 
-  int pixels = ppf[0];
+  void Reset();
 
-  int **new_index = new int*[1];
-  new_index[0] = indx[0];
+private:
+  
+  FILE *file_;
 
-  float **new_val = new float*[1];
-  new_val[0] = val[0];
+  int last_frame_index;
 
-  int new_frames = 1;
-  std::vector<int> new_ppf = {pixels};
+  int frame_width_;
 
-  blk->index = new_index;
-  blk->value = new_val;
-  blk->frames = new_frames;
-  blk->pixels_per_frame = new_ppf;
+  int frame_height_;
 
-  //TODO smart pointers to handle memory
-}
+  std::unordered_map<int, std::vector<long long> > data_frames_;
 
+};
 
-} // namespace io
-} // namespace xpcs
+} //namespace io
+} //namespace xpcs
+
+#endif
