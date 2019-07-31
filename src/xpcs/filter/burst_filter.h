@@ -44,10 +44,8 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#ifndef XPCS_SPARSE_FILTER_BURST_H
-#define XPCS_SPARSE_FILTER_BURST_H
-
-#include "burst_filter.h"
+#ifndef XPCS_BURST_FILTER_H
+#define XPCS_BURST_FILTER_H
 
 namespace xpcs {
 
@@ -61,64 +59,28 @@ namespace io {
 
 namespace filter {  
 
-class SparseFilterBurst : public BurstFilter  {
+class BurstFilter  {
 
 public:
-  SparseFilterBurst();
 
-  ~SparseFilterBurst();
+  virtual void Apply(struct xpcs::io::ImmBlock* block) = 0;
 
-  void Apply(xpcs::io::ImmBlock* data);
+  // virtual float* PixelsSum() = 0;
 
-  float* PixelsSum();
+  // virtual float* FramesSum() = 0;
 
-  float* FramesSum();
+  // virtual float* PartitionsMean() = 0;
 
-  float* PartitionsMean();
+  // virtual float* PartialPartitionsMean() = 0;
 
-  float* PartialPartitionsMean();
+  // virtual double* TimestampClock() = 0;
 
-  double* TimestampClock();
+  // virtual double* TimestampTicks() = 0;
 
-  double* TimestampTicks();
-
-  xpcs::data_structure::SparseData* Data();
-
-  xpcs::data_structure::SparseData* BurstData();
-
-private:
-
-  xpcs::data_structure::SparseData *data_;
-
-  xpcs::data_structure::SparseData *burst_data_;
   
-  short *pixel_mask_;
+  virtual xpcs::data_structure::SparseData* Data() = 0;
 
-  int *sbin_mask_;
-
-  short *sparse_map_;
-
-  float *pixels_value_;
-
-  double *flatfield_;
-
-  int frame_width_;
-
-  int frame_height_; 
-
-  int frame_index_;
-
-  int frames_todo_;
-
-  int real_frames_todo_;
-  
-  int stride_size_;
-
-  int average_size_;
-
-  int burst_size_;
-
-  bool normalizedByFramesum_;
+  virtual xpcs::data_structure::SparseData* BurstData() = 0;
 
 };
 

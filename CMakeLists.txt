@@ -21,7 +21,9 @@ set(headers
     src/xpcs/io/ufxc.h
     src/xpcs/io/rigaku.h
     src/xpcs/filter/filter.h
+    src/xpcs/filter/burst_filter.h
     src/xpcs/filter/sparse_filter.h
+    src/xpcs/filter/sparse_filter_burst.h
     src/xpcs/filter/dense_filter.h
     src/xpcs/filter/stride.h
     src/xpcs/filter/average.h
@@ -39,6 +41,7 @@ set(sources
     src/xpcs/io/ufxc.cpp
     src/xpcs/io/rigaku.cpp
     src/xpcs/filter/sparse_filter.cpp
+    src/xpcs/filter/sparse_filter_burst.cpp
     src/xpcs/filter/dense_filter.cpp
     src/xpcs/filter/stride.cpp
     src/xpcs/filter/average.cpp

@@ -44,7 +44,6 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -69,7 +68,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "xpcs/io/ufxc.h"
 #include "xpcs/io/rigaku.h"
 #include "xpcs/filter/filter.h"
+#include "xpcs/filter/burst_filter.h"
 #include "xpcs/filter/sparse_filter.h"
+#include "xpcs/filter/sparse_filter_burst.h"
 #include "xpcs/filter/dense_filter.h"
 #include "xpcs/filter/stride.h"
 #include "xpcs/data_structure/dark_image.h"
@@ -89,7 +90,7 @@ DEFINE_string(inpath, "", "The path prefix to replace");
 DEFINE_string(outpath, "", "The path prefix to replace with");
 DEFINE_string(entry, "", "The metadata path in HDF5 file");
 
-void compute_burst_data(xpcs::Configuration *conf)
+void compute_burst(xpcs::Configuration *conf)
 {
   int frames = conf->getFrameTodoCount();
 
@@ -101,11 +102,9 @@ void compute_burst_data(xpcs::Configuration *conf)
   float* ips = new float[pixels * delays_per_level.size()];
   float* ifs = new float[pixels * delays_per_level.size()];
 
-  for (int i = 0; i < (pixels * delays_per_level.size()); i++) {
-    g2s[i] = 0.0f;
-    ips[i] = 0.0f;
-    ifs[i] = 0.0f;
-  }
+  float* g2s_average = new float[pixels * delays_per_level.size()];
+  float* ips_average = new float[pixels * delays_per_level.size()];
+  float* ifs_average = new float[pixels * delays_per_level.size()];
 
   xpcs::io::Reader *reader = NULL; 
 
@@ -119,84 +118,68 @@ void compute_burst_data(xpcs::Configuration *conf)
     reader = new xpcs::io::Imm(conf->getIMMFilePath().c_str());
   }
 
-  xpcs::filter::Filter *filter = new xpcs::filter::SparseFilterDense();
+  xpcs::filter::BurstFilter *filter = new xpcs::filter::SparseFilterBurst();
 
   int burst_size = conf->NumberOfBursts();
-  frames = frames / burst_size;
+  int total_bursts = frames / burst_size;
+
+  printf("Total bursts = %d\n", total_bursts);
 
   // The last frame outside the stride will be ignored. 
   int f = 0;
-  while (f < frames) {
+  while (f < total_bursts) {
+
     struct xpcs::io::ImmBlock* data = reader->NextFrames(burst_size);
     filter->Apply(data);
-    // If mode == burst
+    
+    for (int i = 0; i < (pixels * delays_per_level.size()); i++) {
+      g2s[i] = 0.0f;
+      ips[i] = 0.0f;
+      ifs[i] = 0.0f;
+    }
+    
+    xpcs::Corr::multiTau2(filter->BurstData(), g2s, ips, ifs);
+
+    for (int i = 0; i < (pixels * delays_per_level.size()); i++) {
+      g2s_average[i] += g2s[i];
+      ips_average[i] += ips[i];
+      ifs_average[i] += ifs[i];
+    }
 
     f++;
   }
 
-  // float *tau = new float[delays_per_level.size()];
-  // for (int x = 0 ; x < delays_per_level.size(); x++)
-  // {   
-  //   std::tuple<int, int> value = delays_per_level[x];
-  //   tau[x] = std::get<1>(value);
-  // }
-
-  // if (!conf->IsTwoTime()) {
-  //   xpcs::H5Result::write1DData(conf->getFilename(), 
-  //                             conf->OutputPath(), 
-  //                             "tau", 
-  //                             (int)delays_per_level.size(), 
-  //                             tau);
-  // }
-
-  if (conf->IsTwoTime()) {
-    xpcs::Benchmark benchmark("Computing G2 TwoTimes");
-    xpcs::Corr::twotime(filter->Data());
-  } else {
-
-    {
-      xpcs::Benchmark benchmark("Computing G2 MultiTau");
-      xpcs::Corr::multiTau2(filter->Data(), g2s, ips, ifs);
-    }
-    
-    {
-      xpcs::Benchmark benchmark("Normalizing Data");
-      Eigen::MatrixXf G2s = Eigen::Map<Eigen::MatrixXf>(g2s, pixels, delays_per_level.size());
-      Eigen::MatrixXf IPs = Eigen::Map<Eigen::MatrixXf>(ips, pixels, delays_per_level.size());
-      Eigen::MatrixXf IFs = Eigen::Map<Eigen::MatrixXf>(ifs, pixels, delays_per_level.size());
-
-      xpcs::Corr::normalizeG2s(G2s, IPs, IFs);
-
-      if (FLAGS_g2out) {
-        xpcs::Benchmark b("Writing G2s, IPs and IFs");
-        xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "G2", pixels, delays_per_level.size(), g2s);
-        xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IP", pixels, delays_per_level.size(), ips);
-        xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF", pixels, delays_per_level.size(), ifs);
-      }
-
-    }
+  for (int i = 0; i < (pixels * delays_per_level.size()); i++) {
+    g2s_average[i] /= total_bursts;
+    ips_average[i] /= total_bursts;
+    ifs_average[i] /= total_bursts;
   }
-  
-  if (!reader->compression() && FLAGS_darkout) {
-    xpcs::Benchmark b("Writing Dark average and std image");
-    if (dark_image != NULL) {
-      double* dark_avg = dark_image->dark_avg();
-      double* dark_std = dark_image->dark_std();
-      xpcs::H5Result::write2DData(conf->getFilename(), 
-                                  conf->OutputPath(), 
-                                  "DarkAvg", 
-                                  conf->getFrameHeight(),
-                                  conf->getFrameWidth(), 
-                                  dark_avg);
-      
-      xpcs::H5Result::write2DData(conf->getFilename(), 
-                                  conf->OutputPath(), 
-                                  "DarkStd", 
-                                  conf->getFrameHeight(),
-                                  conf->getFrameWidth(),
-                                  dark_std);
-    }
+
+  // xpcs::Benchmark benchmark("Normalizing Data");
+  Eigen::MatrixXf G2s = Eigen::Map<Eigen::MatrixXf>(g2s_average, pixels, delays_per_level.size());
+  Eigen::MatrixXf IPs = Eigen::Map<Eigen::MatrixXf>(ips_average, pixels, delays_per_level.size());
+  Eigen::MatrixXf IFs = Eigen::Map<Eigen::MatrixXf>(ifs_average, pixels, delays_per_level.size());
+
+  xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "G2_burst", G2s);
+  xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IP_burst", IPs);
+  xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF_burst", IFs);
+
+  for (int i = 0; i < (pixels * delays_per_level.size()); i++) {
+    g2s[i] = 0.0f;
+    ips[i] = 0.0f;
+    ifs[i] = 0.0f;
   }
+
+  xpcs::Corr::multiTau2(filter->Data(), g2s, ips, ifs);
+
+  Eigen::MatrixXf G2s2 = Eigen::Map<Eigen::MatrixXf>(g2s, pixels, delays_per_level.size());
+  Eigen::MatrixXf IPs2 = Eigen::Map<Eigen::MatrixXf>(ips, pixels, delays_per_level.size());
+  Eigen::MatrixXf IFs2 = Eigen::Map<Eigen::MatrixXf>(ifs, pixels, delays_per_level.size());
+
+  xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "G2", G2s2);
+  xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IP", IPs2);
+  xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF", IFs2);
+
 }
 
 int main(int argc, char** argv)
@@ -269,6 +252,6 @@ int main(int argc, char** argv)
   console->debug("Frames count={0}, from={1}, todo={2}", frames, frameFrom, frameTo);
   console->debug("Brust count={0}", bursts);
 
-  compute_burst();
+  compute_burst(conf);
 
 }
