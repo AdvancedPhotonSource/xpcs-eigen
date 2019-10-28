@@ -56,10 +56,13 @@ namespace xpcs {
 void H5Result::write2DData(const std::string &file, 
                            const std::string &grpname,
                            const std::string &nodename,
-                           Eigen::Ref<Eigen::MatrixXf> mat)
+                           Eigen::Ref<Eigen::MatrixXf> mat,
+                           bool compression)
 {
     hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
+    hid_t plist_id;
     hsize_t dims[2];
+    hsize_t cdims[2];
 
     file_id = H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
     // Disable hdf std err printout for opening an non-existing group.
@@ -70,7 +73,6 @@ void H5Result::write2DData(const std::string &file,
     }
 
     //TODO :: Log error if the grp creation fail. 
-
     dataset_id = H5Dopen2(exchange_grp_id, nodename.c_str(), H5P_DEFAULT);
 
     if (dataset_id < 0) {
@@ -79,7 +81,16 @@ void H5Result::write2DData(const std::string &file,
         dims[1] = mat.rows();
 
         dataspace_id = H5Screate_simple(2, dims, NULL);
-        dataset_id = H5Dcreate(exchange_grp_id, nodename.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+        hid_t plist_id = H5Pcreate (H5P_DATASET_CREATE);
+
+        cdims[0] = 20;
+        cdims[0] = 20;
+        H5Pset_chunk(plist_id, 2, cdims);
+
+        H5Pset_deflate(plist_id, 6);
+
+        dataset_id = H5Dcreate2(exchange_grp_id, nodename.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, plist_id, H5P_DEFAULT);
     }
 
     hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, mat.data());
@@ -95,10 +106,13 @@ void H5Result::write2DData(const std::string &file,
                            const std::string &nodename,
                            int size0,
                            int size1,
-                           float* data)
+                           float* data,
+                           bool compression
+                           )
 {
     hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
     hsize_t dims[2];
+    hsize_t cdims[2];
 
     file_id = H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
     // Disable hdf std err printout for opening an non-existing group.
@@ -114,11 +128,22 @@ void H5Result::write2DData(const std::string &file,
 
     if (dataset_id < 0) {
 
+        printf("Compresing data\n");
+        
         dims[0] = size0;
         dims[1] = size1;
 
         dataspace_id = H5Screate_simple(2, dims, NULL);
-        dataset_id = H5Dcreate(exchange_grp_id, nodename.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+         
+        hid_t plist_id = H5Pcreate (H5P_DATASET_CREATE);
+
+        cdims[0] = 20;
+        cdims[1] = 20;
+        H5Pset_chunk(plist_id, 2, cdims);
+
+        H5Pset_deflate(plist_id, 6);
+
+        dataset_id = H5Dcreate2(exchange_grp_id, nodename.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, plist_id, H5P_DEFAULT);
     }
 
     hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
@@ -196,7 +221,8 @@ void H5Result::write2DData(const std::string &file,
                            const std::string &nodename,
                            int size0,
                            int size1,
-                           double* data)
+                           double* data,
+                           bool compression)
 {
     hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
     hsize_t dims[2];

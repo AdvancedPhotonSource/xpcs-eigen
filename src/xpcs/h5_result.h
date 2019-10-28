@@ -58,7 +58,8 @@ public:
     static void write2DData(const std::string &file, 
                         const std::string &grpname,
                         const std::string &nodename,
-                        Eigen::Ref<Eigen::MatrixXf> mat);
+                        Eigen::Ref<Eigen::MatrixXf> mat,
+                        bool compression = false);
 
     static void write1DData(const std::string &file, 
                         const std::string &grpname,
@@ -76,14 +77,16 @@ public:
                         const std::string &nodename,
                         int size0,
                         int size1,
-                        float* data);
+                        float* data,
+                        bool compression = false);
 
     static void write2DData(const std::string &file, 
                         const std::string &grpname,
                         const std::string &nodename,
                         int size0,
                         int size1,
-                        double* data);
+                        double* data,
+                        bool compression =  false);
 
 
     static void write3DData(const std::string &file, 
