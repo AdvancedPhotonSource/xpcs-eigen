@@ -86,6 +86,7 @@ public:
   void init(const std::string &path, const std::string &entry);
 
   std::map<int, std::map<int, std::vector<int>> > getBinMaps();
+  std::map<int, vector<int>> QbinPixelList();
 
   int getTotalStaticPartitions();
   int getTotalDynamicPartitions();
@@ -105,6 +106,7 @@ public:
   short* getPixelMask();
   int* getSbinMask();
   std::vector<int>& TwoTimeQMask();
+
 
   float getDetDpixX();
   float getDetDpixY();
@@ -156,6 +158,7 @@ private:
 
   // Map of dynamic bins to static bin to pixels.
   std::map<int, std::map<int, std::vector<int> >> m_mapping;
+  std::map<int, vector<int>> qbinToPixels;
 
   int xdim;
   int ydim;

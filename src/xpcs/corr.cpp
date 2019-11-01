@@ -436,9 +436,8 @@ void Corr::twotime(data_structure::SparseData *data)
   int frames = conf->getFrameTodoCount();
   int wsize = conf->Two2OneWindowSize();
   vector<int> qphi_bins_to_process = conf->TwoTimeQMask();
-  std::map<int, vector<int>> qbin_to_pixels;
-
   std::map<int, std::map<int, vector<int>> > qbins = conf->getBinMaps();
+  std::map<int, vector<int>> qbin_to_pixels = conf->QbinPixelList();
 
   // 1. Go over each qbin to sbin mapping
   for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
@@ -458,7 +457,6 @@ void Corr::twotime(data_structure::SparseData *data)
           int p = *pind;
           plist.push_back(p);
         }
-
         qbin_to_pixels[q] = plist;
       } 
     }
@@ -882,5 +880,120 @@ int Corr::calculateLevelMax(int frameCount, int dpl) {
 int Corr::calculateDelayCount(int dpl, int level) {
     return level == 0 ? (2 * dpl -1) : dpl;
 }
+
+static float* computeSGSymmetric() {
+    Configuration* conf = Configuration::instance();
+
+    int frames = conf->getFrameTodoCount();
+    int wsize = conf->Two2OneWindowSize();
+    vector<int> qphi_bins_to_process = conf->TwoTimeQMask();
+    std::map<int, std::map<int, vector<int>> > qbins = conf->getBinMaps();
+    std::map<int, vector<int>> qbin_to_pixels = conf->QbinPixelList();
+  
+    float *sg = new float[qbin_to_pixels.size() * frames];
+    for (int i = 0; i < qbin_to_pixels.size() * frames; i++)
+        sg[i] = 0.0;
+
+    int q = 0;
+    for (auto it = qbin_to_pixels.begin(); it != qbin_to_pixels.end(); it++) {
+        int qbin = it->first;
+        vector<int> plist = it->second;
+        int pixels = plist.size();
+        for (int i = 0; i < pixels; i++) {
+            data_structure::Row *row = data->Pixel(plist[i]);
+            std::vector<int> iptr = row->indxPtr;
+            std::vector<float>& vptr = row->valPtr;
+
+            for (int j = 0; j < iptr.size(); j++) {
+                int f = iptr[j];
+                float val = vptr[j];
+                sg[q * frames + f] += val;
+            }       
+        }
+
+        for (int ff = 0 ; ff < frames; ff++) {
+            sg[q * frames + ff] /= (float)pixels;
+        }
+
+        q++;
+    }
+}
+
+static float* computeSGStaticMap() {
+    Configuration* conf = Configuration::instance();
+
+    int frames = conf->getFrameTodoCount();
+    int wsize = conf->Two2OneWindowSize();
+    int totalStaticBins = conf->getTotalStaticPartitions();
+
+    vector<int> qphi_bins_to_process = conf->TwoTimeQMask();
+    std::map<int, std::map<int, vector<int>> > qbins = conf->getBinMaps();
+    std::map<int, vector<int>> qbin_to_pixels = conf->QbinPixelList();
+  
+    float *sg = new float[totalStaticBins * frames];
+    for (int i = 0; i < totalStaticBins * frames; i++)
+        sg[i] = 0.0;
+
+    int q = 0;
+    int sbinCount = 0;
+    for (map<int, map<int, vector<int>> >::const_iterator it = m_mapping.begin(); 
+        it != m_mapping.end(); it++) {
+        int qbin = it->first;
+        map<int, vector<int> > values =  it->second;
+
+        if (std::find(qphi_bins_to_process.begin(), qphi_bins_to_process.end(), q) == qphi_bins_to_process.end())
+            continue;
+
+        // 2. For each qbin if that qbin is in 
+        for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
+            int sbin = it2->first;
+            vector<int> pixels = it2->second;
+            
+            for(auto pind = pixels.begin(); pind != pixels.end(); pind++) {    
+                int p = *pind;
+                data_structure::Row *row = data->Pixel(plist[i]);
+                std::vector<int> iptr = row->indxPtr;
+                std::vector<float>& vptr = row->valPtr;
+
+                for (int j = 0; j < iptr.size(); j++) {
+                    int f = iptr[j];
+                    float val = vptr[j];
+                    sg[q * sbinCount * frames + f] += val;
+                }        
+            }
+
+            for (int ff = 0 ; ff < frames; ff++) {
+                sg[q * sbinCount * frames + ff] /= (float)pixels.size();
+            }
+        } 
+        sbinCount += values.size();
+    }
+  }
+
+    int q = 0;
+    for (auto it = qbin_to_pixels.begin(); it != qbin_to_pixels.end(); it++) {
+        int qbin = it->first;
+        vector<int> plist = it->second;
+        int pixels = plist.size();
+        for (int i = 0; i < pixels; i++) {
+            data_structure::Row *row = data->Pixel(plist[i]);
+            std::vector<int> iptr = row->indxPtr;
+            std::vector<float>& vptr = row->valPtr;
+
+            for (int j = 0; j < iptr.size(); j++) {
+                int f = iptr[j];
+                float val = vptr[j];
+                sg[q * frames + f] += val;
+            }       
+        }
+
+        for (int ff = 0 ; ff < frames; ff++) {
+            sg[q * frames + ff] /= (float)pixels;
+        }
+
+        q++;
+    }
+}
+
 
 } //namespace xpcs

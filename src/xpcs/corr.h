@@ -108,6 +108,8 @@ public:
                               int frameCount, 
                               int tau, 
                               int level);
+  
+  static float* computeSGSymmetric();
 
 };
 

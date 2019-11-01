@@ -302,6 +302,30 @@ void Configuration::BuildQMap() {
 
     pixels_per_bin[sqmap[i]-1]++;
   }
+
+  // 1. Go over each qbin to sbin mapping
+  for (map<int, map<int, vector<int>> >::const_iterator it = m_mapping.begin(); 
+    it != m_mapping.end(); it++) {
+    int q = it->first;
+    map<int, vector<int> > values =  it->second;
+
+    // 2. For each qbin if that qbin is in 
+    if (std::find(qqphi_bin_to_process_.begin(), qphi_bin_to_process_.end(), q) 
+                        != qphi_bin_to_process_.end()) {
+      std::vector<int> plist;
+      for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
+        int sbin = it2->first;
+
+        vector<int> pixels = it2->second;
+        for(vector<int>::const_iterator pind = pixels.begin(); pind != pixels.end(); pind++) {    
+          int p = *pind;
+          plist.push_back(p);
+        }
+
+        qbinToPixels[q] = plist;
+      } 
+    }
+  }
 }
 
 /**
@@ -693,6 +717,11 @@ std::vector<int>& Configuration::TwoTimeQMask()
 int Configuration::Two2OneWindowSize()
 {
   return two2one_window_size_;
+}
+
+std::map<int, vector<int>> Configuration::QbinPixelList()
+{
+  return qbinToPixels;
 }
 
 }
