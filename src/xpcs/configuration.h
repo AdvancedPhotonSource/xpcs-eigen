@@ -86,7 +86,7 @@ public:
   void init(const std::string &path, const std::string &entry);
 
   std::map<int, std::map<int, std::vector<int>> > getBinMaps();
-  std::map<int, vector<int>> QbinPixelList();
+  std::map<int, std::vector<int> > QbinPixelList();
 
   int getTotalStaticPartitions();
   int getTotalDynamicPartitions();
@@ -97,10 +97,13 @@ public:
   int FrameAverage();
 
   int Two2OneWindowSize();
+
+  int SmoothingMethod();
   
   std::string getFilename();
   std::string& getIMMFilePath();
   std::string& OutputPath();
+  
   void setIMMFilePath(std::string& str);
 
   short* getPixelMask();
@@ -158,7 +161,7 @@ private:
 
   // Map of dynamic bins to static bin to pixels.
   std::map<int, std::map<int, std::vector<int> >> m_mapping;
-  std::map<int, vector<int>> qbinToPixels;
+  std::map<int, std::vector<int>> qbinToPixels;
 
   int xdim;
   int ydim;
