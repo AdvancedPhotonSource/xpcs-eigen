@@ -127,9 +127,6 @@ void H5Result::write2DData(const std::string &file,
     dataset_id = H5Dopen2(exchange_grp_id, nodename.c_str(), H5P_DEFAULT);
 
     if (dataset_id < 0) {
-
-        printf("Compresing data\n");
-        
         dims[0] = size0;
         dims[1] = size1;
 
