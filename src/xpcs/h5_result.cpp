@@ -137,8 +137,8 @@ void H5Result::write2DData(const std::string &file,
          
         hid_t plist_id = H5Pcreate (H5P_DATASET_CREATE);
 
-        cdims[0] = 20;
-        cdims[1] = 20;
+        cdims[0] = size0;
+        cdims[1] = size1;
         H5Pset_chunk(plist_id, 2, cdims);
 
         H5Pset_deflate(plist_id, 6);

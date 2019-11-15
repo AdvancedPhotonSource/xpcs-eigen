@@ -314,6 +314,7 @@ int main(int argc, char** argv)
                         conf->getFrameWidth(), 
                         pixels_sum);
 
+  
   xpcs::H5Result::write2DData(conf->getFilename(), 
                               conf->OutputPath(), 
                               "frameSum", 
