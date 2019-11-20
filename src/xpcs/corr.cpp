@@ -659,7 +659,8 @@ void Corr::twotime(data_structure::SparseData *data)
                         g2_name.c_str(),
                         frames, 
                         frames, 
-                        ptrg2);
+                        ptrg2,
+                        true);
   }
 
   float* g2full_result = new float[qbin_to_pixels.size() * frames];
@@ -680,7 +681,6 @@ void Corr::twotime(data_structure::SparseData *data)
     }
   }
 
-  printf("SGs %d\n", totalSGs);
   xpcs::H5Result::write2DData(conf->getFilename(), 
                         conf->OutputPath(), 
                         "g2full", 
