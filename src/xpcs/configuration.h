@@ -203,6 +203,7 @@ private:
   std::string m_filename;
   std::string m_immFile;
   std::string output_path_;
+  std::string smoothing_method_;
 
   std::vector<int> qphi_bin_to_process_;
 

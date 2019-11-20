@@ -91,6 +91,8 @@ void Configuration::init(const std::string &path, const std::string& entry)
     dqmap = get2DTable(entry + "/dqmap");
     sqmap = get2DTable(entry + "/sqmap");
 
+    smoothing_method_ = getString(entry + "/smoothing_method");
+    
     this->xdim = getInteger("/measurement/instrument/detector/x_dimension");
     this->ydim = getInteger("/measurement/instrument/detector/y_dimension");
 
@@ -726,7 +728,7 @@ std::map<int, std::vector<int>> Configuration::QbinPixelList()
 
 int Configuration::SmoothingMethod()
 {
-  return 2;
+  return smoothing_method_ == "symmetric" ? 2 : 1;
 }
 
 }

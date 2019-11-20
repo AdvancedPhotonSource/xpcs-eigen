@@ -131,16 +131,23 @@ void H5Result::write2DData(const std::string &file,
         dims[1] = size1;
 
         dataspace_id = H5Screate_simple(2, dims, NULL);
-         
-        hid_t plist_id = H5Pcreate (H5P_DATASET_CREATE);
+        
+        if (compression) {
+            hid_t plist_id = H5Pcreate (H5P_DATASET_CREATE);
 
-        cdims[0] = size0;
-        cdims[1] = size1;
-        H5Pset_chunk(plist_id, 2, cdims);
+            cdims[0] = size0;
+            cdims[1] = size1;
+            H5Pset_chunk(plist_id, 2, cdims);
 
-        H5Pset_deflate(plist_id, 6);
+            H5Pset_deflate(plist_id, 6);
 
-        dataset_id = H5Dcreate2(exchange_grp_id, nodename.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, plist_id, H5P_DEFAULT);
+            dataset_id = H5Dcreate2(exchange_grp_id, nodename.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, plist_id, H5P_DEFAULT);
+        } 
+        else 
+        {
+            dataset_id =  H5Dcreate(exchange_grp_id, nodename.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        }
+        
     }
 
     hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
