@@ -501,7 +501,7 @@ void Corr::twotime(data_structure::SparseData *data)
   } 
   else 
   {
-    sg = Corr::ComputeSGStaticMap(data);
+    sg = Corr::ComputeSGSymmetric(data);
 
     for (int binIdx = 0; binIdx < qbin_to_pixels.size(); binIdx++) {
       auto it = qbin_to_pixels.begin();
