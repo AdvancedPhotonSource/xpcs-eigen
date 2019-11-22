@@ -728,7 +728,7 @@ std::map<int, std::vector<int>> Configuration::QbinPixelList()
 
 int Configuration::SmoothingMethod()
 {
-  return smoothing_method_ == "symmetric" ? 2 : 1;
+  return smoothing_method_ == "symmetric" ? 1 : 2;
 }
 
 }
