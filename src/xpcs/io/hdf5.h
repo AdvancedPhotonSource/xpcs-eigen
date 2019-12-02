@@ -44,61 +44,51 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#include "sparse_data.h"
 
+
+#ifndef XPCS_HDF5_H
+#define XPCS_HDF5_H
+
+#include "reader.h"
+#include <hdf5.h>
 #include <stdio.h>
-#include <iostream>
-
-#include "xpcs/configuration.h"
-#include "xpcs/benchmark.h"
+#include <stdlib.h>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include "spdlog/spdlog.h"
 
 
 namespace xpcs {
-namespace data_structure {
+namespace io {
 
-SparseData::SparseData(int rows, int initialSize)
-{
-    m_rows = rows;
-    m_initSize = initialSize;
-    m_data = new Row*[rows];
-    valid_pixels_ = new short[rows];
+class Hdf5 : public Reader {
 
-    for (int i = 0; i < m_rows; i++) {
-      m_data[i] = NULL;
-      valid_pixels_[i] = 0;
-    }
-}
+public:
+  Hdf5(const std::string& filename);
+   
+  ~Hdf5();
 
-SparseData::~SparseData()
-{
-  //TODO
-}
+  bool compression();
 
-Row* SparseData::Pixel(int index)
-{
-    assert(index < m_rows);
-    Row *r = m_data[index];
-    
-    if (!r) {
-        r = new Row(m_initSize);
-        m_data[index] = r;
-        m_validPixels.push_back(index);
-        valid_pixels_[index] = 1;
-    }
+  ImmBlock* NextFrames(int count = 1);
 
-    return r;
-}
+  void SkipFrames(int count = 1);
 
-std::vector<int>& SparseData::ValidPixels()
-{
-    return m_validPixels;
-}
+  void Reset();
 
-bool SparseData::Exists(int index) {
+private:
+  
+  int last_frame_index_;
 
-  assert (index < m_rows);
-  return valid_pixels_[index] == 1;
-}
+  hid_t dataset_id_;
+  hid_t space_id_;
+  hid_t memspace_id_;
+  
+  unsigned short* buffer_;
+};
 
-} //namespace data_structure
+} //namespace io
 } //namespace xpcs
+
+#endif
