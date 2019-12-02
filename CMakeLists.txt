@@ -20,6 +20,7 @@ set(headers
     src/xpcs/io/imm.h
     src/xpcs/io/ufxc.h
     src/xpcs/io/rigaku.h
+    src/xpcs/io/hdf5.h
     src/xpcs/filter/filter.h
     src/xpcs/filter/sparse_filter.h
     src/xpcs/filter/dense_filter.h
@@ -38,6 +39,7 @@ set(sources
     src/xpcs/io/imm.cpp
     src/xpcs/io/ufxc.cpp
     src/xpcs/io/rigaku.cpp
+    src/xpcs/io/hdf5.cpp
     src/xpcs/filter/sparse_filter.cpp
     src/xpcs/filter/dense_filter.cpp
     src/xpcs/filter/stride.cpp

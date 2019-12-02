@@ -44,61 +44,104 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#include "sparse_data.h"
+#include "hdf5.h"
 
 #include <stdio.h>
 #include <iostream>
+#include <vector>
+#include <iterator>
 
 #include "xpcs/configuration.h"
-#include "xpcs/benchmark.h"
-
 
 namespace xpcs {
-namespace data_structure {
+namespace io {
 
-SparseData::SparseData(int rows, int initialSize)
-{
-    m_rows = rows;
-    m_initSize = initialSize;
-    m_data = new Row*[rows];
-    valid_pixels_ = new short[rows];
+Hdf5::Hdf5(const std::string& filename) {
+    xpcs::Configuration *conf = xpcs::Configuration::instance();
+    int fw = conf->getFrameWidth();
+    int fh = conf->getFrameHeight();
 
-    for (int i = 0; i < m_rows; i++) {
-      m_data[i] = NULL;
-      valid_pixels_[i] = 0;
+    hsize_t count[3] = {1, fw, fh};
+    hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    hid_t gid = H5Gopen2(file, "/entry/data", H5P_DEFAULT);
+    dataset_id_ = H5Dopen1(gid, "data");
+    space_id_ = H5Dget_space(dataset_id_);
+    memspace_id_ = H5Screate_simple(3, count, NULL);
+
+    buffer_ = new unsigned short[fw * fh];
+}
+
+Hdf5::~Hdf5() {
+}
+
+ImmBlock* Hdf5::NextFrames(int count) {
+    xpcs::Configuration *conf = xpcs::Configuration::instance();
+    int fw = conf->getFrameWidth();
+    int fh = conf->getFrameHeight();
+
+    int **index = new int*[count];
+    float **value = new float*[count];
+    double *clock = new double[count];
+    double *ticks = new double[count];
+
+    int done = 0;
+    std::vector<int> ppf;
+
+    hsize_t hdf_count[3] = {1, fw, fh};
+
+    while (done < count) {
+      hsize_t offset[3] = {last_frame_index_, 0, 0};
+      herr_t errstatus = H5Sselect_hyperslab(space_id_, H5S_SELECT_SET, offset, NULL, hdf_count, NULL);
+      hid_t status = H5Dread(dataset_id_, H5T_NATIVE_UINT16, memspace_id_, space_id_, H5P_DEFAULT, buffer_);
+
+      // count total non-zero values.
+      int sparse = 0;
+      for (int i = 0; i < (fw * fh); i++) {
+        if (buffer_[i] != 0) sparse++;
+      }
+
+      index[done] = new int[sparse];
+      value[done] = new float[sparse];
+
+      int idx = 0;
+      for (int i = 0; i < (fw * fh); i++) {
+        if (buffer_[i] != 0) {
+          index[done][idx] = i;
+          value[done][idx] = buffer_[i];
+
+          idx++;
+        }
+      }
+      ppf.push_back(sparse);
+
+      clock[done] = last_frame_index_;
+      ticks[done] = last_frame_index_;
+      
+      last_frame_index_++;
+      done++;
     }
+
+    ImmBlock *ret = new ImmBlock;
+    ret->index = index;
+    ret->value = value;
+    ret->frames = count;
+    ret->pixels_per_frame = ppf;
+    ret->clock = clock;
+    ret->ticks = ticks;
+    ret->id = 1;
+
+    return ret;
 }
 
-SparseData::~SparseData()
-{
-  //TODO
+void Hdf5::SkipFrames(int count) {
+  last_frame_index_ += count;
 }
 
-Row* SparseData::Pixel(int index)
-{
-    assert(index < m_rows);
-    Row *r = m_data[index];
-    
-    if (!r) {
-        r = new Row(m_initSize);
-        m_data[index] = r;
-        m_validPixels.push_back(index);
-        valid_pixels_[index] = 1;
-    }
-
-    return r;
+void Hdf5::Reset() {
+  last_frame_index_ = 0;
 }
 
-std::vector<int>& SparseData::ValidPixels()
-{
-    return m_validPixels;
-}
+bool Hdf5::compression() { return false; }
 
-bool SparseData::Exists(int index) {
-
-  assert (index < m_rows);
-  return valid_pixels_[index] == 1;
-}
-
-} //namespace data_structure
-} //namespace xpcs
+} // namespace io
+} // namespace xpcs
