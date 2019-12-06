@@ -107,6 +107,11 @@ SparseFilter::SparseFilter() {
 
   data_ = new xpcs::data_structure::SparseData(frame_width_ * frame_height_);
 
+  /*printf("QMAP\n");
+  for (int i = 0 ; i < frame_width_ * frame_height_; i++) {
+    if (pixel_mask_[i] != 0) printf("%d\n", i);
+  }*/
+
 }
 
 SparseFilter::~SparseFilter() {
