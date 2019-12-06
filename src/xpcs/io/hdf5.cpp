@@ -144,8 +144,6 @@ ImmBlock* Hdf5::NextFrames(int count) {
         if (buffer_[i] != 0) sparse++;
       }
 
-      cout<< "Sprase in frame # " << last_frame_index_ << " is " << sparse<<endl;
-
       index[done] = new int[sparse];
       value[done] = new float[sparse];
 
@@ -155,7 +153,6 @@ ImmBlock* Hdf5::NextFrames(int count) {
         if (buffer_[i] != 0) {
           index[done][idx] = i;
           value[done][idx] = buffer_[i];
-
           idx++;
         }
       }
@@ -188,7 +185,7 @@ void Hdf5::Reset() {
   last_frame_index_ = 0;
 }
 
-bool Hdf5::compression() { return false; }
+bool Hdf5::compression() { return true; }
 
 } // namespace io
 } // namespace xpcs
