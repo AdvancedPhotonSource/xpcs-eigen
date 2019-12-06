@@ -53,6 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "xpcs/configuration.h"
 
+using namespace std;
+
 namespace xpcs {
 namespace io {
 
@@ -64,11 +66,53 @@ Hdf5::Hdf5(const std::string& filename) {
     hsize_t count[3] = {1, fw, fh};
     hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     hid_t gid = H5Gopen2(file, "/entry/data", H5P_DEFAULT);
-    dataset_id_ = H5Dopen1(gid, "data");
+    
+    if (gid < 0) {
+      std::cout<<"Failed to open group /entry/data" <<std::endl;
+      return;
+    }
+
+    dataset_id_ = H5Dopen2(gid, "data", H5P_DEFAULT);
+    
+    if (dataset_id_ < 0) 
+    {
+      std::cout<<"Failed to open dataset data"<<std::endl;
+      return;
+    }
+
+    datatype_id_ = H5Dget_type(dataset_id_);
+    // std::cout<<"Data type " << datatype_id_ << " " <<  H5T_NATIVE_UINT16 <<std::endl;
     space_id_ = H5Dget_space(dataset_id_);
     memspace_id_ = H5Screate_simple(3, count, NULL);
+    int rank = H5Sget_simple_extent_ndims(space_id_);
+    //TODO: Check return values.
+
+    hsize_t dims[3];
+    hsize_t maxdims[3];
+    H5Sget_simple_extent_dims(space_id_, dims, maxdims);
+
+    // std::cout<<dims[0]<<" , " << dims[1] << " , " <<dims[2] <<std::endl;
 
     buffer_ = new unsigned short[fw * fh];
+
+    // std::cout<<file<<std::endl;
+    // std::cout<<space_id_<<std::endl;
+    // std::cout<<memspace_id_<<std::endl;
+    // std::cout<<dataset_id_<<std::endl;
+
+    // unsigned int flags;
+    // size_t nelmts = 1;
+    // unsigned int values_out[1] = {99};
+    // char filter_name[80];
+
+    // hid_t dcpl = H5Dget_create_plist (dataset_id_);
+    // H5Pget_filter2 (dcpl, (unsigned) 0, &flags, &nelmts, values_out, sizeof(filter_name), filter_name, NULL);
+
+    // std::cout<<filter_name<<std::endl;
+
+    // std::cout<<"Rank : " <<rank<<std::endl;
+
+    last_frame_index_ = 0;
 }
 
 Hdf5::~Hdf5() {
@@ -92,18 +136,21 @@ ImmBlock* Hdf5::NextFrames(int count) {
     while (done < count) {
       hsize_t offset[3] = {last_frame_index_, 0, 0};
       herr_t errstatus = H5Sselect_hyperslab(space_id_, H5S_SELECT_SET, offset, NULL, hdf_count, NULL);
-      hid_t status = H5Dread(dataset_id_, H5T_NATIVE_UINT16, memspace_id_, space_id_, H5P_DEFAULT, buffer_);
-
+      hid_t status = H5Dread(dataset_id_, datatype_id_, memspace_id_, space_id_, H5P_DEFAULT, buffer_);
+      
       // count total non-zero values.
       int sparse = 0;
       for (int i = 0; i < (fw * fh); i++) {
         if (buffer_[i] != 0) sparse++;
       }
 
+      cout<< "Sprase in frame # " << last_frame_index_ << " is " << sparse<<endl;
+
       index[done] = new int[sparse];
       value[done] = new float[sparse];
 
       int idx = 0;
+
       for (int i = 0; i < (fw * fh); i++) {
         if (buffer_[i] != 0) {
           index[done][idx] = i;
