@@ -84,6 +84,7 @@ private:
   hid_t dataset_id_;
   hid_t space_id_;
   hid_t memspace_id_;
+  hid_t datatype_id_;
   
   unsigned short* buffer_;
 };
