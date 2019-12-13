@@ -302,10 +302,6 @@ int main(int argc, char** argv)
       }
     }
   }
-
-    /*xpcs::data_structure::SparseData *data = filter->Data();
-  xpcs::data_structure::Row *arow = data->Pixel(1133);
-  printf("Value = %f\n", arow->valPtr[0]);*/
   
   float* pixels_sum = filter->PixelsSum();
   for (int i = 0 ; i < pixels; i++) {
@@ -337,18 +333,12 @@ int main(int argc, char** argv)
   float denominator = 1.0f;
   for (int i = 0; i < total_static_partns; i++) {
     for (int j = 0; j < partitions; j++) {
-      // Getting rid of norm factor division for now. 
-      //denominator = pixels_per_sbin[i] * swindow * norm_factor;
-      
       denominator = (float)pixels_per_sbin[i] * swindow;
       partial_part_mean[j * total_static_partns + i] /= denominator;
     }
   }
 
   for (int i = 0; i < total_static_partns; i++) {
-    // Getting rid of norm factor division for now. 
-    //denominator = pixels_per_sbin[i] * frames * norm_factor;
-    
     denominator = (float)pixels_per_sbin[i] * frames;
     partitions_mean[i] /= denominator;
   }
