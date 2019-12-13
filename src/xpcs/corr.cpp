@@ -68,6 +68,8 @@ using std::tuple;
 using std::get;
 using std::min;
 using std::map;
+using std::cout;
+using std::endl;
 
 using Eigen::VectorXi;
 using Eigen::MatrixXf;
@@ -869,6 +871,8 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
         stdError.row(q - 1).array() = samples.array().sqrt() * stdNorm.array().sqrt();
     }
 
+    cout<<g2<<endl;
+    
     H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "norm-0-g2", g2);
     H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "norm-0-stderr", stdError);
 }

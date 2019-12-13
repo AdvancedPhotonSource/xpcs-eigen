@@ -82,15 +82,22 @@ void H5Result::write2DData(const std::string &file,
 
         dataspace_id = H5Screate_simple(2, dims, NULL);
 
-        hid_t plist_id = H5Pcreate (H5P_DATASET_CREATE);
+        if (compression) {
+            hid_t plist_id = H5Pcreate (H5P_DATASET_CREATE);
 
-        cdims[0] = 20;
-        cdims[0] = 20;
-        H5Pset_chunk(plist_id, 2, cdims);
+            cdims[0] = 20;
+            cdims[0] = 20;
+            H5Pset_chunk(plist_id, 2, cdims);
 
-        H5Pset_deflate(plist_id, 6);
+            H5Pset_deflate(plist_id, 6);
 
-        dataset_id = H5Dcreate2(exchange_grp_id, nodename.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, plist_id, H5P_DEFAULT);
+            dataset_id = H5Dcreate2(exchange_grp_id, nodename.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, plist_id, H5P_DEFAULT);
+        } 
+        else 
+        {
+            dataset_id = H5Dcreate(exchange_grp_id, nodename.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        }
+        
     }
 
     hid_t stats = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, mat.data());
@@ -342,7 +349,8 @@ void H5Result::write1DData(const std::string &file,
 
 void H5Result::writePixelSum(const std::string &file, 
                    const std::string &grpname,
-                   Eigen::Ref<Eigen::VectorXf> pixelSum) {
+                   Eigen::Ref<Eigen::VectorXf> pixelSum) 
+{
 
     hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
     hsize_t dims[2];
@@ -382,7 +390,8 @@ void H5Result::writePixelSum(const std::string &file,
 
 void H5Result::writeFrameSum(const std::string &file, 
                    const std::string &grpname,
-                   Eigen::Ref<Eigen::VectorXf> frameSum) {
+                   Eigen::Ref<Eigen::VectorXf> frameSum) 
+{
 
     hid_t file_id, exchange_grp_id, dataset_id, dataspace_id;
     hsize_t dims[2];
