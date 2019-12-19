@@ -849,7 +849,7 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
                 tmpAvg = avgG2;
 
                 VectorXf normalizedG2 =  G2.row(p).array() / (IP.row(p).array() * IF.row(p).array());
-                samples += incrs;
+                //samples += incrs;
                 normalizedG2 = Eigen::isnan(normalizedG2.array()).select(0, normalizedG2);
                 samples += Eigen::isnan(normalizedG2.array()).select(0, incrs);
 
@@ -867,11 +867,8 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
 
         VectorXf stdNorm = stdG2.array() / samples.array();
         samples = 1.0f / samples.array();
-        // std::cout<<samples.array().sqrt()<<std::endl;
         stdError.row(q - 1).array() = samples.array().sqrt() * stdNorm.array().sqrt();
     }
-
-    cout<<g2<<endl;
     
     H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "norm-0-g2", g2);
     H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "norm-0-stderr", stdError);
