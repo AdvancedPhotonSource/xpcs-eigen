@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 
 #include "configuration.h"
-#include "h5_result.h"
+#include "hdf5_utils.h"
 
 #include "xpcs/data_structure/sparse_data.h"
 
@@ -656,7 +656,7 @@ void Corr::twotime(data_structure::SparseData *data)
     std::string g2_name(buffer);
     std::string path = conf->OutputPath() + "/C2T_all/";
 
-    xpcs::H5Result::write2DData(conf->getFilename(), 
+    xpcs::HDF5Utils::write2DData(conf->getFilename(), 
                         path.c_str(), 
                         g2_name.c_str(),
                         frames, 
@@ -683,14 +683,14 @@ void Corr::twotime(data_structure::SparseData *data)
     }
   }
 
-  xpcs::H5Result::write2DData(conf->getFilename(), 
+  xpcs::HDF5Utils::write2DData(conf->getFilename(), 
                         conf->OutputPath(), 
                         "g2full", 
                         frames, 
                         qbin_to_pixels.size(), 
                         g2full_result);  
 
-  xpcs::H5Result::write3DData(conf->getFilename(), 
+  xpcs::HDF5Utils::write3DData(conf->getFilename(), 
                         conf->OutputPath(), 
                         "g2partials", 
                         wsize, 
@@ -699,7 +699,7 @@ void Corr::twotime(data_structure::SparseData *data)
                         g2partial_result);  
 
 
-  xpcs::H5Result::write2DData(conf->getFilename(), 
+  xpcs::HDF5Utils::write2DData(conf->getFilename(), 
                         conf->OutputPath(), 
                         "sg", 
                         totalSGs, 
@@ -870,8 +870,8 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
         stdError.row(q - 1).array() = samples.array().sqrt() * stdNorm.array().sqrt();
     }
     
-    H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "norm-0-g2", g2);
-    H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "norm-0-stderr", stdError);
+    HDF5Utils::write2DData(conf->getFilename(), conf->OutputPath(), "norm-0-g2", g2);
+    HDF5Utils::write2DData(conf->getFilename(), conf->OutputPath(), "norm-0-stderr", stdError);
 }
 
 double* Corr::computeG2Levels(const Eigen::MatrixXf &pixelData, 

@@ -44,17 +44,25 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 **/
-#ifndef H5_RESULT_H
-#define H5_RESULT_H
+#ifndef HDF5_UTILS_H
+#define HDF5_UTILS_H
 
 #include "Eigen/Dense"
 #include "Eigen/SparseCore"
 
 namespace xpcs {
 
-class H5Result {
+class HDF5Utils {
 
 public:
+    // Read functions
+    static void read(const std::string &file,
+                     const std::string &grpname,
+                     const std::string &nodename,
+                     Eigen::Ref<Eigen::MatrixXf> mat,
+                     bool compressed = false
+                    );
+    // Write functions
     static void write2DData(const std::string &file, 
                         const std::string &grpname,
                         const std::string &nodename,

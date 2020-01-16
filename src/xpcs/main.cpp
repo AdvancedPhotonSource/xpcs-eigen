@@ -62,7 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "corr.h"
 #include "xpcs/configuration.h"
-#include "h5_result.h"
+#include "hdf5_utils.h"
 #include "benchmark.h"
 #include "xpcs/io/reader.h"
 #include "xpcs/io/imm.h"
@@ -80,6 +80,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 namespace spd = spdlog; 
 
+DEFINE_bool(tests, false, "Run unit testsn");
 DEFINE_bool(g2out, false, "Write intermediate output from G2 computation");
 DEFINE_bool(darkout, false, "Write dark average and std-data");
 DEFINE_bool(ufxc, false, "IF the file format is from ufxc photon counting detector.");
@@ -91,8 +92,20 @@ DEFINE_string(inpath, "", "The path prefix to replace");
 DEFINE_string(outpath, "", "The path prefix to replace with");
 DEFINE_string(entry, "", "The metadata path in HDF5 file");
 
+void run_tests()
+{
+  printf("Running test\n");
+}
+
 int main(int argc, char** argv)
 {
+
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+
+  if (FLAGS_tests) {
+    run_tests();
+    return 0;
+  }
 
   if (argc < 2) {
       fprintf(stderr, "Please specify a HDF5 metadata file\n");
@@ -101,8 +114,6 @@ int main(int argc, char** argv)
 
   xpcs::Benchmark total("Total");
  
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
-
   auto console = spd::stdout_color_mt("console");
 
   std::string entry = "/xpcs";
@@ -271,7 +282,7 @@ int main(int argc, char** argv)
         }
       }
 
-      xpcs::H5Result::write3DData(conf->getFilename(), 
+      xpcs::HDF5Utils::write3DData(conf->getFilename(), 
                         conf->OutputPath(), 
                         "frames_out", 
                         conf->getFrameHeight(), 
@@ -308,7 +319,7 @@ int main(int argc, char** argv)
     pixels_sum[i] /= frames;
   }
 
-  xpcs::H5Result::write2DData(conf->getFilename(), 
+  xpcs::HDF5Utils::write2DData(conf->getFilename(), 
                         conf->OutputPath(), 
                         "pixelSum", 
                         conf->getFrameHeight(), 
@@ -316,7 +327,7 @@ int main(int argc, char** argv)
                         pixels_sum);
 
   
-  xpcs::H5Result::write2DData(conf->getFilename(), 
+  xpcs::HDF5Utils::write2DData(conf->getFilename(), 
                               conf->OutputPath(), 
                               "frameSum", 
                               2, 
@@ -343,33 +354,33 @@ int main(int argc, char** argv)
     partitions_mean[i] /= denominator;
   }
 
-  xpcs::H5Result::write1DData(conf->getFilename(), 
+  xpcs::HDF5Utils::write1DData(conf->getFilename(), 
                         conf->OutputPath(), 
                         "partition-mean-total", 
                         total_static_partns,
                         partitions_mean);
 
-  xpcs::H5Result::write2DData(conf->getFilename(), 
+  xpcs::HDF5Utils::write2DData(conf->getFilename(), 
                         conf->OutputPath(), 
                         "partition-mean-partial", 
                         partitions, 
                         total_static_partns,
                         partial_part_mean);
                         
-  xpcs::H5Result::write1DData(conf->getFilename(), 
+  xpcs::HDF5Utils::write1DData(conf->getFilename(), 
                         conf->OutputPath(), 
                         "partition_norm_factor", 
                         1, 
                         &norm_factor);
 
-  xpcs::H5Result::write2DData(conf->getFilename(), 
+  xpcs::HDF5Utils::write2DData(conf->getFilename(), 
                               conf->OutputPath(), 
                               "timestamp_clock", 
                               2, 
                               conf->getRealFrameTodoCount(), 
                               filter->TimestampClock());
 
-  xpcs::H5Result::write2DData(conf->getFilename(), 
+  xpcs::HDF5Utils::write2DData(conf->getFilename(), 
                               conf->OutputPath(), 
                               "timestamp_tick", 
                               2, 
@@ -384,7 +395,7 @@ int main(int argc, char** argv)
   }
 
   if (!conf->IsTwoTime()) {
-    xpcs::H5Result::write1DData(conf->getFilename(), 
+    xpcs::HDF5Utils::write1DData(conf->getFilename(), 
                               conf->OutputPath(), 
                               "tau", 
                               (int)delays_per_level.size(), 
@@ -412,9 +423,9 @@ int main(int argc, char** argv)
 
         if (FLAGS_g2out) {
           xpcs::Benchmark b("Writing G2s, IPs and IFs");
-          xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "G2", G2s);
-          xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IP", IPs);
-          xpcs::H5Result::write2DData(conf->getFilename(), conf->OutputPath(), "IF", IFs);
+          xpcs::HDF5Utils::write2DData(conf->getFilename(), conf->OutputPath(), "G2", G2s);
+          xpcs::HDF5Utils::write2DData(conf->getFilename(), conf->OutputPath(), "IP", IPs);
+          xpcs::HDF5Utils::write2DData(conf->getFilename(), conf->OutputPath(), "IF", IFs);
         }
 
       }
@@ -427,14 +438,14 @@ int main(int argc, char** argv)
     if (dark_image != NULL) {
       double* dark_avg = dark_image->dark_avg();
       double* dark_std = dark_image->dark_std();
-      xpcs::H5Result::write2DData(conf->getFilename(), 
+      xpcs::HDF5Utils::write2DData(conf->getFilename(), 
                                   conf->OutputPath(), 
                                   "DarkAvg", 
                                   conf->getFrameHeight(),
                                   conf->getFrameWidth(), 
                                   dark_avg);
       
-      xpcs::H5Result::write2DData(conf->getFilename(), 
+      xpcs::HDF5Utils::write2DData(conf->getFilename(), 
                                   conf->OutputPath(), 
                                   "DarkStd", 
                                   conf->getFrameHeight(),

@@ -45,15 +45,33 @@ POSSIBILITY OF SUCH DAMAGE.
 
 **/
 
-#include "h5_result.h"
-
+#include "hdf5_utils.h"
 #include "hdf5.h"
-
 #include "configuration.h"
 
 namespace xpcs {
 
-void H5Result::write2DData(const std::string &file, 
+void HDF5Utils::read(const std::string &file,
+                     const std::string &grpname,
+                     const std::string &nodename,
+                     Eigen::Ref<Eigen::MatrixXf> mat,
+                     bool compressed
+                )
+{
+    hsize_t dims[3];
+
+    hid_t file_id = H5Fopen(file.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    hid_t dset_id = H5Dopen(file_id, grpname.c_str(), H5P_DEFAULT);
+    hid_t attr = H5Aopen(dset_id, nodename.c_str(), H5P_DEFAULT);
+    
+    hid_t space_id = H5Aget_space(attr);
+    int ndims = H5Sget_simple_extent_dims (space_id, dims, NULL);
+
+    printf("ndims %d, dims = (%d %d %d)\n", ndims, dims[0], dims[1], dims[2]);
+
+}
+
+void HDF5Utils::write2DData(const std::string &file, 
                            const std::string &grpname,
                            const std::string &nodename,
                            Eigen::Ref<Eigen::MatrixXf> mat,
@@ -108,7 +126,7 @@ void H5Result::write2DData(const std::string &file,
     H5Fclose(file_id);    
 }
 
-void H5Result::write2DData(const std::string &file, 
+void HDF5Utils::write2DData(const std::string &file, 
                            const std::string &grpname,
                            const std::string &nodename,
                            int size0,
@@ -166,7 +184,7 @@ void H5Result::write2DData(const std::string &file,
 }
 
 
-void H5Result::write3DData(const std::string &file, 
+void HDF5Utils::write3DData(const std::string &file, 
                            const std::string &grpname,
                            const std::string &nodename,
                            int size0,
@@ -227,7 +245,7 @@ void H5Result::write3DData(const std::string &file,
 }
 
 
-void H5Result::write2DData(const std::string &file, 
+void HDF5Utils::write2DData(const std::string &file, 
                            const std::string &grpname,
                            const std::string &nodename,
                            int size0,
@@ -270,7 +288,7 @@ void H5Result::write2DData(const std::string &file,
 
 
 
-void H5Result::write1DData(const std::string &file, 
+void HDF5Utils::write1DData(const std::string &file, 
                            const std::string &grpname,
                            const std::string &nodename,
                            Eigen::Ref<Eigen::VectorXf> vec)
@@ -308,7 +326,7 @@ void H5Result::write1DData(const std::string &file,
 }
 
 
-void H5Result::write1DData(const std::string &file, 
+void HDF5Utils::write1DData(const std::string &file, 
                            const std::string &grpname,
                            const std::string &nodename,
                            int size,
@@ -347,7 +365,7 @@ void H5Result::write1DData(const std::string &file,
 }
 
 
-void H5Result::writePixelSum(const std::string &file, 
+void HDF5Utils::writePixelSum(const std::string &file, 
                    const std::string &grpname,
                    Eigen::Ref<Eigen::VectorXf> pixelSum) 
 {
@@ -388,7 +406,7 @@ void H5Result::writePixelSum(const std::string &file,
 }
 
 
-void H5Result::writeFrameSum(const std::string &file, 
+void HDF5Utils::writeFrameSum(const std::string &file, 
                    const std::string &grpname,
                    Eigen::Ref<Eigen::VectorXf> frameSum) 
 {
@@ -410,7 +428,6 @@ void H5Result::writeFrameSum(const std::string &file,
     Configuration *conf = Configuration::instance();
 
     if (dataset_id < 0) {
-
         dims[0] = 1;
         dims[1] = conf->getFrameTodoCount();
 

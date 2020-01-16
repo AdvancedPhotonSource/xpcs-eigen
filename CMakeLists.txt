@@ -2,8 +2,8 @@ project(xpcs-eigen)
 
 cmake_minimum_required(VERSION 3.5)
 
-set(CMAKE_BUILD_TYPE RELEASE)
-#set(CMAKE_BUILD_TYPE DEBUG)
+#set(CMAKE_BUILD_TYPE RELEASE)
+set(CMAKE_BUILD_TYPE DEBUG)
 
 add_definitions(-std=c++0x)
 
@@ -13,7 +13,7 @@ set(headers
     src/xpcs/corr.h
     src/xpcs/data_structure/dark_image.h
     src/xpcs/funcs.h
-    src/xpcs/h5_result.h
+    src/xpcs/hdf5_utils.h
     src/xpcs/data_structure/row.h
     src/xpcs/data_structure/sparse_data.h
     src/xpcs/io/reader.h
@@ -31,7 +31,7 @@ set(headers
 
 set(sources
     src/xpcs/configuration.cpp
-    src/xpcs/h5_result.cpp
+    src/xpcs/hdf5_utils.cpp
     src/xpcs/corr.cpp
     src/xpcs/funcs.cpp
     src/xpcs/data_structure/dark_image.cpp
