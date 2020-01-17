@@ -22,9 +22,5 @@ install:
   - mkdir build
   - cd build/
   - cmake ../
-  - make -j
 
-# TODO
-# Run tests here.
-# script:
-#   - 
+script: make -j
