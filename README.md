@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/AdvancedPhotonSource/xpcs-eigen.svg?branch=master)](https://travis-ci.org/AdvancedPhotonSource/xpcs-eigen)
+
+
+
 ## X-Ray Photon Correlation Spectroscopy.
 
 ### Summary
