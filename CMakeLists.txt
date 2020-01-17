@@ -55,15 +55,15 @@ if (OPENMP_FOUND)
 endif()
 
 
-# TODO. Fix the hard-coded path. 
-include_directories("/usr/local/hdf5/include" 
-                    "src" 
-                    "src/external")
+find_package(HDF5 REQUIRED COMPONENTS CXX HL)
+include_directories( ${HDF5_INCLUDE_DIR} )
 
-link_directories("/usr/local/hdf5/lib")
+# TODO. Fix the hard-coded path. 
+include_directories( "src" "src/external")
 
 add_subdirectory("src/external/gflags")
+
 add_executable(corr ${sources})
 
-target_link_libraries(corr hdf5 gflags)
+target_link_libraries(corr ${HDF5_LIBRARIES} gflags)
 
