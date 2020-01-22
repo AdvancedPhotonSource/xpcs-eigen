@@ -49,17 +49,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "Eigen/Dense"
 #include "Eigen/SparseCore"
-
+#include <iostream>
 namespace xpcs {
 
 class HDF5Utils {
 
 public:
     // Read functions
-    static void read(const std::string &file,
+    static int read(const std::string &file,
                      const std::string &grpname,
                      const std::string &nodename,
-                     Eigen::Ref<Eigen::MatrixXf> mat,
+                     Eigen::MatrixXf &mat,
                      bool compressed = false
                     );
     // Write functions

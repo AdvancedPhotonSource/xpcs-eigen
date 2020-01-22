@@ -92,20 +92,19 @@ DEFINE_string(inpath, "", "The path prefix to replace");
 DEFINE_string(outpath, "", "The path prefix to replace with");
 DEFINE_string(entry, "", "The metadata path in HDF5 file");
 
-void run_tests()
+void run_tests(const char* str)
 {
-  printf("Running test\n");
+  Eigen::MatrixXf frameSum;
+  int status = xpcs::HDF5Utils::read(str, "exchange", "frameSum", frameSum);
+  cout<<frameSum(0, 5)<<endl;
+
+  assert(status == 0);
 }
 
 int main(int argc, char** argv)
 {
 
   gflags::ParseCommandLineFlags(&argc, &argv, true);
-
-  if (FLAGS_tests) {
-    run_tests();
-    return 0;
-  }
 
   if (argc < 2) {
       fprintf(stderr, "Please specify a HDF5 metadata file\n");
@@ -125,6 +124,11 @@ int main(int argc, char** argv)
 
   xpcs::Configuration *conf = xpcs::Configuration::instance();
   conf->init(argv[1], entry);
+
+  if (FLAGS_tests) {
+    run_tests(argv[1]);
+    return 0;
+  }
 
   if (!FLAGS_imm.empty())
       conf->setIMMFilePath(FLAGS_imm);

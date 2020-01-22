@@ -51,24 +51,32 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace xpcs {
 
-void HDF5Utils::read(const std::string &file,
+int HDF5Utils::read(const std::string &file,
                      const std::string &grpname,
                      const std::string &nodename,
-                     Eigen::Ref<Eigen::MatrixXf> mat,
+                     Eigen::MatrixXf &mat,
                      bool compressed
                 )
 {
+    herr_t status = 0;
     hsize_t dims[3];
-
     hid_t file_id = H5Fopen(file.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-    hid_t dset_id = H5Dopen(file_id, grpname.c_str(), H5P_DEFAULT);
-    hid_t attr = H5Aopen(dset_id, nodename.c_str(), H5P_DEFAULT);
+    hid_t grp_id = H5Gopen(file_id, grpname.c_str(), H5P_DEFAULT);
+    hid_t dset_id = H5Dopen2(grp_id, nodename.c_str(), H5P_DEFAULT);
     
-    hid_t space_id = H5Aget_space(attr);
-    int ndims = H5Sget_simple_extent_dims (space_id, dims, NULL);
+    hid_t space_id = H5Dget_space(dset_id);
+    int rank = H5Sget_simple_extent_ndims (space_id);
+    H5Sget_simple_extent_dims(space_id, dims, NULL);
 
-    printf("ndims %d, dims = (%d %d %d)\n", ndims, dims[0], dims[1], dims[2]);
-
+    // Eigen::MatrixXf mat2(NULL);    
+    if (rank == 2) {
+        printf("ndims %d, dims = (%d %d %d)\n", rank, dims[0], dims[1], dims[2]);
+        float* data_out = new float[dims[0] * dims[1]];
+        status = H5Dread(dset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data_out);
+        printf("%lf\n", data_out[0]);
+        new (&mat) Eigen::Map<Eigen::MatrixXf>(data_out, dims[0], dims[1]);
+    }
+    return status;
 }
 
 void HDF5Utils::write2DData(const std::string &file, 
