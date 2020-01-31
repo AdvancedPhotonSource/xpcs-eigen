@@ -469,9 +469,13 @@ void Corr::twotime(data_structure::SparseData *data)
   int totalSGs = 0;
   int sbin = 0;
 
-  if (conf->SmoothingMethod() == 2)
+  if (conf->SmoothingMethod() == xpcs::SMOOTHING_STATICMAP)
   {
-    sg = Corr::ComputeSGStaticMap(data);
+
+    bool average = conf->SmoothingFilter() == xpcs::FILTER_AVERAGE ? true : false;
+
+    sg = Corr::ComputeSGStaticMap(data, average);
+
     for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); it != qbins.end(); it++) {
       int q = it->first;
         
@@ -491,7 +495,15 @@ void Corr::twotime(data_structure::SparseData *data)
             std::vector<float>& vptr = row->valPtr;
 
             for (int j = 0; j < iptr.size(); j++) {
-              vptr[j] /= sg[sbin * frames + iptr[j]];
+              if (average) 
+              {
+                vptr[j] /= sg[sbin];
+              }
+              else 
+              {
+                vptr[j] /= sg[sbin * frames + iptr[j]];
+              }
+              
             }
           }
           sbin++;
@@ -500,10 +512,13 @@ void Corr::twotime(data_structure::SparseData *data)
     }
 
     totalSGs = sbin;
-  } 
-  else 
+  }
+
+  else if (conf->SmoothingMethod() == xpcs::SMOOTHING_SYMMETRIC)
   {
-    sg = Corr::ComputeSGSymmetric(data);
+    bool average = conf->SmoothingFilter() == xpcs::FILTER_AVERAGE ? true : false;
+
+    sg = Corr::ComputeSGSymmetric(data, average);
 
     for (int binIdx = 0; binIdx < qbin_to_pixels.size(); binIdx++) {
       auto it = qbin_to_pixels.begin();
@@ -518,7 +533,15 @@ void Corr::twotime(data_structure::SparseData *data)
           std::vector<float>& vptr = row->valPtr;
 
           for (int j = 0; j < iptr.size(); j++) {
-            vptr[j] /= sg[binIdx * frames + iptr[j]];
+            if (average)
+            {
+              vptr[j] /= sg[binIdx];
+            }
+            else
+            {
+              vptr[j] /= sg[binIdx * frames + iptr[j]];
+            }
+            
           }
         }
     }
@@ -947,7 +970,7 @@ int Corr::calculateDelayCount(int dpl, int level) {
     return level == 0 ? (2 * dpl -1) : dpl;
 }
 
-float* Corr::ComputeSGSymmetric(data_structure::SparseData *data) {
+float* Corr::ComputeSGSymmetric(data_structure::SparseData *data, bool average) {
     Configuration* conf = Configuration::instance();
 
     int frames = conf->getFrameTodoCount();
@@ -985,10 +1008,28 @@ float* Corr::ComputeSGSymmetric(data_structure::SparseData *data) {
         q++;
     }
 
+    if (average) {
+        float *sg2 = new float[qbin_to_pixels.size()];
+
+        int q = 0;
+        for (auto it = qbin_to_pixels.begin(); it != qbin_to_pixels.end(); it++) {   
+            for (int ff = 0; ff < frames; ff++) {
+                sg2[q] += sg[q * frames + ff];
+            }
+
+            sg2[q] /= frames;
+            q++;
+        }
+
+        delete sg;
+        sg = sg2;
+
+    }
+
     return sg;
 }
 
-float* Corr::ComputeSGStaticMap(data_structure::SparseData *data) {
+float* Corr::ComputeSGStaticMap(data_structure::SparseData *data, bool average) {
     Configuration* conf = Configuration::instance();
 
     int frames = conf->getFrameTodoCount();
@@ -1034,6 +1075,33 @@ float* Corr::ComputeSGStaticMap(data_structure::SparseData *data) {
             }
             sbin++;
         } 
+    }
+
+    if (average) {
+        float *sg2 = new float[totalStaticBins];
+
+        int sbin = 0;
+        for (auto it = qbins.begin(); it != qbins.end(); it++) {
+            int qbin = it->first;
+            map<int, vector<int> > values =  it->second;
+
+            if (std::find(qphi_bins_to_process.begin(), qphi_bins_to_process.end(), qbin) == qphi_bins_to_process.end())
+                continue;
+
+            // 2. For each sbin if that qbin is in 
+            for (auto it2 =  values.begin(); it2 != values.end(); it2++) {
+
+                for (int ff = 0; ff < frames; ff++) {
+                    sg2[sbin] += sg[sbin * frames + ff];
+                }
+
+                sg2[sbin] /= (float)frames;
+                sbin++;
+            }
+        }
+
+        delete sg;
+        sg = sg2;
     }
 
     return sg;
