@@ -221,6 +221,10 @@ private:
   std::vector<int> qphi_bin_to_process_;
 
   static Configuration *s_instance;
+
+  static bool compareChar(char &c1, char &c2);
+  static bool compareString(std::string &str1, std::string &str2);
+
 };
 
 } // namespace xpcs
