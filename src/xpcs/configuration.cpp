@@ -730,14 +730,16 @@ std::map<int, std::vector<int>> Configuration::QbinPixelList()
 int Configuration::SmoothingMethod()
 {
   int method = SMOOTHING_UNKNONW;
-
-  if (smoothing_method_ == "StaticMap") {
-    method = SMOOTHING_SYMMETRIC;
+  
+  std::string s1("StaticMap");
+  if (compareString(smoothing_method_, s1)) {
+    method = SMOOTHING_STATICMAP;
   }
 
-    
-  if (smoothing_method_ == "symmetric") {
-    method = SMOOTHING_STATICMAP;
+  
+  std::string s2("symmetric");  
+  if (compareString(smoothing_method_, s2)) {
+    method = SMOOTHING_SYMMETRIC;
   }
 
 
@@ -746,8 +748,28 @@ int Configuration::SmoothingMethod()
 
 int Configuration::SmoothingFilter()
 {
-  return smoothing_filter_ == "Average" ? FILTER_AVERAGE : FILTER_NONE;
+  std::string s("Average");
+  return compareString(smoothing_filter_, s) ? FILTER_AVERAGE : FILTER_NONE;
 }
+
+bool Configuration::compareChar(char & c1, char & c2)
+{
+  if (c1 == c2)
+    return true;
+  else if (std::toupper(c1) == std::toupper(c2))
+    return true;
+  return false;
+}
+ 
+/*
+ *  * Case Insensitive String Comparision
+ *   */
+bool Configuration::compareString(std::string & str1, std::string &str2)
+{
+  return ( (str1.size() == str2.size() ) &&
+       std::equal(str1.begin(), str1.end(), str2.begin(), &Configuration::compareChar) );
+}
+
 
 }
 
