@@ -109,9 +109,9 @@ public:
                               int tau, 
                               int level);
   
-  static float* ComputeSGSymmetric(data_structure::SparseData *data);
+  static float* ComputeSGSymmetric(data_structure::SparseData *data, bool average=false);
 
-  static float* ComputeSGStaticMap(data_structure::SparseData *data);
+  static float* ComputeSGStaticMap(data_structure::SparseData *data, bool average=false);
 
 };
 

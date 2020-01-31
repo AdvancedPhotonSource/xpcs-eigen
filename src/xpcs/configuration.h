@@ -56,6 +56,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace xpcs  {
 
+enum SmoothingMethod {
+    SMOOTHING_UNKNONW,
+    SMOOTHING_STATICMAP,
+    SMOOTHING_SYMMETRIC,
+};
+
+enum SmoothingFilter {
+  FILTER_NONE,
+  FILTER_AVERAGE,
+};
+
 class Configuration  {
 
 public:    
@@ -99,6 +110,7 @@ public:
   int Two2OneWindowSize();
 
   int SmoothingMethod();
+  int SmoothingFilter();
   
   std::string getFilename();
   std::string& getIMMFilePath();
@@ -204,6 +216,7 @@ private:
   std::string m_immFile;
   std::string output_path_;
   std::string smoothing_method_;
+  std::string smoothing_filter_;
 
   std::vector<int> qphi_bin_to_process_;
 

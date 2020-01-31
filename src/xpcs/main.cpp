@@ -147,6 +147,11 @@ int main(int argc, char** argv)
     console->info("File size {0} {1}bytes", suffix > 0 ? (float)st.st_size/ pow(1024.0, suffix) : st.st_size, prefix[suffix]);
   }
 
+  if (conf->SmoothingMethod() == xpcs::SMOOTHING_UNKNONW) {
+    cerr<<"Smoothing method is not valid"<<endl;
+    exit(1);
+  }
+
   int* dqmap = conf->getDQMap();
   int *sqmap = conf->getSQMap();
 

@@ -92,6 +92,7 @@ void Configuration::init(const std::string &path, const std::string& entry)
     sqmap = get2DTable(entry + "/sqmap");
 
     smoothing_method_ = getString(entry + "/smoothing_method");
+    smoothing_filter_ = getString(entry + "/smoothing_filter");
     
     this->xdim = getInteger("/measurement/instrument/detector/x_dimension");
     this->ydim = getInteger("/measurement/instrument/detector/y_dimension");
@@ -728,7 +729,24 @@ std::map<int, std::vector<int>> Configuration::QbinPixelList()
 
 int Configuration::SmoothingMethod()
 {
-  return smoothing_method_ == "symmetric" ? 1 : 2;
+  int method = SMOOTHING_UNKNONW;
+
+  if (smoothing_method_ == "StaticMap") {
+    method = SMOOTHING_SYMMETRIC;
+  }
+
+    
+  if (smoothing_method_ == "symmetric") {
+    method = SMOOTHING_STATICMAP;
+  }
+
+
+  return method;
+}
+
+int Configuration::SmoothingFilter()
+{
+  return smoothing_filter_ == "Average" ? FILTER_AVERAGE : FILTER_NONE;
 }
 
 }
