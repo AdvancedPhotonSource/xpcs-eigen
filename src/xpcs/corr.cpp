@@ -467,12 +467,18 @@ void Corr::twotime(data_structure::SparseData *data)
   //TODO: Refactor these two conditions to a seperate funcitons. 
   float *sg = 0;
   int totalSGs = 0;
+  int sgDenom = frames;
   int sbin = 0;
 
   if (conf->SmoothingMethod() == xpcs::SMOOTHING_STATICMAP)
   {
 
     bool average = conf->SmoothingFilter() == xpcs::FILTER_AVERAGE ? true : false;
+    
+    if (average)
+    {
+      sgDenom = 1;
+    }
 
     sg = Corr::ComputeSGStaticMap(data, average);
 
@@ -517,6 +523,11 @@ void Corr::twotime(data_structure::SparseData *data)
   else if (conf->SmoothingMethod() == xpcs::SMOOTHING_SYMMETRIC)
   {
     bool average = conf->SmoothingFilter() == xpcs::FILTER_AVERAGE ? true : false;
+    
+    if (average) 
+    {
+      sgDenom = 1;
+    }
 
     sg = Corr::ComputeSGSymmetric(data, average);
 
@@ -726,7 +737,7 @@ void Corr::twotime(data_structure::SparseData *data)
                         conf->OutputPath(), 
                         "sg", 
                         totalSGs, 
-                        frames, 
+                        sgDenom, 
                         sg);
 }
 
