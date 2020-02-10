@@ -1025,10 +1025,12 @@ float* Corr::ComputeSGSymmetric(data_structure::SparseData *data, bool average) 
         int q = 0;
         sg2[q] = 0;
         for (auto it = qbin_to_pixels.begin(); it != qbin_to_pixels.end(); it++) {   
+            sg2[q] = 0;
+
             for (int ff = 0; ff < frames; ff++) {
                 sg2[q] += sg[q * frames + ff];
             }
-
+            
             sg2[q] /= frames;
             q++;
         }
@@ -1096,13 +1098,14 @@ float* Corr::ComputeSGStaticMap(data_structure::SparseData *data, bool average) 
         for (auto it = qbins.begin(); it != qbins.end(); it++) {
             int qbin = it->first;
             map<int, vector<int> > values =  it->second;
-            sg2[sbin] = 0;
+            
             if (std::find(qphi_bins_to_process.begin(), qphi_bins_to_process.end(), qbin) == qphi_bins_to_process.end())
                 continue;
 
             // 2. For each sbin if that qbin is in 
             for (auto it2 =  values.begin(); it2 != values.end(); it2++) {
-
+                
+                sg2[sbin] = 0;
                 for (int ff = 0; ff < frames; ff++) {
                     sg2[sbin] += sg[sbin * frames + ff];
                 }
