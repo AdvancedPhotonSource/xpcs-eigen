@@ -596,7 +596,11 @@ void Corr::twotime(data_structure::SparseData *data)
   int total_partials = (frames - wsize) / wsize;
   float **g2partial_pointers = new float*[qbin_to_pixels.size()];
 
+  #if !defined(WA_THREADING)
+  printf("Enabling threading over bins\n");
   #pragma omp parallel for schedule(dynamic) 
+  #endif
+
   for (int binIdx = 0; binIdx < qbin_to_pixels.size(); binIdx++) {
     auto it = qbin_to_pixels.begin();
     advance(it, binIdx);
@@ -627,6 +631,11 @@ void Corr::twotime(data_structure::SparseData *data)
     //   }
     // }
 
+    #if defined(WA_THREADING)
+    printf("Enabling threading over pixels of the bin\n");
+    #pragma omp parallel for schedule(dynamic) 
+    #endif
+  
     for (int i = 0; i < plist.size(); i++) {
       data_structure::Row *row = data->Pixel(plist[i]);
       std::vector<int> iptr = row->indxPtr;

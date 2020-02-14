@@ -64,6 +64,8 @@ include_directories( "src" "src/external")
 add_subdirectory("src/external/gflags")
 
 add_executable(corr ${sources})
-
 target_link_libraries(corr ${HDF5_LIBRARIES} gflags)
 
+add_executable(corr_wa ${sources})
+target_link_libraries(corr_wa ${HDF5_LIBRARIES} gflags)
+target_compile_definitions(corr_wa PUBLIC WA_THREADING)
