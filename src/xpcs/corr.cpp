@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <stdio.h>
 #include <iostream>
+#include <memory>
 
 #include <omp.h>
 
@@ -596,12 +597,7 @@ void Corr::twotime(data_structure::SparseData *data)
   int total_partials = (frames - wsize) / wsize;
   float **g2partial_pointers = new float*[qbin_to_pixels.size()];
 
-  #if !defined(WA_THREADING)
-  printf("Enabling threading over bins\n");
-  #pragma omp parallel for schedule(dynamic) 
-  #endif
-
-  for (int binIdx = 0; binIdx < qbin_to_pixels.size(); binIdx++) {
+  for (int binIdx = 0; binIdx < 1; /*qbin_to_pixels.size();*/ binIdx++) {
     auto it = qbin_to_pixels.begin();
     advance(it, binIdx);
 
@@ -620,134 +616,188 @@ void Corr::twotime(data_structure::SparseData *data)
 
     for (int f = 0; f < frames; f++)
         g2full[f] = 0.0f;
+    
+    std::auto_ptr<std::vector<int>> pIndices[frames];
+    std::auto_ptr<std::vector<float>> pValues[frames];
 
+    for (int i = 0 ; i < frames; i++) {
+
+        std::auto_ptr<std::vector<int> > pIndex(new std::vector<int>);
+        std::auto_ptr<std::vector<float> > pValue(new std::vector<float>);
+
+        pIndices[i] = pIndex;
+        pValues[i] = pValue;
+
+        printf("%d\n", pIndices[i]->size());
+    }
+
+    for (int i = 0; i < plist.size(); i++) {
+        data_structure::Row *row = data->Pixel(plist[i]);
+
+        std::vector<int> iptr = row->indxPtr;
+        std::vector<float> vptr = row->valPtr;
+
+        for (int j = 0; j < iptr.size(); j++) {
+
+            int f = iptr[j];
+            float val = vptr[j];
+
+            pIndices[f]->push_back(plist[i]);
+            pValues[f]->push_back(val);
+        }
+    }
+
+    std::vector<std::pair<int, int>> frames_indices;
+    for (int i = 0; i< frames; i++) {
+        for (int j = i+1; j < frames; j++) {
+            frames_indices.push_back(std::make_pair(i, j));
+        }
+    }
+
+    // #pragma omp parallel for schedule(dynamic) default(none) shared(plist, data, frames)
+    for (int i = 0; i < 10; i++) {
+        int j = frames_indices[i].first;
+        int k = frames_indices[i].second;
+
+        printf("%d, %d\n", j, k);
+
+        std::auto_ptr<std::vector<int>> pIndex0 = pIndices[j];
+        std::auto_ptr<std::vector<float>> vIndex0 = pValues[j];
+
+        std::auto_ptr<std::vector<int>> pIndex1 = pIndices[k];
+        std::auto_ptr<std::vector<float>> vIndex1 = pValues[k];
+
+        printf("%d %d\n", pIndex0->size(), pIndex1->size());
+
+
+        // for (int l = 0; l < pIndex0->size(); l++) {
+        //     printf("%d, %d\n", pIndex0->at(l), pIndex1->at(l));
+        //     // g2[j * frames + k] += val0 * val1;
+        // }
+    }
+
+  }
+
+    // #pragma omp parallel for schedule(dynamic) default(none) shared(plist, data, frames)
     // for (int i = 0; i < plist.size(); i++) {
     //   data_structure::Row *row = data->Pixel(plist[i]);
     //   std::vector<int> iptr = row->indxPtr;
-    //   std::vector<float>& vptr = row->valPtr;
+    //   std::vector<float> vptr = row->valPtr;
+
+    //   std::auto_ptr<std::vector<int>> g2Index(new std::vector<int>);
+    //   std::auto_ptr<std::vector<float>> g2Value(new std::vector<float>);
+
+    //   g2Indices[i] = g2Index;
+    //   g2Values[i] = g2Value;
 
     //   for (int j = 0; j < iptr.size(); j++) {
-    //     vptr[j] /= sg[binIdx * frames + iptr[j]];
-    //   }
+        
+    //     int f0 = iptr[j];
+    //     float val0 = vptr[j];
+
+    //     for (int k = j; k < iptr.size(); k++) {
+    //       int f1 = iptr[k];
+    //       float val1 = vptr[k];
+    //       g2Index->push_back(f0 * frames + f1);
+    //       g2Value->push_back(val0 * val1);
+    //     }
+    //   }       
     // }
 
-    #if defined(WA_THREADING)
-    printf("Enabling threading over pixels of the bin\n");
-    #pragma omp parallel for schedule(dynamic) 
-    #endif
-  
-    for (int i = 0; i < plist.size(); i++) {
-      data_structure::Row *row = data->Pixel(plist[i]);
-      std::vector<int> iptr = row->indxPtr;
-      std::vector<float> vptr = row->valPtr;
+//     for (int ff = 0; ff < frames*frames; ff++) {
+//         g2[ff] /= plist.size();
+//     }
 
-      for (int j = 0; j < iptr.size(); j++) {
-        
-        int f0 = iptr[j];
-        float val0 = vptr[j];
-
-        for (int k = j; k < iptr.size(); k++) {
-          int f1 = iptr[k];
-          float val1 = vptr[k];
-          g2[f0 * frames + f1] += val0 * val1;
-        }
-      }       
-    }
-
-    for (int ff = 0; ff < frames*frames; ff++) {
-        g2[ff] /= plist.size();
-    }
-
-    for (int ff = 0; ff < frames; ff++) {
-        int count = 0;
-        int windowno = 0;
-        for (int fx = 0, fy = ff; fx < frames - ff; fx++, fy++) {
-            g2full[ff] += g2[fx*frames + fy];
+//     for (int ff = 0; ff < frames; ff++) {
+//         int count = 0;
+//         int windowno = 0;
+//         for (int fx = 0, fy = ff; fx < frames - ff; fx++, fy++) {
+//             g2full[ff] += g2[fx*frames + fy];
 
 
-            if (windowno < total_partials && ff < wsize) {
-              g2partial[ff * total_partials + windowno] += g2[fx*frames + fy];
-            }
+//             if (windowno < total_partials && ff < wsize) {
+//               g2partial[ff * total_partials + windowno] += g2[fx*frames + fy];
+//             }
             
-            windowno = (fx+1) / wsize;
-            count++;
-        }
+//             windowno = (fx+1) / wsize;
+//             count++;
+//         }
 
-        g2full[ff] /= count;
-    }
+//         g2full[ff] /= count;
+//     }
     
-    g2full_pointers[binIdx] = g2full;
-    g2_pointers[binIdx] = g2;
+//     g2full_pointers[binIdx] = g2full;
+//     g2_pointers[binIdx] = g2;
 
-    for (int f = 0; f < (wsize * total_partials); f++)
-      g2partial[f] /= wsize;
+//     for (int f = 0; f < (wsize * total_partials); f++)
+//       g2partial[f] /= wsize;
 
-    g2partial_pointers[binIdx] = g2partial;
+//     g2partial_pointers[binIdx] = g2partial;
     
-  }
+//   }
 
-  for (int i = 0; i < qbin_to_pixels.size(); i++) {
-    auto it = qbin_to_pixels.begin();
-    advance(it, i);
+//   for (int i = 0; i < qbin_to_pixels.size(); i++) {
+//     auto it = qbin_to_pixels.begin();
+//     advance(it, i);
 
-    int qbin = it->first;
+//     int qbin = it->first;
 
-    float* ptrg2 = g2_pointers[i];
+//     float* ptrg2 = g2_pointers[i];
 
-    char buffer[100];
-    sprintf(buffer, "g2_%05d", qbin);
-    std::string g2_name(buffer);
-    std::string path = conf->OutputPath() + "/C2T_all/";
+//     char buffer[100];
+//     sprintf(buffer, "g2_%05d", qbin);
+//     std::string g2_name(buffer);
+//     std::string path = conf->OutputPath() + "/C2T_all/";
 
-    xpcs::H5Result::write2DData(conf->getFilename(), 
-                        path.c_str(), 
-                        g2_name.c_str(),
-                        frames, 
-                        frames, 
-                        ptrg2,
-                        true);
-  }
+//     xpcs::H5Result::write2DData(conf->getFilename(), 
+//                         path.c_str(), 
+//                         g2_name.c_str(),
+//                         frames, 
+//                         frames, 
+//                         ptrg2,
+//                         true);
+//   }
 
-  float* g2full_result = new float[qbin_to_pixels.size() * frames];
-  float* g2partial_result = new float[qbin_to_pixels.size() * wsize * total_partials];
+//   float* g2full_result = new float[qbin_to_pixels.size() * frames];
+//   float* g2partial_result = new float[qbin_to_pixels.size() * wsize * total_partials];
   
-  for (int j = 0; j < frames; j++) {
-    for (int i = 0; i < qbin_to_pixels.size(); i++) {
-        g2full_result[j * qbin_to_pixels.size() + i] = g2full_pointers[i][j];
-    }
-  }
+//   for (int j = 0; j < frames; j++) {
+//     for (int i = 0; i < qbin_to_pixels.size(); i++) {
+//         g2full_result[j * qbin_to_pixels.size() + i] = g2full_pointers[i][j];
+//     }
+//   }
  
-  int idd = 0;
-  for (int i = 0; i < wsize; i++){
-    for (int j = 0; j < total_partials; j++) {
-      for (int k = 0; k < qbin_to_pixels.size(); k++) {
-        g2partial_result[idd++] = g2partial_pointers[k][i*total_partials + j];
-      }
-    }
-  }
+//   int idd = 0;
+//   for (int i = 0; i < wsize; i++){
+//     for (int j = 0; j < total_partials; j++) {
+//       for (int k = 0; k < qbin_to_pixels.size(); k++) {
+//         g2partial_result[idd++] = g2partial_pointers[k][i*total_partials + j];
+//       }
+//     }
+//   }
 
-  xpcs::H5Result::write2DData(conf->getFilename(), 
-                        conf->OutputPath(), 
-                        "g2full", 
-                        frames, 
-                        qbin_to_pixels.size(), 
-                        g2full_result);  
+//   xpcs::H5Result::write2DData(conf->getFilename(), 
+//                         conf->OutputPath(), 
+//                         "g2full", 
+//                         frames, 
+//                         qbin_to_pixels.size(), 
+//                         g2full_result);  
 
-  xpcs::H5Result::write3DData(conf->getFilename(), 
-                        conf->OutputPath(), 
-                        "g2partials", 
-                        wsize, 
-                        total_partials,
-                        qbin_to_pixels.size(),
-                        g2partial_result);  
+//   xpcs::H5Result::write3DData(conf->getFilename(), 
+//                         conf->OutputPath(), 
+//                         "g2partials", 
+//                         wsize, 
+//                         total_partials,
+//                         qbin_to_pixels.size(),
+//                         g2partial_result);  
 
 
-  xpcs::H5Result::write2DData(conf->getFilename(), 
-                        conf->OutputPath(), 
-                        "sg", 
-                        totalSGs, 
-                        sgDenom, 
-                        sg);
+//   xpcs::H5Result::write2DData(conf->getFilename(), 
+//                         conf->OutputPath(), 
+//                         "sg", 
+//                         totalSGs, 
+//                         sgDenom, 
+//                         sg);
 }
 
 //TODO: Refactor this function and possibly break into sub function for the unit-tests. 
