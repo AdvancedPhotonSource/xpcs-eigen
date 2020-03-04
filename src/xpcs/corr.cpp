@@ -648,13 +648,13 @@ void Corr::twotime(data_structure::SparseData *data)
     // Sum up individual g2s.
     for (int sbinIdx = 1; sbinIdx < sbins.size(); sbinIdx++)
     {
-      #pragma omp parallel for 
+      // #pragma omp parallel for 
       for (int i = 0; i < frames * frames; i++)
       {
         g2s[0][i] += g2s[sbinIdx][i]; 
       }
 
-      #pragma omp parallel for 
+      // #pragma omp parallel for 
       for (int i = 0; i < frames; i++)
       {
         g2fulls[0][i] += g2fulls[sbinIdx][i];
