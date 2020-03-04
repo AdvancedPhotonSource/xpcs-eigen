@@ -482,7 +482,8 @@ void Corr::twotime(data_structure::SparseData *data)
 
     sg = Corr::ComputeSGStaticMap(data, average);
 
-    for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); it != qbins.end(); it++) {
+    for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); it != qbins.end(); it++) 
+    {
       int q = it->first;
         
       map<int, vector<int> > values =  it->second;
@@ -560,121 +561,133 @@ void Corr::twotime(data_structure::SparseData *data)
     totalSGs = qbin_to_pixels.size();
   }
 
-//   new float[qbin_to_pixels.size() * frames];
-//   for (int i = 0; i < qbin_to_pixels.size() * frames; i++)
-//     sg[i] = 0.0;
-
-//   int q = 0;
-//   for (auto it = qbin_to_pixels.begin(); it != qbin_to_pixels.end(); it++) {
-//     int qbin = it->first;
-//     vector<int> plist = it->second;
-//     int pixels = plist.size();
-//     for (int i = 0; i < pixels; i++) {
-//       data_structure::Row *row = data->Pixel(plist[i]);
-//       std::vector<int> iptr = row->indxPtr;
-//       std::vector<float>& vptr = row->valPtr;
-
-//       for (int j = 0; j < iptr.size(); j++) {
-//         int f = iptr[j];
-//         float val = vptr[j];
-//         sg[q * frames + f] += val;
-//       }       
-//     }
-
-//     for (int ff = 0 ; ff < frames; ff++) {
-//       sg[q * frames + ff] /= (float)pixels;
-//     }
-
-//     q++;
-//   }
-
-  
-
   float **g2_pointers = new float*[qbin_to_pixels.size()];
   float **g2full_pointers = new float*[qbin_to_pixels.size()];
 
   int total_partials = (frames - wsize) / wsize;
   float **g2partial_pointers = new float*[qbin_to_pixels.size()];
 
-  #pragma omp parallel for schedule(dynamic) 
-  for (int binIdx = 0; binIdx < qbin_to_pixels.size(); binIdx++) {
-    auto it = qbin_to_pixels.begin();
-    advance(it, binIdx);
+  int binIdx = 0;
+  for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); it != qbins.end(); it++) 
+  {
+    int q = it->first;
 
-    int qbin = it->first;
-    vector<int> plist = it->second;
+    if (std::find(qphi_bins_to_process.begin(), qphi_bins_to_process.end(), q) == qphi_bins_to_process.end())
+      continue;
 
-    float *g2 = new float[frames * frames];
-    float *g2full = new float[frames];
-    float *g2partial = new float[wsize * total_partials];
+    map<int, vector<int> > sbins =  it->second;
 
-    for (int f = 0; f < frames*frames; f++)
-      g2[f] = 0.0f;
+    float **g2s = new float*[sbins.size()];
+    float **g2fulls = new float*[sbins.size()];
+    float **g2partials = new float*[wsize * total_partials];
 
-    for (int f = 0; f < (wsize * total_partials); f++)
-      g2partial[f] = 0.0f;
+    #pragma omp parallel for default(none) schedule(static) shared(g2s, g2fulls, g2partials, data, sbins, frames, wsize, total_partials)
+    for (int sbinIdx = 0; sbinIdx < sbins.size(); sbinIdx++)
+    {
+      auto it = sbins.begin();
+      advance(it, sbinIdx);
 
-    for (int f = 0; f < frames; f++)
-        g2full[f] = 0.0f;
+      g2s[sbinIdx] = new float[frames * frames];
+      g2fulls[sbinIdx] = new float[frames];
+      g2partials[sbinIdx] = new float[wsize * total_partials];
 
-    // for (int i = 0; i < plist.size(); i++) {
-    //   data_structure::Row *row = data->Pixel(plist[i]);
-    //   std::vector<int> iptr = row->indxPtr;
-    //   std::vector<float>& vptr = row->valPtr;
+      for (int f = 0; f < frames*frames; f++)
+        g2s[sbinIdx][f] = 0.0f;
 
-    //   for (int j = 0; j < iptr.size(); j++) {
-    //     vptr[j] /= sg[binIdx * frames + iptr[j]];
-    //   }
-    // }
+      for (int f = 0; f < (wsize * total_partials); f++)
+        g2partials[sbinIdx][f] = 0.0f;
 
-    for (int i = 0; i < plist.size(); i++) {
-      data_structure::Row *row = data->Pixel(plist[i]);
-      std::vector<int> iptr = row->indxPtr;
-      std::vector<float> vptr = row->valPtr;
+      for (int f = 0; f < frames; f++)
+        g2fulls[sbinIdx][f] = 0.0f;
 
-      for (int j = 0; j < iptr.size(); j++) {
-        
-        int f0 = iptr[j];
-        float val0 = vptr[j];
+      vector<int> pixels = it->second;
+      
+      for (int i = 0; i < pixels.size(); i++) {
+        data_structure::Row *row = data->Pixel(pixels[i]);
+        std::vector<int> iptr = row->indxPtr;
+        std::vector<float> vptr = row->valPtr;
 
-        for (int k = j; k < iptr.size(); k++) {
-          int f1 = iptr[k];
-          float val1 = vptr[k];
-          g2[f0 * frames + f1] += val0 * val1;
-        }
-      }       
-    }
+        for (int j = 0; j < iptr.size(); j++) {
+          int f0 = iptr[j];
+          float val0 = vptr[j];
 
-    for (int ff = 0; ff < frames*frames; ff++) {
-        g2[ff] /= plist.size();
-    }
+          for (int k = j; k < iptr.size(); k++) {
+            int f1 = iptr[k];
+            float val1 = vptr[k];
 
-    for (int ff = 0; ff < frames; ff++) {
+            g2s[sbinIdx][f0 * frames + f1] += val0 * val1;
+          }
+        }       
+      }
+
+      for (int ff = 0; ff < frames*frames; ff++) {
+        g2s[sbinIdx][ff] /= pixels.size();
+      }
+
+      for (int ff = 0; ff < frames; ff++) {
         int count = 0;
         int windowno = 0;
+        
         for (int fx = 0, fy = ff; fx < frames - ff; fx++, fy++) {
-            g2full[ff] += g2[fx*frames + fy];
+          g2fulls[sbinIdx][ff] += g2s[sbinIdx][fx*frames + fy];
 
 
-            if (windowno < total_partials && ff < wsize) {
-              g2partial[ff * total_partials + windowno] += g2[fx*frames + fy];
-            }
-            
-            windowno = (fx+1) / wsize;
-            count++;
+          if (windowno < total_partials && ff < wsize) {
+            g2partials[sbinIdx][ff * total_partials + windowno] += g2s[sbinIdx][fx*frames + fy];
+          }
+              
+          windowno = (fx+1) / wsize;
+          count++;
         }
 
-        g2full[ff] /= count;
+        g2fulls[sbinIdx][ff] /= count;
+      }
+      
+    }
+
+    // Sum up individual g2s.
+    for (int sbinIdx = 1; sbinIdx < sbins.size(); sbinIdx++)
+    {
+      #pragma omp parallel for 
+      for (int i = 0; i < frames * frames; i++)
+      {
+        g2s[0][i] += g2s[sbinIdx][i]; 
+      }
+
+      #pragma omp parallel for 
+      for (int i = 0; i < frames; i++)
+      {
+        g2fulls[0][i] += g2fulls[sbinIdx][i];
+      }
+
+      for (int i = 0; i < wsize * total_partials; i++)
+      {
+        g2partials[0][i] += (g2partials[sbinIdx][i] / wsize);
+      }
+
+    }
+     
+    // Average
+    for (int i = 0; i < frames * frames; i++)
+    {
+      g2s[0][i] /= sbins.size();
+    }
+
+    for (int i = 0; i < frames; i++)
+    {
+      g2fulls[0][i] /= sbins.size();
+    }
+
+    for (int i = 0; i < wsize * total_partials; i++)
+    {
+      g2partials[0][i] /= sbins.size();
     }
     
-    g2full_pointers[binIdx] = g2full;
-    g2_pointers[binIdx] = g2;
+    g2full_pointers[binIdx] = g2fulls[0];
+    g2_pointers[binIdx] = g2s[0];
+    g2partial_pointers[binIdx] = g2partials[0];
 
-    for (int f = 0; f < (wsize * total_partials); f++)
-      g2partial[f] /= wsize;
-
-    g2partial_pointers[binIdx] = g2partial;
-    
+    binIdx++;
   }
 
   for (int i = 0; i < qbin_to_pixels.size(); i++) {
