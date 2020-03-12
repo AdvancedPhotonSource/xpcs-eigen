@@ -575,33 +575,38 @@ void Corr::twotime(data_structure::SparseData *data)
     if (std::find(qphi_bins_to_process.begin(), qphi_bins_to_process.end(), q) == qphi_bins_to_process.end())
       continue;
 
-    map<int, vector<int> > sbins =  it->second;
+    const map<int, vector<int> > sbins =  it->second;
 
     float **g2s = new float*[sbins.size()];
     float **g2fulls = new float*[sbins.size()];
     float **g2partials = new float*[wsize * total_partials];
 
-    #pragma omp parallel for default(none) schedule(static) shared(g2s, g2fulls, g2partials, data, sbins, frames, wsize, total_partials)
+    printf("%d\n", (wsize * total_partials));
+    printf("Size = %d\n", sbins.size());
+
+    #pragma omp parallel for default(none) schedule(dynamic) shared(g2s, g2fulls, g2partials, data, frames, wsize, total_partials)
     for (int sbinIdx = 0; sbinIdx < sbins.size(); sbinIdx++)
     {
-      auto it = sbins.begin();
-      advance(it, sbinIdx);
+        // printf("Thread rank: %d\n", omp_get_thread_num());
+      auto it2 = sbins.begin();
+    //   printf("%d %d\n", sbinIdx, sbins.size());
+      advance(it2, sbinIdx);
 
       g2s[sbinIdx] = new float[frames * frames];
       g2fulls[sbinIdx] = new float[frames];
-      g2partials[sbinIdx] = new float[wsize * total_partials];
+    //   g2partials[sbinIdx] = new float[wsize * total_partials];
 
       for (int f = 0; f < frames*frames; f++)
         g2s[sbinIdx][f] = 0.0f;
 
-      for (int f = 0; f < (wsize * total_partials); f++)
-        g2partials[sbinIdx][f] = 0.0f;
+    //   for (int f = 0; f < (wsize * total_partials); f++)
+    //     g2partials[sbinIdx][f] = 0.0f;
 
       for (int f = 0; f < frames; f++)
         g2fulls[sbinIdx][f] = 0.0f;
 
-      vector<int> pixels = it->second;
-      
+      vector<int> pixels = it2->second;
+
       for (int i = 0; i < pixels.size(); i++) {
         data_structure::Row *row = data->Pixel(pixels[i]);
         std::vector<int> iptr = row->indxPtr;
@@ -632,9 +637,9 @@ void Corr::twotime(data_structure::SparseData *data)
           g2fulls[sbinIdx][ff] += g2s[sbinIdx][fx*frames + fy];
 
 
-          if (windowno < total_partials && ff < wsize) {
-            g2partials[sbinIdx][ff * total_partials + windowno] += g2s[sbinIdx][fx*frames + fy];
-          }
+        //   if (windowno < total_partials && ff < wsize) {
+        //     g2partials[sbinIdx][ff * total_partials + windowno] += g2s[sbinIdx][fx*frames + fy];
+        //   }
               
           windowno = (fx+1) / wsize;
           count++;
@@ -645,25 +650,29 @@ void Corr::twotime(data_structure::SparseData *data)
       
     }
 
+    printf ("Size 2 = %d\n", sbins.size());
+
+    printf("Threading done\n");
     // Sum up individual g2s.
+    printf("[Outside] - Thread rank: %d\n", omp_get_thread_num());
     for (int sbinIdx = 1; sbinIdx < sbins.size(); sbinIdx++)
     {
-      // #pragma omp parallel for 
+      #pragma omp parallel for 
       for (int i = 0; i < frames * frames; i++)
       {
         g2s[0][i] += g2s[sbinIdx][i]; 
       }
 
-      // #pragma omp parallel for 
+      #pragma omp parallel for 
       for (int i = 0; i < frames; i++)
       {
         g2fulls[0][i] += g2fulls[sbinIdx][i];
       }
 
-      for (int i = 0; i < wsize * total_partials; i++)
-      {
-        g2partials[0][i] += (g2partials[sbinIdx][i] / wsize);
-      }
+    //   for (int i = 0; i < wsize * total_partials; i++)
+    //   {
+    //     g2partials[0][i] += (g2partials[sbinIdx][i] / wsize);
+    //   }
 
     }
      
@@ -678,16 +687,18 @@ void Corr::twotime(data_structure::SparseData *data)
       g2fulls[0][i] /= sbins.size();
     }
 
-    for (int i = 0; i < wsize * total_partials; i++)
-    {
-      g2partials[0][i] /= sbins.size();
-    }
+    // for (int i = 0; i < wsize * total_partials; i++)
+    // {
+    //   g2partials[0][i] /= sbins.size();
+    // }
     
     g2full_pointers[binIdx] = g2fulls[0];
     g2_pointers[binIdx] = g2s[0];
-    g2partial_pointers[binIdx] = g2partials[0];
+    // g2partial_pointers[binIdx] = g2partials[0];
 
     binIdx++;
+
+    printf("%d\n", binIdx);
   }
 
   for (int i = 0; i < qbin_to_pixels.size(); i++) {
@@ -721,14 +732,14 @@ void Corr::twotime(data_structure::SparseData *data)
     }
   }
  
-  int idd = 0;
-  for (int i = 0; i < wsize; i++){
-    for (int j = 0; j < total_partials; j++) {
-      for (int k = 0; k < qbin_to_pixels.size(); k++) {
-        g2partial_result[idd++] = g2partial_pointers[k][i*total_partials + j];
-      }
-    }
-  }
+//   int idd = 0;
+//   for (int i = 0; i < wsize; i++){
+//     for (int j = 0; j < total_partials; j++) {
+//       for (int k = 0; k < qbin_to_pixels.size(); k++) {
+//         g2partial_result[idd++] = g2partial_pointers[k][i*total_partials + j];
+//       }
+//     }
+//   }
 
   xpcs::H5Result::write2DData(conf->getFilename(), 
                         conf->OutputPath(), 
@@ -737,13 +748,13 @@ void Corr::twotime(data_structure::SparseData *data)
                         qbin_to_pixels.size(), 
                         g2full_result);  
 
-  xpcs::H5Result::write3DData(conf->getFilename(), 
-                        conf->OutputPath(), 
-                        "g2partials", 
-                        wsize, 
-                        total_partials,
-                        qbin_to_pixels.size(),
-                        g2partial_result);  
+//   xpcs::H5Result::write3DData(conf->getFilename(), 
+//                         conf->OutputPath(), 
+//                         "g2partials", 
+//                         wsize, 
+//                         total_partials,
+//                         qbin_to_pixels.size(),
+//                         g2partial_result);  
 
 
   xpcs::H5Result::write2DData(conf->getFilename(), 
