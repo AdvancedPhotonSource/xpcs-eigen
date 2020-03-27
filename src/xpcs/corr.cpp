@@ -632,34 +632,6 @@ void Corr::twotime(data_structure::SparseData *data)
         g2[i * frames + j] /= plist.size();
     }
 
-    for (int i = 0; i < frames; i++) 
-    {
-      for (int j = i; j < frames; j++) 
-      {
-        std::vector<int> common_indices;
-        std::set_intersection(frame_index[i]->begin(),
-                              frame_index[i]->end(),
-                              frame_index[j]->begin(),
-                              frame_index[j]->end(),
-                              back_inserter(common_indices)
-                          );
-        int idx1 = 0;
-        int idx2 = 0;
-
-        for (auto idx : common_indices) {
-          auto it1 = std::find(frame_index[i]->begin()+idx1, frame_index[i]->end(), idx);
-          auto it2 = std::find(frame_index[j]->begin()+idx2, frame_index[j]->end(), idx);
-          idx1 = std::distance(frame_index[i]->begin()+idx1, it1);
-          idx2 = std::distance(frame_index[j]->begin()+idx2, it2);
-
-
-          g2[i * frames + j] += (frame_value[i]->at(idx1) * frame_value[j]->at(idx2));
-        }
-
-        g2[i * frames + j] /= plist.size();
-      }
-    }
-
     g2_pointers[binIdx] = g2;
 
     // for (int ff = 0; ff < frames; ff++) {
@@ -686,34 +658,32 @@ void Corr::twotime(data_structure::SparseData *data)
 
     g2partial_pointers[binIdx] = g2partial;
 
-    // delete [] frame_index;
-    // delete [] frame_value;
+    delete [] frame_index;
+    delete [] frame_value;
   }
 
-  printf("Done\n");
+  for (int i = 0; i < qbin_to_pixels.size(); i++) 
+  {
+    auto it = qbin_to_pixels.begin();
+    advance(it, i);
 
-//   for (int i = 0; i < qbin_to_pixels.size(); i++) 
-//   {
-//     auto it = qbin_to_pixels.begin();
-//     advance(it, i);
+    int qbin = it->first;
 
-//     int qbin = it->first;
+    float* ptrg2 = g2_pointers[i];
 
-//     float* ptrg2 = g2_pointers[i];
+    char buffer[100];
+    sprintf(buffer, "g2_%05d", qbin);
+    std::string g2_name(buffer);
+    std::string path = conf->OutputPath() + "/C2T_all/";
 
-//     char buffer[100];
-//     sprintf(buffer, "g2_%05d", qbin);
-//     std::string g2_name(buffer);
-//     std::string path = conf->OutputPath() + "/C2T_all/";
-
-//     // xpcs::H5Result::write2DData(conf->getFilename(), 
-//     //                     path.c_str(), 
-//     //                     g2_name.c_str(),
-//     //                     frames, 
-//     //                     frames, 
-//     //                     ptrg2,
-//     //                     true);
-//   }
+    xpcs::H5Result::write2DData(conf->getFilename(), 
+                        path.c_str(), 
+                        g2_name.c_str(),
+                        frames, 
+                        frames, 
+                        ptrg2,
+                        true);
+  }
 
 //   float* g2full_result = new float[qbin_to_pixels.size() * frames];
 //   float* g2partial_result = new float[qbin_to_pixels.size() * wsize * total_partials];
