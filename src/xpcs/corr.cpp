@@ -681,13 +681,13 @@ void Corr::twotime(data_structure::SparseData *data)
     
     g2full_pointers[binIdx] = g2full;
 
-    for (int f = 0; f < (wsize * total_partials); f++)
-      g2partial[f] /= wsize;
+    // for (int f = 0; f < (wsize * total_partials); f++)
+    //   g2partial[f] /= wsize;
 
     g2partial_pointers[binIdx] = g2partial;
 
-    delete [] frame_index;
-    delete [] frame_value;
+    // delete [] frame_index;
+    // delete [] frame_value;
   }
 
   for (int i = 0; i < qbin_to_pixels.size(); i++) 
