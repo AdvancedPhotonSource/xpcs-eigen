@@ -634,27 +634,27 @@ void Corr::twotime(data_structure::SparseData *data)
 
     g2_pointers[binIdx] = g2;
 
-    // for (int ff = 0; ff < frames; ff++) {
-    //   int count = 0;
-    //   int windowno = 0;
-    //   for (int fx = 0, fy = ff; fx < frames - ff; fx++, fy++) {
-    //     g2full[ff] += g2[fx*frames + fy];
+    for (int ff = 0; ff < frames; ff++) {
+      int count = 0;
+      int windowno = 0;
+      for (int fx = 0, fy = ff; fx < frames - ff; fx++, fy++) {
+        g2full[ff] += g2[fx*frames + fy];
 
 
-    //     if (windowno < total_partials && ff < wsize) {
-    //       g2partial[ff * total_partials + windowno] += g2[fx*frames + fy];
-    //     }
+        if (windowno < total_partials && ff < wsize) {
+          g2partial[ff * total_partials + windowno] += g2[fx*frames + fy];
+        }
         
-    //     windowno = (fx+1) / wsize;
-    //     count++;
-    //   }
-    //   g2full[ff] /= count;
-    // }
+        windowno = (fx+1) / wsize;
+        count++;
+      }
+      g2full[ff] /= count;
+    }
     
     g2full_pointers[binIdx] = g2full;
 
-    // for (int f = 0; f < (wsize * total_partials); f++)
-    //   g2partial[f] /= wsize;
+    for (int f = 0; f < (wsize * total_partials); f++)
+      g2partial[f] /= wsize;
 
     g2partial_pointers[binIdx] = g2partial;
 
@@ -685,46 +685,46 @@ void Corr::twotime(data_structure::SparseData *data)
                         true);
   }
 
-//   float* g2full_result = new float[qbin_to_pixels.size() * frames];
-//   float* g2partial_result = new float[qbin_to_pixels.size() * wsize * total_partials];
+  float* g2full_result = new float[qbin_to_pixels.size() * frames];
+  float* g2partial_result = new float[qbin_to_pixels.size() * wsize * total_partials];
   
-//   for (int j = 0; j < frames; j++) {
-//     for (int i = 0; i < qbin_to_pixels.size(); i++) {
-//         g2full_result[j * qbin_to_pixels.size() + i] = g2full_pointers[i][j];
-//     }
-//   }
+  for (int j = 0; j < frames; j++) {
+    for (int i = 0; i < qbin_to_pixels.size(); i++) {
+        g2full_result[j * qbin_to_pixels.size() + i] = g2full_pointers[i][j];
+    }
+  }
  
-//   int idd = 0;
-//   for (int i = 0; i < wsize; i++){
-//     for (int j = 0; j < total_partials; j++) {
-//       for (int k = 0; k < qbin_to_pixels.size(); k++) {
-//         g2partial_result[idd++] = g2partial_pointers[k][i*total_partials + j];
-//       }
-//     }
-//   }
+  int idd = 0;
+  for (int i = 0; i < wsize; i++){
+    for (int j = 0; j < total_partials; j++) {
+      for (int k = 0; k < qbin_to_pixels.size(); k++) {
+        g2partial_result[idd++] = g2partial_pointers[k][i*total_partials + j];
+      }
+    }
+  }
 
-//   xpcs::H5Result::write2DData(conf->getFilename(), 
-//                         conf->OutputPath(), 
-//                         "g2full", 
-//                         frames, 
-//                         qbin_to_pixels.size(), 
-//                         g2full_result);  
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "g2full", 
+                        frames, 
+                        qbin_to_pixels.size(), 
+                        g2full_result);  
 
-//   xpcs::H5Result::write3DData(conf->getFilename(), 
-//                         conf->OutputPath(), 
-//                         "g2partials", 
-//                         wsize, 
-//                         total_partials,
-//                         qbin_to_pixels.size(),
-//                         g2partial_result);  
+  xpcs::H5Result::write3DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "g2partials", 
+                        wsize, 
+                        total_partials,
+                        qbin_to_pixels.size(),
+                        g2partial_result);  
 
 
-//   xpcs::H5Result::write2DData(conf->getFilename(), 
-//                         conf->OutputPath(), 
-//                         "sg", 
-//                         totalSGs, 
-//                         sgDenom, 
-//                         sg);
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "sg", 
+                        totalSGs, 
+                        sgDenom, 
+                        sg);
 }
 
 //TODO: Refactor this function and possibly break into sub function for the unit-tests. 
