@@ -59,6 +59,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "xpcs/data_structure/sparse_data.h"
 
+#include "benchmark.h"
+
 
 namespace xpcs {
 
@@ -437,32 +439,11 @@ void Corr::twotime(data_structure::SparseData *data)
   Configuration* conf = Configuration::instance();
   int frames = conf->getFrameTodoCount();
   int wsize = conf->Two2OneWindowSize();
+  int w = conf->getFrameWidth();
+  int h = conf->getFrameHeight();
   vector<int> qphi_bins_to_process = conf->TwoTimeQMask();
   std::map<int, std::map<int, vector<int>> > qbins = conf->getBinMaps();
   std::map<int, vector<int>> qbin_to_pixels = conf->QbinPixelList();
-
-  // 1. Go over each qbin to sbin mapping
-//   for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
-//     it != qbins.end(); it++) {
-//     int q = it->first;
-//     map<int, vector<int> > values =  it->second;
-
-//     // 2. For each qbin if that qbin is in 
-//     if (std::find(qphi_bins_to_process.begin(), qphi_bins_to_process.end(), q) 
-//                         != qphi_bins_to_process.end()) {
-//       std::vector<int> plist;
-//       for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
-//         int sbin = it2->first;
-
-//         vector<int> pixels = it2->second;
-//         for(vector<int>::const_iterator pind = pixels.begin(); pind != pixels.end(); pind++) {    
-//           int p = *pind;
-//           plist.push_back(p);
-//         }
-//         qbin_to_pixels[q] = plist;
-//       } 
-//     }
-//   }
 
   //TODO: Refactor these two conditions to a seperate funcitons. 
   float *sg = 0;
@@ -560,124 +541,127 @@ void Corr::twotime(data_structure::SparseData *data)
     totalSGs = qbin_to_pixels.size();
   }
 
-//   new float[qbin_to_pixels.size() * frames];
-//   for (int i = 0; i < qbin_to_pixels.size() * frames; i++)
-//     sg[i] = 0.0;
-
-//   int q = 0;
-//   for (auto it = qbin_to_pixels.begin(); it != qbin_to_pixels.end(); it++) {
-//     int qbin = it->first;
-//     vector<int> plist = it->second;
-//     int pixels = plist.size();
-//     for (int i = 0; i < pixels; i++) {
-//       data_structure::Row *row = data->Pixel(plist[i]);
-//       std::vector<int> iptr = row->indxPtr;
-//       std::vector<float>& vptr = row->valPtr;
-
-//       for (int j = 0; j < iptr.size(); j++) {
-//         int f = iptr[j];
-//         float val = vptr[j];
-//         sg[q * frames + f] += val;
-//       }       
-//     }
-
-//     for (int ff = 0 ; ff < frames; ff++) {
-//       sg[q * frames + ff] /= (float)pixels;
-//     }
-
-//     q++;
-//   }
-
-  
-
   float **g2_pointers = new float*[qbin_to_pixels.size()];
   float **g2full_pointers = new float*[qbin_to_pixels.size()];
 
   int total_partials = (frames - wsize) / wsize;
   float **g2partial_pointers = new float*[qbin_to_pixels.size()];
 
-  #pragma omp parallel for schedule(dynamic) 
-  for (int binIdx = 0; binIdx < qbin_to_pixels.size(); binIdx++) {
+  for (int binIdx = 0; binIdx < qbin_to_pixels.size(); binIdx++) 
+  {
     auto it = qbin_to_pixels.begin();
     advance(it, binIdx);
 
     int qbin = it->first;
     vector<int> plist = it->second;
 
-    float *g2 = new float[frames * frames];
-    float *g2full = new float[frames];
-    float *g2partial = new float[wsize * total_partials];
+    vector<int> **frame_index = new vector<int>*[frames];
+    vector<float> **frame_value = new vector<float>*[frames];
 
-    for (int f = 0; f < frames*frames; f++)
-      g2[f] = 0.0f;
-
-    for (int f = 0; f < (wsize * total_partials); f++)
-      g2partial[f] = 0.0f;
-
-    for (int f = 0; f < frames; f++)
-        g2full[f] = 0.0f;
-
-    // for (int i = 0; i < plist.size(); i++) {
-    //   data_structure::Row *row = data->Pixel(plist[i]);
-    //   std::vector<int> iptr = row->indxPtr;
-    //   std::vector<float>& vptr = row->valPtr;
-
-    //   for (int j = 0; j < iptr.size(); j++) {
-    //     vptr[j] /= sg[binIdx * frames + iptr[j]];
-    //   }
-    // }
-
+    for (int i = 0; i < frames; i++) {
+        frame_index[i] = new vector<int>();
+        frame_value[i] = new vector<float>(); 
+    }
+    
     for (int i = 0; i < plist.size(); i++) {
       data_structure::Row *row = data->Pixel(plist[i]);
       std::vector<int> iptr = row->indxPtr;
       std::vector<float> vptr = row->valPtr;
 
-      for (int j = 0; j < iptr.size(); j++) {
+      for (int j = 0; j < iptr.size(); j++) { 
         
-        int f0 = iptr[j];
-        float val0 = vptr[j];
+        int frame_no = iptr[j];
+        float pixel_value = vptr[j];
 
-        for (int k = j; k < iptr.size(); k++) {
-          int f1 = iptr[k];
-          float val1 = vptr[k];
-          g2[f0 * frames + f1] += val0 * val1;
-        }
+        frame_index[frame_no]->push_back(plist[i]);
+        frame_value[frame_no]->push_back(pixel_value);
       }       
+    }  
+       
+    float *g2 = new float[frames * frames];
+    float *g2full = new float[frames];
+    float *g2partial = new float[wsize * total_partials];
+
+    for (int i = 0 ; i < (frames*frames); i++) 
+      g2[i] = 0.0;      
+
+    for (int i = 0 ; i < frames; i++) 
+      g2full[i] = 0.0;
+    
+
+    for (int f = 0; f < (wsize * total_partials); f++)
+      g2partial[f] = 0.0f;
+
+    vector<std::pair<int, int> > g2_threaded_indices;
+
+    // for (int i = 0; i < frames; i++)
+    // {
+    //     for (int j = i; j < frames; j++)
+    //     {
+    //         g2_threaded_indices.push_back(std::pair<int, int>(i, j))
+    //     }
+    // }
+
+    for (int i = 0; i < frames; i++) 
+    {
+      for (int j = i; j < frames; j++) 
+      {
+        std::vector<int> common_indices;
+        std::set_intersection(frame_index[i]->begin(),
+                              frame_index[i]->end(),
+                              frame_index[j]->begin(),
+                              frame_index[j]->end(),
+                              back_inserter(common_indices)
+                          );
+        int idx1 = 0;
+        int idx2 = 0;
+
+        for (auto idx : common_indices) {
+          auto it1 = std::find(frame_index[i]->begin()+idx1, frame_index[i]->end(), idx);
+          auto it2 = std::find(frame_index[j]->begin()+idx2, frame_index[j]->end(), idx);
+          idx1 = std::distance(frame_index[i]->begin(), it1);
+          idx2 = std::distance(frame_index[j]->begin(), it2);
+
+
+          g2[i * frames + j] += (frame_value[i]->at(idx1) * frame_value[j]->at(idx2));
+        }
+
+        g2[i * frames + j] /= plist.size();
+      }
     }
 
-    for (int ff = 0; ff < frames*frames; ff++) {
-        g2[ff] /= plist.size();
-    }
+    g2_pointers[binIdx] = g2;
 
     for (int ff = 0; ff < frames; ff++) {
-        int count = 0;
-        int windowno = 0;
-        for (int fx = 0, fy = ff; fx < frames - ff; fx++, fy++) {
-            g2full[ff] += g2[fx*frames + fy];
+      int count = 0;
+      int windowno = 0;
+      for (int fx = 0, fy = ff; fx < frames - ff; fx++, fy++) {
+        g2full[ff] += g2[fx*frames + fy];
 
 
-            if (windowno < total_partials && ff < wsize) {
-              g2partial[ff * total_partials + windowno] += g2[fx*frames + fy];
-            }
-            
-            windowno = (fx+1) / wsize;
-            count++;
+        if (windowno < total_partials && ff < wsize) {
+          g2partial[ff * total_partials + windowno] += g2[fx*frames + fy];
         }
-
-        g2full[ff] /= count;
+        
+        windowno = (fx+1) / wsize;
+        count++;
+      }
+      g2full[ff] /= count;
     }
     
     g2full_pointers[binIdx] = g2full;
-    g2_pointers[binIdx] = g2;
 
     for (int f = 0; f < (wsize * total_partials); f++)
       g2partial[f] /= wsize;
 
     g2partial_pointers[binIdx] = g2partial;
-    
+
+    delete [] frame_index;
+    delete [] frame_value;
   }
 
-  for (int i = 0; i < qbin_to_pixels.size(); i++) {
+  for (int i = 0; i < qbin_to_pixels.size(); i++) 
+  {
     auto it = qbin_to_pixels.begin();
     advance(it, i);
 
@@ -1123,3 +1107,4 @@ float* Corr::ComputeSGStaticMap(data_structure::SparseData *data, bool average) 
 }
 
 } //namespace xpcs
+
