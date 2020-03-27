@@ -594,18 +594,21 @@ void Corr::twotime(data_structure::SparseData *data)
 
     vector<std::pair<int, int> > g2_threaded_indices;
 
-    // for (int i = 0; i < frames; i++)
-    // {
-    //     for (int j = i; j < frames; j++)
-    //     {
-    //         g2_threaded_indices.push_back(std::pair<int, int>(i, j))
-    //     }
-    // }
-
-    for (int i = 0; i < frames; i++) 
+    for (int i = 0; i < frames; i++)
     {
-      for (int j = i; j < frames; j++) 
-      {
+        for (int j = i; j < frames; j++)
+        {
+            g2_threaded_indices.push_back(std::pair<int, int>(i, j));
+        }
+    }
+
+    #pragma omp parallel for default(none) schedule(dynamic) shared(frame_index, frame_value, g2_threaded_indices, g2, frames, plist)
+    for (int idx = 0; idx < g2_threaded_indices.size(); idx++)
+    {
+        auto it = g2_threaded_indices[idx];
+        int i =  it.first;
+        int j = it.second;
+
         std::vector<int> common_indices;
         std::set_intersection(frame_index[i]->begin(),
                               frame_index[i]->end(),
@@ -627,27 +630,54 @@ void Corr::twotime(data_structure::SparseData *data)
         }
 
         g2[i * frames + j] /= plist.size();
-      }
     }
+
+    // for (int i = 0; i < frames; i++) 
+    // {
+    //   for (int j = i; j < frames; j++) 
+    //   {
+    //     std::vector<int> common_indices;
+    //     std::set_intersection(frame_index[i]->begin(),
+    //                           frame_index[i]->end(),
+    //                           frame_index[j]->begin(),
+    //                           frame_index[j]->end(),
+    //                           back_inserter(common_indices)
+    //                       );
+    //     int idx1 = 0;
+    //     int idx2 = 0;
+
+    //     for (auto idx : common_indices) {
+    //       auto it1 = std::find(frame_index[i]->begin()+idx1, frame_index[i]->end(), idx);
+    //       auto it2 = std::find(frame_index[j]->begin()+idx2, frame_index[j]->end(), idx);
+    //       idx1 = std::distance(frame_index[i]->begin(), it1);
+    //       idx2 = std::distance(frame_index[j]->begin(), it2);
+
+
+    //       g2[i * frames + j] += (frame_value[i]->at(idx1) * frame_value[j]->at(idx2));
+    //     }
+
+    //     g2[i * frames + j] /= plist.size();
+    //   }
+    // }
 
     g2_pointers[binIdx] = g2;
 
-    for (int ff = 0; ff < frames; ff++) {
-      int count = 0;
-      int windowno = 0;
-      for (int fx = 0, fy = ff; fx < frames - ff; fx++, fy++) {
-        g2full[ff] += g2[fx*frames + fy];
+    // for (int ff = 0; ff < frames; ff++) {
+    //   int count = 0;
+    //   int windowno = 0;
+    //   for (int fx = 0, fy = ff; fx < frames - ff; fx++, fy++) {
+    //     g2full[ff] += g2[fx*frames + fy];
 
 
-        if (windowno < total_partials && ff < wsize) {
-          g2partial[ff * total_partials + windowno] += g2[fx*frames + fy];
-        }
+    //     if (windowno < total_partials && ff < wsize) {
+    //       g2partial[ff * total_partials + windowno] += g2[fx*frames + fy];
+    //     }
         
-        windowno = (fx+1) / wsize;
-        count++;
-      }
-      g2full[ff] /= count;
-    }
+    //     windowno = (fx+1) / wsize;
+    //     count++;
+    //   }
+    //   g2full[ff] /= count;
+    // }
     
     g2full_pointers[binIdx] = g2full;
 
