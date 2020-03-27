@@ -662,22 +662,22 @@ void Corr::twotime(data_structure::SparseData *data)
 
     g2_pointers[binIdx] = g2;
 
-    for (int ff = 0; ff < frames; ff++) {
-      int count = 0;
-      int windowno = 0;
-      for (int fx = 0, fy = ff; fx < frames - ff; fx++, fy++) {
-        g2full[ff] += g2[fx*frames + fy];
+    // for (int ff = 0; ff < frames; ff++) {
+    //   int count = 0;
+    //   int windowno = 0;
+    //   for (int fx = 0, fy = ff; fx < frames - ff; fx++, fy++) {
+    //     g2full[ff] += g2[fx*frames + fy];
 
 
-        if (windowno < total_partials && ff < wsize) {
-          g2partial[ff * total_partials + windowno] += g2[fx*frames + fy];
-        }
+    //     if (windowno < total_partials && ff < wsize) {
+    //       g2partial[ff * total_partials + windowno] += g2[fx*frames + fy];
+    //     }
         
-        windowno = (fx+1) / wsize;
-        count++;
-      }
-      g2full[ff] /= count;
-    }
+    //     windowno = (fx+1) / wsize;
+    //     count++;
+    //   }
+    //   g2full[ff] /= count;
+    // }
     
     g2full_pointers[binIdx] = g2full;
 
