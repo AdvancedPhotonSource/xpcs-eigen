@@ -622,8 +622,8 @@ void Corr::twotime(data_structure::SparseData *data)
         for (auto idx : common_indices) {
           auto it1 = std::find(frame_index[i]->begin()+idx1, frame_index[i]->end(), idx);
           auto it2 = std::find(frame_index[j]->begin()+idx2, frame_index[j]->end(), idx);
-          idx1 = std::distance(frame_index[i]->begin()+idx1, it1);
-          idx2 = std::distance(frame_index[j]->begin()+idx2, it2);
+          idx1 = std::distance(frame_index[i]->begin(), it1);
+          idx2 = std::distance(frame_index[j]->begin(), it2);
 
 
           g2[i * frames + j] += (frame_value[i]->at(idx1) * frame_value[j]->at(idx2));
