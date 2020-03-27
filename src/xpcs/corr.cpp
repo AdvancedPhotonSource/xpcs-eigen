@@ -704,13 +704,13 @@ void Corr::twotime(data_structure::SparseData *data)
     std::string g2_name(buffer);
     std::string path = conf->OutputPath() + "/C2T_all/";
 
-    xpcs::H5Result::write2DData(conf->getFilename(), 
-                        path.c_str(), 
-                        g2_name.c_str(),
-                        frames, 
-                        frames, 
-                        ptrg2,
-                        true);
+    // xpcs::H5Result::write2DData(conf->getFilename(), 
+    //                     path.c_str(), 
+    //                     g2_name.c_str(),
+    //                     frames, 
+    //                     frames, 
+    //                     ptrg2,
+    //                     true);
   }
 
   float* g2full_result = new float[qbin_to_pixels.size() * frames];
@@ -731,28 +731,28 @@ void Corr::twotime(data_structure::SparseData *data)
     }
   }
 
-  xpcs::H5Result::write2DData(conf->getFilename(), 
-                        conf->OutputPath(), 
-                        "g2full", 
-                        frames, 
-                        qbin_to_pixels.size(), 
-                        g2full_result);  
+//   xpcs::H5Result::write2DData(conf->getFilename(), 
+//                         conf->OutputPath(), 
+//                         "g2full", 
+//                         frames, 
+//                         qbin_to_pixels.size(), 
+//                         g2full_result);  
 
-  xpcs::H5Result::write3DData(conf->getFilename(), 
-                        conf->OutputPath(), 
-                        "g2partials", 
-                        wsize, 
-                        total_partials,
-                        qbin_to_pixels.size(),
-                        g2partial_result);  
+//   xpcs::H5Result::write3DData(conf->getFilename(), 
+//                         conf->OutputPath(), 
+//                         "g2partials", 
+//                         wsize, 
+//                         total_partials,
+//                         qbin_to_pixels.size(),
+//                         g2partial_result);  
 
 
-  xpcs::H5Result::write2DData(conf->getFilename(), 
-                        conf->OutputPath(), 
-                        "sg", 
-                        totalSGs, 
-                        sgDenom, 
-                        sg);
+//   xpcs::H5Result::write2DData(conf->getFilename(), 
+//                         conf->OutputPath(), 
+//                         "sg", 
+//                         totalSGs, 
+//                         sgDenom, 
+//                         sg);
 }
 
 //TODO: Refactor this function and possibly break into sub function for the unit-tests. 
