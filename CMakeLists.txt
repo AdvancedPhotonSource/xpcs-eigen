@@ -8,7 +8,6 @@ set(CMAKE_BUILD_TYPE RELEASE)
 add_definitions(-std=c++0x)
 #add_definitions(-fno-stack-protector)
 
-
 set(headers
     src/xpcs/benchmark.h
     src/xpcs/configuration.h
