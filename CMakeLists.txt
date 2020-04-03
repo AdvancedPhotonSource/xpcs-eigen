@@ -6,8 +6,6 @@ set(CMAKE_BUILD_TYPE RELEASE)
 #set(CMAKE_BUILD_TYPE DEBUG)
 
 add_definitions(-std=c++0x)
-add_definitions(-fno-stack-protector)
-
 
 set(headers
     src/xpcs/benchmark.h
@@ -19,10 +17,8 @@ set(headers
     src/xpcs/data_structure/row.h
     src/xpcs/data_structure/sparse_data.h
     src/xpcs/io/reader.h
-    src/xpcs/io/imm.h
-    src/xpcs/io/ufxc.h
-    src/xpcs/io/rigaku.h
-    src/xpcs/io/hdf5.h
+    src/xpcs/io/imm_header.h
+    src/xpcs/io/ufxc_reader.h
     src/xpcs/filter/filter.h
     src/xpcs/filter/sparse_filter.h
     src/xpcs/filter/dense_filter.h
@@ -38,10 +34,8 @@ set(sources
     src/xpcs/funcs.cpp
     src/xpcs/data_structure/dark_image.cpp
     src/xpcs/data_structure/sparse_data.cpp
-    src/xpcs/io/imm.cpp
-    src/xpcs/io/ufxc.cpp
-    src/xpcs/io/rigaku.cpp
-    src/xpcs/io/hdf5.cpp
+    src/xpcs/io/imm_reader.cpp
+    src/xpcs/io/ufxc_reader.cpp
     src/xpcs/filter/sparse_filter.cpp
     src/xpcs/filter/dense_filter.cpp
     src/xpcs/filter/stride.cpp
@@ -57,15 +51,15 @@ if (OPENMP_FOUND)
 endif()
 
 
-find_package(HDF5 REQUIRED COMPONENTS CXX HL)
-include_directories( ${HDF5_INCLUDE_DIR} )
-
 # TODO. Fix the hard-coded path. 
-include_directories( "src" "src/external")
+include_directories("/usr/local/hdf5/include" 
+                    "src" 
+                    "src/external")
+
+link_directories("/usr/local/hdf5/lib")
 
 add_subdirectory("src/external/gflags")
-
 add_executable(corr ${sources})
 
-target_link_libraries(corr ${HDF5_LIBRARIES} gflags)
+target_link_libraries(corr hdf5 gflags)
 
