@@ -562,7 +562,12 @@ void Corr::twotime(data_structure::SparseData *data)
         frame_index[i] = new vector<int>();
         frame_value[i] = new vector<float>(); 
     }
+
+    int cnt = 0;
+
+    sort(plist.begin(), plist.end());
     
+    // Take the pixel data and convert into frame data.
     for (int i = 0; i < plist.size(); i++) {
       data_structure::Row *row = data->Pixel(plist[i]);
       std::vector<int> iptr = row->indxPtr;
@@ -575,8 +580,30 @@ void Corr::twotime(data_structure::SparseData *data)
 
         frame_index[frame_no]->push_back(plist[i]);
         frame_value[frame_no]->push_back(pixel_value);
+
+        if (cnt < 10) {
+            printf("dev: pixel# = %d, frame # = %d, value = %f\n", plist[i], frame_no, pixel_value);
+        }
+
+        cnt++;
+
+        
       }       
     }  
+
+    // Verify frame sums
+    for (int i = 0 ; i < frames; i++) {
+        if (i > 12) break;
+
+        float sum = 0.0;
+
+        for (auto val : *frame_value[i]) {
+            sum += val;
+        }
+
+        printf("framesum dev @ f=(%d) = %lf\n", i, sum);
+
+    }
        
     float *g2 = new float[frames * frames];
     float *g2full = new float[frames];
@@ -602,7 +629,9 @@ void Corr::twotime(data_structure::SparseData *data)
         }
     }
 
-    #pragma omp parallel for default(none) schedule(dynamic) shared(frame_index, frame_value, g2_threaded_indices, g2, frames, plist)
+    cnt = 0;
+
+    #pragma omp parallel for default(none) schedule(dynamic) shared(cnt, frame_index, frame_value, g2_threaded_indices, g2, frames, plist)
     for (int idx = 0; idx < g2_threaded_indices.size(); idx++)
     {
         auto it = g2_threaded_indices[idx];
@@ -610,6 +639,9 @@ void Corr::twotime(data_structure::SparseData *data)
         int j = it.second;
 
         std::vector<int> common_indices;
+        // sort(frame_index[i]->begin(), frame_index[i]->end());
+        // sort(frame_index[j]->begin(), frame_index[j]->end());
+
         std::set_intersection(frame_index[i]->begin(),
                               frame_index[i]->end(),
                               frame_index[j]->begin(),
@@ -619,18 +651,27 @@ void Corr::twotime(data_structure::SparseData *data)
         int idx1 = 0;
         int idx2 = 0;
 
+        int frameIndx = i * frames + j;
+
         for (auto idx : common_indices) {
+        
           auto it1 = std::find(frame_index[i]->begin()+idx1, frame_index[i]->end(), idx);
           auto it2 = std::find(frame_index[j]->begin()+idx2, frame_index[j]->end(), idx);
+          // assert (it1 != frame_index[i]->end());
+          // assert (it2 != frame_index[j]->end());
           idx1 = std::distance(frame_index[i]->begin(), it1);
           idx2 = std::distance(frame_index[j]->begin(), it2);
 
-
-          g2[i * frames + j] += (frame_value[i]->at(idx1) * frame_value[j]->at(idx2));
+          g2[frameIndx] += (frame_value[i]->at(idx1) * frame_value[j]->at(idx2));
         }
 
-        g2[i * frames + j] /= plist.size();
+        // g2[frameIndx] /= plist.size();
     }
+
+    for (int ff = 0; ff < frames*frames; ff++) {
+        g2[ff] /= plist.size();
+    }
+
 
     g2_pointers[binIdx] = g2;
 
@@ -1109,4 +1150,5 @@ float* Corr::ComputeSGStaticMap(data_structure::SparseData *data, bool average) 
 }
 
 } //namespace xpcs
+
 
