@@ -563,8 +563,6 @@ void Corr::twotime(data_structure::SparseData *data)
         frame_value[i] = new vector<float>(); 
     }
 
-    int cnt = 0;
-
     {
         Benchmark bm("Sorting pixels");
         sort(plist.begin(), plist.end());
@@ -584,31 +582,10 @@ void Corr::twotime(data_structure::SparseData *data)
 
         frame_index[frame_no]->push_back(plist[i]);
         frame_value[frame_no]->push_back(pixel_value);
-
-        if (cnt < 10) {
-            printf("dev: pixel# = %d, frame # = %d, value = %f\n", plist[i], frame_no, pixel_value);
-        }
-
-        cnt++;
-
-        
+       
       }       
     }  
 
-    // Verify frame sums
-    for (int i = 0 ; i < frames; i++) {
-        if (i > 12) break;
-
-        float sum = 0.0;
-
-        for (auto val : *frame_value[i]) {
-            sum += val;
-        }
-
-        printf("framesum dev @ f=(%d) = %lf\n", i, sum);
-
-    }
-       
     float *g2 = new float[frames * frames];
     float *g2full = new float[frames];
     float *g2partial = new float[wsize * total_partials];
@@ -632,42 +609,58 @@ void Corr::twotime(data_structure::SparseData *data)
             g2_threaded_indices.push_back(std::pair<int, int>(i, j));
         }
     }
-
-    cnt = 0;
-
-    #pragma omp parallel for default(none) schedule(dynamic, 20) shared(cnt, frame_index, frame_value, g2_threaded_indices, g2, frames, plist)
+    #pragma omp parallel for default(none) schedule(dynamic, 20) shared(frame_index, frame_value, g2_threaded_indices, g2, frames, plist)
     for (int idx = 0; idx < g2_threaded_indices.size(); idx++)
     {
         auto it = g2_threaded_indices[idx];
         int i =  it.first;
         int j = it.second;
-
-        std::vector<int> common_indices;
-        // sort(frame_index[i]->begin(), frame_index[i]->end());
-        // sort(frame_index[j]->begin(), frame_index[j]->end());
-
-        std::set_intersection(frame_index[i]->begin(),
-                              frame_index[i]->end(),
-                              frame_index[j]->begin(),
-                              frame_index[j]->end(),
-                              back_inserter(common_indices)
-                          );
-        int idx1 = 0;
-        int idx2 = 0;
-
+        
         int frameIndx = i * frames + j;
 
-        for (auto idx : common_indices) {
-        
-          auto it1 = std::find(frame_index[i]->begin()+idx1, frame_index[i]->end(), idx);
-          auto it2 = std::find(frame_index[j]->begin()+idx2, frame_index[j]->end(), idx);
-          // assert (it1 != frame_index[i]->end());
-          // assert (it2 != frame_index[j]->end());
-          idx1 = std::distance(frame_index[i]->begin(), it1);
-          idx2 = std::distance(frame_index[j]->begin(), it2);
 
-          g2[frameIndx] += (frame_value[i]->at(idx1) * frame_value[j]->at(idx2));
+        std::vector<int> common_indices;
+
+        int ii = 0;
+        int jj = 0;
+
+        while (ii < frame_index[i]->size() && jj < frame_index[j]->size()) {
+            
+            int xx = frame_index[i]->at(ii);
+            int yy = frame_index[j]->at(jj);
+
+            if (xx == yy) {
+                g2[frameIndx] += (frame_value[i]->at(ii) * frame_value[j]->at(jj));
+                
+                ii++;
+                jj++;
+
+            } else if (xx > yy) {
+                jj++;
+            } else {
+                ii++;
+            }
         }
+        
+        // std::set_intersection(frame_index[i]->begin(),
+        //                       frame_index[i]->end(),
+        //                       frame_index[j]->begin(),
+        //                       frame_index[j]->end(),
+        //                       back_inserter(common_indices)
+        //                   );
+        // int idx1 = 0;
+        // int idx2 = 0;
+
+
+        // for (auto idx : common_indices) {
+        
+        //   auto it1 = std::find(frame_index[i]->begin()+idx1, frame_index[i]->end(), idx);
+        //   auto it2 = std::find(frame_index[j]->begin()+idx2, frame_index[j]->end(), idx);
+        //   idx1 = std::distance(frame_index[i]->begin(), it1);
+        //   idx2 = std::distance(frame_index[j]->begin(), it2);
+
+        //   g2[frameIndx] += (frame_value[i]->at(idx1) * frame_value[j]->at(idx2));
+        // }
 
         g2[frameIndx] /= plist.size();
     }
