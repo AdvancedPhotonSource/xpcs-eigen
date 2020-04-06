@@ -565,7 +565,11 @@ void Corr::twotime(data_structure::SparseData *data)
 
     int cnt = 0;
 
-    sort(plist.begin(), plist.end());
+    {
+        Benchmark bm("Sorting pixels");
+        sort(plist.begin(), plist.end());
+    }
+    
     
     // Take the pixel data and convert into frame data.
     for (int i = 0; i < plist.size(); i++) {
@@ -631,7 +635,7 @@ void Corr::twotime(data_structure::SparseData *data)
 
     cnt = 0;
 
-    #pragma omp parallel for default(none) schedule(dynamic) shared(cnt, frame_index, frame_value, g2_threaded_indices, g2, frames, plist)
+    #pragma omp parallel for default(none) schedule(dynamic, 20) shared(cnt, frame_index, frame_value, g2_threaded_indices, g2, frames, plist)
     for (int idx = 0; idx < g2_threaded_indices.size(); idx++)
     {
         auto it = g2_threaded_indices[idx];
