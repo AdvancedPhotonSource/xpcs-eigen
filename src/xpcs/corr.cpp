@@ -665,12 +665,12 @@ void Corr::twotime(data_structure::SparseData *data)
           g2[frameIndx] += (frame_value[i]->at(idx1) * frame_value[j]->at(idx2));
         }
 
-        // g2[frameIndx] /= plist.size();
+        g2[frameIndx] /= plist.size();
     }
 
-    for (int ff = 0; ff < frames*frames; ff++) {
-        g2[ff] /= plist.size();
-    }
+    // for (int ff = 0; ff < frames*frames; ff++) {
+    //     g2[ff] /= plist.size();
+    // }
 
 
     g2_pointers[binIdx] = g2;
@@ -702,6 +702,8 @@ void Corr::twotime(data_structure::SparseData *data)
     delete [] frame_index;
     delete [] frame_value;
   }
+
+  xpcs::Benchmark benchmark("Writing G2 Results");
 
   for (int i = 0; i < qbin_to_pixels.size(); i++) 
   {
