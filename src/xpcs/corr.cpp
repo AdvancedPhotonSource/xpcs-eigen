@@ -630,12 +630,18 @@ void Corr::twotime(data_structure::SparseData *data)
         int thread_no = omp_get_thread_num();
         
         int ii = 0;
+        float value = 0.0;
 
         for (int xx = 0; xx < (w*h); xx++)
             pixel_data[thread_no][xx] = 0.0;
 
         for (auto id0 : *frame_index[i]) {
-            pixel_data[thread_no][id0] = 9.0; //frame_value[i]->at(ii++);
+            pixel_data[thread_no][id0] = frame_value[i]->at(ii++);
+        }
+
+        ii = 0;
+        for (auto id1 : *frame_index[j]) {
+            value += pixel_data[thread_no][id1] * frame_value[j]->at(ii++);
         }
 
         // break;
@@ -678,7 +684,7 @@ void Corr::twotime(data_structure::SparseData *data)
         //   g2[frameIndx] += (frame_value[i]->at(idx1) * frame_value[j]->at(idx2));
         // }
 
-        g2[frameIndx] /= plist.size();
+        g2[frameIndx] = value / plist.size();
     }
 
     // for (int ff = 0; ff < frames*frames; ff++) {
