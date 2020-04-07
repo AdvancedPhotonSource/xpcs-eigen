@@ -609,7 +609,16 @@ void Corr::twotime(data_structure::SparseData *data)
             g2_threaded_indices.push_back(std::pair<int, int>(i, j));
         }
     }
-    #pragma omp parallel for default(none) schedule(dynamic, 20) shared(frame_index, frame_value, g2_threaded_indices, g2, frames, plist)
+
+    int max_threads = omp_get_max_threads();
+    printf("Max thrad %d\n", max_threads);
+    const int wh = w * h;
+
+    float **pixel_data = new float*[max_threads];
+    for (int idx = 0; idx < max_threads; idx++)
+        pixel_data[idx] = new float[w * h];
+
+    #pragma omp parallel for default(none) schedule(dynamic, 20) shared(pixel_data, w, h, frame_index, frame_value, g2_threaded_indices, g2, frames, plist)
     for (int idx = 0; idx < g2_threaded_indices.size(); idx++)
     {
         auto it = g2_threaded_indices[idx];
@@ -618,29 +627,36 @@ void Corr::twotime(data_structure::SparseData *data)
         
         int frameIndx = i * frames + j;
 
-
-        std::vector<int> common_indices;
-
+        int thread_no = omp_get_thread_num();
+        
         int ii = 0;
-        int jj = 0;
 
-        while (ii < frame_index[i]->size() && jj < frame_index[j]->size()) {
-            
-            int xx = frame_index[i]->at(ii);
-            int yy = frame_index[j]->at(jj);
+        for (int xx = 0; xx < (w*h); xx++)
+            pixel_data[thread_no][xx] = 0.0;
 
-            if (xx == yy) {
-                g2[frameIndx] += (frame_value[i]->at(ii) * frame_value[j]->at(jj));
-                
-                ii++;
-                jj++;
-
-            } else if (xx > yy) {
-                jj++;
-            } else {
-                ii++;
-            }
+        for (auto id0 : *frame_index[i]) {
+            pixel_data[thread_no][id0] = 9.0; //frame_value[i]->at(ii++);
         }
+
+        // break;
+
+        // while (ii < frame_index[i]->size() && jj < frame_index[j]->size()) {
+            
+        //     int xx = frame_index[i]->at(ii);
+        //     int yy = frame_index[j]->at(jj);
+
+        //     if (xx == yy) {
+        //         g2[frameIndx] += (frame_value[i]->at(ii) * frame_value[j]->at(jj));
+                
+        //         ii++;
+        //         jj++;
+
+        //     } else if (xx > yy) {
+        //         jj++;
+        //     } else {
+        //         ii++;
+        //     }
+        // }
         
         // std::set_intersection(frame_index[i]->begin(),
         //                       frame_index[i]->end(),
