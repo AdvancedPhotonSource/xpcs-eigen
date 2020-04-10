@@ -611,14 +611,13 @@ void Corr::twotime(data_structure::SparseData *data)
     }
 
     int max_threads = omp_get_max_threads();
-    printf("Max thrad %d\n", max_threads);
     const int wh = w * h;
 
     float **pixel_data = new float*[max_threads];
     for (int idx = 0; idx < max_threads; idx++)
         pixel_data[idx] = new float[w * h];
 
-    #pragma omp parallel for default(none) schedule(dynamic, 20) shared(pixel_data, w, h, frame_index, frame_value, g2_threaded_indices, g2, frames, plist)
+    #pragma omp parallel for default(none) schedule(auto) shared(pixel_data, w, h, frame_index, frame_value, g2_threaded_indices, g2, frames, plist)
     for (int idx = 0; idx < g2_threaded_indices.size(); idx++)
     {
         auto it = g2_threaded_indices[idx];
