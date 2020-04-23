@@ -434,7 +434,111 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
     }
 }
 
-void Corr::twotime(data_structure::SparseData *data)
+void Corr::SmoothingStaticMap()
+{
+  bool average = conf->SmoothingFilter() == xpcs::FILTER_AVERAGE ? true : false;
+    
+  if (average)
+  {
+    sgDenom = 1;
+  }
+
+  sg = Corr::ComputeSGStaticMap(data, average);
+  for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); it != qbins.end(); it++) {
+    int q = it->first;
+      
+    map<int, vector<int> > values =  it->second;
+      
+    if (std::find(qphi_bins_to_process.begin(), qphi_bins_to_process.end(), q) 
+            != qphi_bins_to_process.end()) {
+      
+      for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
+      
+        vector<int> pixels = it2->second;
+
+        for (int i = 0; i < pixels.size(); i++) {
+
+          data_structure::Row *row = data->Pixel(pixels[i]);
+          std::vector<int> iptr = row->indxPtr;
+          std::vector<float>& vptr = row->valPtr;
+
+          for (int j = 0; j < iptr.size(); j++) {
+            if (average) 
+            {
+              vptr[j] /= sg[sbin];
+            }
+            else 
+            {
+              vptr[j] /= sg[sbin * frames + iptr[j]];
+            }
+            
+          }
+        }
+        sbin++;
+      } 
+    }
+  }
+
+  totalSGs = sbin; 
+}
+
+void Corr::SmoothingSymmetric()
+{
+  bool average = conf->SmoothingFilter() == xpcs::FILTER_AVERAGE ? true : false;
+    
+  if (average) 
+  {
+    sgDenom = 1;
+  }
+
+  sg = Corr::ComputeSGSymmetric(data, average);
+
+  for (int binIdx = 0; binIdx < qbin_to_pixels.size(); binIdx++) {
+    auto it = qbin_to_pixels.begin();
+      advance(it, binIdx);
+        
+      int qbin = it->first;
+      vector<int> plist = it->second;
+
+      for (int i = 0; i < plist.size(); i++) {
+        data_structure::Row *row = data->Pixel(plist[i]);
+        std::vector<int> iptr = row->indxPtr;
+        std::vector<float>& vptr = row->valPtr;
+
+        for (int j = 0; j < iptr.size(); j++) {
+          if (average)
+          {
+            vptr[j] /= sg[binIdx];
+          }
+          else
+          {
+            vptr[j] /= sg[binIdx * frames + iptr[j]];
+          }
+          
+        }
+      }
+  }
+
+  totalSGs = qbin_to_pixels.size();
+}
+
+void Corr::Smoothing()
+{
+
+  if (conf->SmoothingMethod() == xpcs::SMOOTHING_STATICMAP)
+  { 
+    this->SmoothingStaticMap();
+  }
+
+  else if (conf->SmoothingMethod() == xpcs::SMOOTHING_SYMMETRIC)
+  {
+    this->SmoothingSymmetric();
+
+  }
+
+}
+
+void Corr::twotimeFrameThreading(data_structure::SparseData *data)
 {
   Configuration* conf = Configuration::instance();
   int frames = conf->getFrameTodoCount();
@@ -451,96 +555,8 @@ void Corr::twotime(data_structure::SparseData *data)
   int sgDenom = frames;
   int sbin = 0;
 
-  if (conf->SmoothingMethod() == xpcs::SMOOTHING_STATICMAP)
-  {
-
-    bool average = conf->SmoothingFilter() == xpcs::FILTER_AVERAGE ? true : false;
-    
-    if (average)
-    {
-      sgDenom = 1;
-    }
-
-    sg = Corr::ComputeSGStaticMap(data, average);
-
-    for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); it != qbins.end(); it++) {
-      int q = it->first;
-        
-      map<int, vector<int> > values =  it->second;
-        
-      if (std::find(qphi_bins_to_process.begin(), qphi_bins_to_process.end(), q) 
-              != qphi_bins_to_process.end()) {
-        
-        for (map<int, vector<int>>::const_iterator it2 =  values.begin(); it2 != values.end(); it2++) {
-        
-          vector<int> pixels = it2->second;
-
-          for (int i = 0; i < pixels.size(); i++) {
-
-            data_structure::Row *row = data->Pixel(pixels[i]);
-            std::vector<int> iptr = row->indxPtr;
-            std::vector<float>& vptr = row->valPtr;
-
-            for (int j = 0; j < iptr.size(); j++) {
-              if (average) 
-              {
-                vptr[j] /= sg[sbin];
-              }
-              else 
-              {
-                vptr[j] /= sg[sbin * frames + iptr[j]];
-              }
-              
-            }
-          }
-          sbin++;
-        } 
-      }
-    }
-
-    totalSGs = sbin;
-  }
-
-  else if (conf->SmoothingMethod() == xpcs::SMOOTHING_SYMMETRIC)
-  {
-    bool average = conf->SmoothingFilter() == xpcs::FILTER_AVERAGE ? true : false;
-    
-    if (average) 
-    {
-      sgDenom = 1;
-    }
-
-    sg = Corr::ComputeSGSymmetric(data, average);
-
-    for (int binIdx = 0; binIdx < qbin_to_pixels.size(); binIdx++) {
-      auto it = qbin_to_pixels.begin();
-        advance(it, binIdx);
-          
-        int qbin = it->first;
-        vector<int> plist = it->second;
-
-        for (int i = 0; i < plist.size(); i++) {
-          data_structure::Row *row = data->Pixel(plist[i]);
-          std::vector<int> iptr = row->indxPtr;
-          std::vector<float>& vptr = row->valPtr;
-
-          for (int j = 0; j < iptr.size(); j++) {
-            if (average)
-            {
-              vptr[j] /= sg[binIdx];
-            }
-            else
-            {
-              vptr[j] /= sg[binIdx * frames + iptr[j]];
-            }
-            
-          }
-        }
-    }
-
-    totalSGs = qbin_to_pixels.size();
-  }
-
+  Smoothing();
+ 
   float **g2_pointers = new float*[qbin_to_pixels.size()];
   float **g2full_pointers = new float*[qbin_to_pixels.size()];
 
@@ -567,7 +583,6 @@ void Corr::twotime(data_structure::SparseData *data)
         Benchmark bm("Sorting pixels");
         sort(plist.begin(), plist.end());
     }
-    
     
     // Take the pixel data and convert into frame data.
     for (int i = 0; i < plist.size(); i++) {
@@ -725,6 +740,159 @@ void Corr::twotime(data_structure::SparseData *data)
 
   for (int i = 0; i < qbin_to_pixels.size(); i++) 
   {
+    auto it = qbin_to_pixels.begin();
+    advance(it, i);
+
+    int qbin = it->first;
+
+    float* ptrg2 = g2_pointers[i];
+
+    char buffer[100];
+    sprintf(buffer, "g2_%05d", qbin);
+    std::string g2_name(buffer);
+    std::string path = conf->OutputPath() + "/C2T_all/";
+
+    xpcs::H5Result::write2DData(conf->getFilename(), 
+                        path.c_str(), 
+                        g2_name.c_str(),
+                        frames, 
+                        frames, 
+                        ptrg2,
+                        true);
+  }
+
+  float* g2full_result = new float[qbin_to_pixels.size() * frames];
+  float* g2partial_result = new float[qbin_to_pixels.size() * wsize * total_partials];
+  
+  for (int j = 0; j < frames; j++) {
+    for (int i = 0; i < qbin_to_pixels.size(); i++) {
+        g2full_result[j * qbin_to_pixels.size() + i] = g2full_pointers[i][j];
+    }
+  }
+ 
+  int idd = 0;
+  for (int i = 0; i < wsize; i++){
+    for (int j = 0; j < total_partials; j++) {
+      for (int k = 0; k < qbin_to_pixels.size(); k++) {
+        g2partial_result[idd++] = g2partial_pointers[k][i*total_partials + j];
+      }
+    }
+  }
+
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "g2full", 
+                        frames, 
+                        qbin_to_pixels.size(), 
+                        g2full_result);  
+
+  xpcs::H5Result::write3DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "g2partials", 
+                        wsize, 
+                        total_partials,
+                        qbin_to_pixels.size(),
+                        g2partial_result);  
+
+
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                        conf->OutputPath(), 
+                        "sg", 
+                        totalSGs, 
+                        sgDenom, 
+                        sg);
+}
+
+void Corr::twotimeQBinThreading(data_structure::SparseData *data)
+{
+
+  Configuration* conf = Configuration::instance();
+  int frames = conf->getFrameTodoCount();
+  int wsize = conf->Two2OneWindowSize();
+  vector<int> qphi_bins_to_process = conf->TwoTimeQMask();
+  std::map<int, std::map<int, vector<int>> > qbins = conf->getBinMaps();
+  std::map<int, vector<int>> qbin_to_pixels = conf->QbinPixelList();
+
+  Smoothing();
+  
+  float **g2_pointers = new float*[qbin_to_pixels.size()];
+  float **g2full_pointers = new float*[qbin_to_pixels.size()];
+
+  int total_partials = (frames - wsize) / wsize;
+  float **g2partial_pointers = new float*[qbin_to_pixels.size()];
+
+  #pragma omp parallel for schedule(dynamic) 
+  for (int binIdx = 0; binIdx < qbin_to_pixels.size(); binIdx++) {
+    auto it = qbin_to_pixels.begin();
+    advance(it, binIdx);
+
+    int qbin = it->first;
+    vector<int> plist = it->second;
+
+    float *g2 = new float[frames * frames];
+    float *g2full = new float[frames];
+    float *g2partial = new float[wsize * total_partials];
+
+    for (int f = 0; f < frames*frames; f++)
+      g2[f] = 0.0f;
+
+    for (int f = 0; f < (wsize * total_partials); f++)
+      g2partial[f] = 0.0f;
+
+    for (int f = 0; f < frames; f++)
+        g2full[f] = 0.0f;
+
+    for (int i = 0; i < plist.size(); i++) {
+      data_structure::Row *row = data->Pixel(plist[i]);
+      std::vector<int> iptr = row->indxPtr;
+      std::vector<float> vptr = row->valPtr;
+
+      for (int j = 0; j < iptr.size(); j++) {
+        
+        int f0 = iptr[j];
+        float val0 = vptr[j];
+
+        for (int k = j; k < iptr.size(); k++) {
+          int f1 = iptr[k];
+          float val1 = vptr[k];
+          g2[f0 * frames + f1] += val0 * val1;
+        }
+      }       
+    }
+
+    for (int ff = 0; ff < frames*frames; ff++) {
+        g2[ff] /= plist.size();
+    }
+
+    for (int ff = 0; ff < frames; ff++) {
+        int count = 0;
+        int windowno = 0;
+        for (int fx = 0, fy = ff; fx < frames - ff; fx++, fy++) {
+            g2full[ff] += g2[fx*frames + fy];
+
+
+            if (windowno < total_partials && ff < wsize) {
+              g2partial[ff * total_partials + windowno] += g2[fx*frames + fy];
+            }
+            
+            windowno = (fx+1) / wsize;
+            count++;
+        }
+
+        g2full[ff] /= count;
+    }
+    
+    g2full_pointers[binIdx] = g2full;
+    g2_pointers[binIdx] = g2;
+
+    for (int f = 0; f < (wsize * total_partials); f++)
+      g2partial[f] /= wsize;
+
+    g2partial_pointers[binIdx] = g2partial;
+    
+  }
+
+  for (int i = 0; i < qbin_to_pixels.size(); i++) {
     auto it = qbin_to_pixels.begin();
     advance(it, i);
 
