@@ -97,6 +97,8 @@ public:
 
   static void multiTau2(data_structure::SparseData *data, float* G2, float* IP, float* IF);
 
+  static void twotime(data_structure::SparseData *data, bool twotimeFrameThreading);
+
   static void twotimeFrameThreading(data_structure::SparseData *data);
 
   static void twotimeQBinThreading(data_structure::SparseData *data);
@@ -114,6 +116,12 @@ public:
   static float* ComputeSGSymmetric(data_structure::SparseData *data, bool average=false);
 
   static float* ComputeSGStaticMap(data_structure::SparseData *data, bool average=false);
+
+  static void Smoothing(data_structure::SparseData *data);
+
+  static void SmoothingStaticMap(data_structure::SparseData *data);
+
+  static void SmoothingSymmetric(data_structure::SparseData *data);
 
 };
 

@@ -85,6 +85,7 @@ DEFINE_bool(darkout, false, "Write dark average and std-data");
 DEFINE_bool(ufxc, false, "IF the file format is from ufxc photon counting detector.");
 DEFINE_bool(rigaku, false, "IF the file format is from rigaku photon counting detector.");
 DEFINE_bool(hdf5, false, "IF the file format is HDF5 file format.");
+DEFINE_bool(frame_threading, false, "Run twotime with frame threading.");
 DEFINE_int32(frameout, false, "Number of post-processed frames to write out for debuggin.");
 DEFINE_string(imm, "", "The path to IMM file. By default the file specified in HDF5 metadata is used");
 DEFINE_string(inpath, "", "The path prefix to replace");
@@ -399,7 +400,7 @@ int main(int argc, char** argv)
   {
     if (conf->IsTwoTime()) {
       xpcs::Benchmark benchmark("Computing G2 TwoTimes");
-      xpcs::Corr::twotime(filter->Data());
+      xpcs::Corr::twotime(filter->Data(), FLAGS_frame_threading);
     } else {
 
       {

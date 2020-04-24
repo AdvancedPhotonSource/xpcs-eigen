@@ -434,16 +434,26 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
     }
 }
 
-void Corr::SmoothingStaticMap()
+void Corr::SmoothingStaticMap(data_structure::SparseData *data)
 {
+
+  Configuration* conf = Configuration::instance();
+  int frames = conf->getFrameTodoCount();
   bool average = conf->SmoothingFilter() == xpcs::FILTER_AVERAGE ? true : false;
-    
+  std::map<int, std::map<int, vector<int>> > qbins = conf->getBinMaps();
+  std::map<int, vector<int>> qbin_to_pixels = conf->QbinPixelList();
+  vector<int> qphi_bins_to_process = conf->TwoTimeQMask();
+  
+  int sbin = 0;
+  
+  float *sg = Corr::ComputeSGStaticMap(data, average);
+  
+  int sgDenom = frames;
   if (average)
   {
     sgDenom = 1;
   }
 
-  sg = Corr::ComputeSGStaticMap(data, average);
   for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); it != qbins.end(); it++) {
     int q = it->first;
       
@@ -479,19 +489,29 @@ void Corr::SmoothingStaticMap()
     }
   }
 
-  totalSGs = sbin; 
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                    conf->OutputPath(), 
+                    "sg", 
+                    sbin, 
+                    sgDenom, 
+                    sg);
 }
 
-void Corr::SmoothingSymmetric()
-{
+void Corr::SmoothingSymmetric(data_structure::SparseData *data)
+{ 
+  Configuration* conf = Configuration::instance();
+  int frames = conf->getFrameTodoCount();
   bool average = conf->SmoothingFilter() == xpcs::FILTER_AVERAGE ? true : false;
-    
-  if (average) 
+  std::map<int, vector<int>> qbin_to_pixels = conf->QbinPixelList();
+  std::map<int, std::map<int, vector<int>> > qbins = conf->getBinMaps();
+
+  float *sg = Corr::ComputeSGSymmetric(data, average);
+
+  int sgDenom = frames;
+  if (average)
   {
     sgDenom = 1;
   }
-
-  sg = Corr::ComputeSGSymmetric(data, average);
 
   for (int binIdx = 0; binIdx < qbin_to_pixels.size(); binIdx++) {
     auto it = qbin_to_pixels.begin();
@@ -519,23 +539,40 @@ void Corr::SmoothingSymmetric()
       }
   }
 
-  totalSGs = qbin_to_pixels.size();
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                      conf->OutputPath(), 
+                      "sg", 
+                      qbin_to_pixels.size(), 
+                      sgDenom, 
+                      sg);
 }
 
-void Corr::Smoothing()
+void Corr::Smoothing(data_structure::SparseData *data)
 {
-
+  
+  Configuration* conf = Configuration::instance();
   if (conf->SmoothingMethod() == xpcs::SMOOTHING_STATICMAP)
   { 
-    this->SmoothingStaticMap();
+    SmoothingStaticMap(data);
   }
 
   else if (conf->SmoothingMethod() == xpcs::SMOOTHING_SYMMETRIC)
   {
-    this->SmoothingSymmetric();
-
+    SmoothingSymmetric(data);
   }
 
+}
+
+void Corr::twotime(data_structure::SparseData *data, bool twotimeFrameThreading)
+{
+  if (twotimeFrameThreading) 
+  {
+    Corr::twotimeFrameThreading(data);
+  }
+  else 
+  {
+    Corr::twotimeQBinThreading(data);
+  }
 }
 
 void Corr::twotimeFrameThreading(data_structure::SparseData *data)
@@ -549,14 +586,8 @@ void Corr::twotimeFrameThreading(data_structure::SparseData *data)
   std::map<int, std::map<int, vector<int>> > qbins = conf->getBinMaps();
   std::map<int, vector<int>> qbin_to_pixels = conf->QbinPixelList();
 
-  //TODO: Refactor these two conditions to a seperate funcitons. 
-  float *sg = 0;
-  int totalSGs = 0;
-  int sgDenom = frames;
-  int sbin = 0;
+  Smoothing(data);
 
-  Smoothing();
- 
   float **g2_pointers = new float*[qbin_to_pixels.size()];
   float **g2full_pointers = new float*[qbin_to_pixels.size()];
 
@@ -657,54 +688,8 @@ void Corr::twotimeFrameThreading(data_structure::SparseData *data)
         for (auto id1 : *frame_index[j]) {
             value += pixel_data[thread_no][id1] * frame_value[j]->at(ii++);
         }
-
-        // break;
-
-        // while (ii < frame_index[i]->size() && jj < frame_index[j]->size()) {
-            
-        //     int xx = frame_index[i]->at(ii);
-        //     int yy = frame_index[j]->at(jj);
-
-        //     if (xx == yy) {
-        //         g2[frameIndx] += (frame_value[i]->at(ii) * frame_value[j]->at(jj));
-                
-        //         ii++;
-        //         jj++;
-
-        //     } else if (xx > yy) {
-        //         jj++;
-        //     } else {
-        //         ii++;
-        //     }
-        // }
-        
-        // std::set_intersection(frame_index[i]->begin(),
-        //                       frame_index[i]->end(),
-        //                       frame_index[j]->begin(),
-        //                       frame_index[j]->end(),
-        //                       back_inserter(common_indices)
-        //                   );
-        // int idx1 = 0;
-        // int idx2 = 0;
-
-
-        // for (auto idx : common_indices) {
-        
-        //   auto it1 = std::find(frame_index[i]->begin()+idx1, frame_index[i]->end(), idx);
-        //   auto it2 = std::find(frame_index[j]->begin()+idx2, frame_index[j]->end(), idx);
-        //   idx1 = std::distance(frame_index[i]->begin(), it1);
-        //   idx2 = std::distance(frame_index[j]->begin(), it2);
-
-        //   g2[frameIndx] += (frame_value[i]->at(idx1) * frame_value[j]->at(idx2));
-        // }
-
         g2[frameIndx] = value / plist.size();
     }
-
-    // for (int ff = 0; ff < frames*frames; ff++) {
-    //     g2[ff] /= plist.size();
-    // }
-
 
     g2_pointers[binIdx] = g2;
 
@@ -793,14 +778,6 @@ void Corr::twotimeFrameThreading(data_structure::SparseData *data)
                         total_partials,
                         qbin_to_pixels.size(),
                         g2partial_result);  
-
-
-  xpcs::H5Result::write2DData(conf->getFilename(), 
-                        conf->OutputPath(), 
-                        "sg", 
-                        totalSGs, 
-                        sgDenom, 
-                        sg);
 }
 
 void Corr::twotimeQBinThreading(data_structure::SparseData *data)
@@ -813,7 +790,7 @@ void Corr::twotimeQBinThreading(data_structure::SparseData *data)
   std::map<int, std::map<int, vector<int>> > qbins = conf->getBinMaps();
   std::map<int, vector<int>> qbin_to_pixels = conf->QbinPixelList();
 
-  Smoothing();
+  Smoothing(data);
   
   float **g2_pointers = new float*[qbin_to_pixels.size()];
   float **g2full_pointers = new float*[qbin_to_pixels.size()];
@@ -946,14 +923,6 @@ void Corr::twotimeQBinThreading(data_structure::SparseData *data)
                         total_partials,
                         qbin_to_pixels.size(),
                         g2partial_result);  
-
-
-  xpcs::H5Result::write2DData(conf->getFilename(), 
-                        conf->OutputPath(), 
-                        "sg", 
-                        totalSGs, 
-                        sgDenom, 
-                        sg);
 }
 
 //TODO: Refactor this function and possibly break into sub function for the unit-tests. 
