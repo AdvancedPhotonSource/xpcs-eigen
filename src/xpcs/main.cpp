@@ -196,7 +196,7 @@ int main(int argc, char** argv)
     reader = new xpcs::io::Ufxc(conf->getIMMFilePath().c_str());
   } else if (FLAGS_rigaku) {
     printf("Loading Rigaku as binary\n");
-    reader = new xpcs::io::Rigaku(conf->getIMMFilePath().c_str());
+    reader = new xpcs::io::Rigaku(conf->getIMMFilePath().c_str(), frames);
   } else if (FLAGS_hdf5) {
     printf("Loading data from HDF5 file\n");
     reader = new xpcs::io::Hdf5(conf->getIMMFilePath().c_str());
@@ -251,6 +251,8 @@ int main(int argc, char** argv)
       filter->Apply(data);
       f++;
     }
+
+    // return 0;
 
     if (FLAGS_frameout > 0 && FLAGS_frameout < frames) {
       xpcs::data_structure::SparseData *data = filter->Data();

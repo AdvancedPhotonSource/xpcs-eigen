@@ -57,40 +57,59 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace xpcs {
 namespace io {
 
-Rigaku::Rigaku(const std::string& filename) {
+Rigaku::Rigaku(const std::string& filename, int frames) {
     xpcs::Benchmark benchmark("Reading rigaku file");
     file_ = fopen(filename.c_str(), "rb");
     if (file_ == NULL) return ; //TODO handle error
 
-    std::vector<long long> data;
+    frames_ = frames;
 
     long buffer_size = 4096 * 10;
     long long buffer[buffer_size];
     size_t read = fread(&buffer, sizeof(long long), buffer_size, file_);
+    
+    ppf_ = new int[frames_];
+    for (int i = 0; i < frames_; i++) {
+        ppf_[i] = 0;
+    }
+
+    uint previous_frame = 0;    
+    uint frame = 0;
+    int pixcount = 0;
+    int totalpix = 0;
+
     while (read) {
         for (int i = 0; i < read; i++) {
-            data.push_back(buffer[i]);
+            frame = buffer[i] >> 40;
+            
+            if (frame != previous_frame) {
+                ppf_[previous_frame] = pixcount;
+                pixcount = 0;
+                previous_frame = frame;
+            }
+            data_.push_back(buffer[i]);
+            totalpix++;
         }
         read = fread(&buffer, sizeof(long long), buffer_size, file_);
     }
 
-    auto it = data.begin();
-
-    uint frame = *it >> 40;
+    // auto it = data.begin();
+    // // uint frame = *it >> 40;
    
-    data_frames_[frame] = std::vector<long long>();
-    data_frames_[frame].push_back(*it);
+    // data_frames_[frame] = std::vector<long long>();
+    // data_frames_[frame].push_back(*it);
 
-    ++it;
-    for(; it != data.end(); ++it) {
-        frame = *it >> 40;
-        if (data_frames_.find(frame) == data_frames_.end()) { 
-            data_frames_[frame] = std::vector<long long>();
-	    }
-        data_frames_[frame].push_back(*it);
-    }
+    // ++it;
+    // for(; it != data.end(); ++it) {
+    //     frame = *it >> 40;
+    //     if (data_frames_.find(frame) == data_frames_.end()) { 
+    //         data_frames_[frame] = std::vector<long long>();
+	//     }
+    //     data_frames_[frame].push_back(*it);
+    // }
    
-    last_frame_index = 0;
+    last_frame_index_ = 0;
+    last_pixel_index_ = 0;
 
     xpcs::Configuration *conf = xpcs::Configuration::instance();
     frame_width_ = conf->getFrameWidth();
@@ -102,7 +121,7 @@ Rigaku::Rigaku(const std::string& filename) {
 Rigaku::~Rigaku() {
 }
 
-ImmBlock* Rigaku::NextFrames(int count) {
+ImmBlock* Rigaku::NextFrames(int average_count) {
     int **index = new int*[count];
     float **value = new float*[count];
     double *clock = new double[count];
@@ -112,38 +131,42 @@ ImmBlock* Rigaku::NextFrames(int count) {
     int done = 0, pxs = 0;
 
     while (done < count) {
-        clock[done] = last_frame_index;
-        ticks[done] = last_frame_index;
+        clock[done] = last_frame_index_;
+        ticks[done] = last_frame_index_;
 
-        if (data_frames_.find(last_frame_index) == data_frames_.end()) {
+        if (ppf_[last_frame_index_] == 0) {
             index[done] = new int[0];
             value[done] = new float[0];
 
             ppf.push_back(0);
-            last_frame_index++;
+            last_frame_index_++;
             done++;
             continue;
         }
+        
+        int pix_cnt = ppf_[last_frame_index_];
+        index[done] = new int[pix_cnt];
+        value[done] = new float[pix_cnt];
+        ppf.push_back(pix_cnt);
 
-        std::vector<long long> frame = data_frames_[last_frame_index];
-        index[done] = new int[frame.size()];
-        value[done] = new float[frame.size()];
-        ppf.push_back(frame.size());
+        uint idx = 0;
+        for (int i = last_pixel_index_; i < (last_pixel_index_ + pix_cnt); i++) {
+            long long it = data_[i];
 
-        int idx = 0;
-        for (auto& it : frame) {
             uint pix = (it >> 16) & 0xFFFFF;
             
             int row = pix % frame_height_;
             int col = pix / frame_height_;
 
             float val = it & 0x7FF;
+
             index[done][idx] = row * frame_width_ + col;
             value[done][idx] = val;
-	        idx++;
+            idx++;
         }
         done++;
-        last_frame_index++;
+        last_frame_index_++;
+        last_pixel_index_ += ppf[last_frame_index_];
     }
    
     ImmBlock *ret = new ImmBlock;

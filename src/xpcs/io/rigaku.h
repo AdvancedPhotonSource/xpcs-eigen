@@ -65,7 +65,7 @@ namespace io {
 class Rigaku : public Reader {
 
 public:
-  Rigaku(const std::string& filename);
+  Rigaku(const std::string& filename, int frames);
    
   ~Rigaku();
 
@@ -81,13 +81,21 @@ private:
   
   FILE *file_;
 
-  int last_frame_index;
+  int last_frame_index_;
+
+  int last_pixel_index_; // Keep track of which pixel in the rigaku file we are processing
 
   int frame_width_;
 
   int frame_height_;
 
-  std::unordered_map<int, std::vector<long long> > data_frames_;
+  int frames_;
+
+  // std::unordered_map<int, std::vector<long long> > data_frames_;
+
+  std::vector<long long> data_;
+
+  int *ppf_;
 
 };
 
