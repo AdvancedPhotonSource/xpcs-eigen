@@ -213,29 +213,58 @@ float* DenseFilter::PixelsSum() {
   return pixels_sum_;
 }
 
+void DenseFilter::PixelsSum(float *pixels_sum) 
+{
+  pixels_sum_ = pixels_sum;
+}
+
 float* DenseFilter::FramesSum() {
   return frames_sum_;
+}
+
+void DenseFilter::FramesSum(float *frames_sum) {
+  frames_sum_ = frames_sum;
 }
 
 float* DenseFilter::PartitionsMean() {
   return partitions_mean_;
 }
 
+void DenseFilter::PartitionsMean(float * partitions_mean)
+{
+  partitions_mean_ = partitions_mean;
+}
+
 float* DenseFilter::PartialPartitionsMean() {
   return partial_partitions_mean_;
 }
 
+void DenseFilter::PartialPartitionsMean(float *partial_partion) {
+  partial_partitions_mean_ = partial_partion;
+}
 
 xpcs::data_structure::SparseData* DenseFilter::Data() {
   return data_;
+}
+
+void  DenseFilter::Data(xpcs::data_structure::SparseData* data) {
+  data_ = data;
 }
 
 double* DenseFilter::TimestampClock() {
   return timestamp_clock_;
 }
 
+void DenseFilter::TimestampClock(double* timestamp_clock) {
+  timestamp_clock_ = timestamp_clock;
+}
+
 double* DenseFilter::TimestampTicks() {
   return timestamp_ticks_;
+}
+
+void DenseFilter::TimestampTicks(double* timestamp_ticks) {
+  timestamp_ticks_ = timestamp_ticks;
 }
 
 } // namespace io

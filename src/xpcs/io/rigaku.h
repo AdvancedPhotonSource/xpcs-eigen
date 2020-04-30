@@ -59,13 +59,27 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "spdlog/spdlog.h"
 
 
-namespace xpcs {
-namespace io {
+namespace xpcs 
+{
 
-class Rigaku : public Reader {
+namespace data_structure 
+{
+  class SparseData;
+}
+
+namespace filter
+{
+  class Filter;
+}
+
+namespace io 
+{
+
+class Rigaku : public Reader 
+{
 
 public:
-  Rigaku(const std::string& filename, int frames);
+  Rigaku(const std::string& filename, xpcs::filter::Filter *filter);
    
   ~Rigaku();
 
@@ -78,25 +92,10 @@ public:
   void Reset();
 
 private:
+
+  void Process();
   
   FILE *file_;
-
-  int last_frame_index_;
-
-  int last_pixel_index_; // Keep track of which pixel in the rigaku file we are processing
-
-  int frame_width_;
-
-  int frame_height_;
-
-  int frames_;
-
-  // std::unordered_map<int, std::vector<long long> > data_frames_;
-
-  std::vector<long long> data_;
-
-  int *ppf_;
-
 };
 
 } //namespace io

@@ -192,32 +192,73 @@ void SparseFilter::Apply(xpcs::io::ImmBlock* blk) {
 
 }
 
-float* SparseFilter::PixelsSum() {
+float* SparseFilter::PixelsSum() 
+{
   return pixels_sum_;
 }
 
-float* SparseFilter::FramesSum() {
+void SparseFilter::PixelsSum(float *pixels_sum)
+{
+  pixels_sum_ = pixels_sum;
+}
+
+float* SparseFilter::FramesSum() 
+{
   return frames_sum_;
 }
 
-float* SparseFilter::PartitionsMean() {
+void SparseFilter::FramesSum(float *frames_sum) 
+{
+  frames_sum_ = frames_sum;
+}
+
+float* SparseFilter::PartitionsMean() 
+{
   return partitions_mean_;
 }
 
-float* SparseFilter::PartialPartitionsMean() {
+void SparseFilter::PartitionsMean(float *partitions_mean) 
+{
+  partitions_mean_ = partitions_mean;
+}
+
+float* SparseFilter::PartialPartitionsMean() 
+{
   return partial_partitions_mean_;
 }
 
-double* SparseFilter::TimestampClock() {
+void SparseFilter::PartialPartitionsMean(float *partial_partitions_mean) 
+{
+  partial_partitions_mean_ = partial_partitions_mean;
+}
+
+double* SparseFilter::TimestampClock() 
+{
   return timestamp_clock_;
 }
 
-double* SparseFilter::TimestampTicks() {
+void SparseFilter::TimestampClock(double *timestamp_clock) 
+{
+  timestamp_clock_ = timestamp_clock;
+}
+
+double* SparseFilter::TimestampTicks() 
+{
   return timestamp_ticks_;
+}
+
+void SparseFilter::TimestampTicks(double *timestamp_ticks) 
+{
+  timestamp_ticks_ = timestamp_ticks;
 }
 
 xpcs::data_structure::SparseData* SparseFilter::Data() {
   return data_;
+}
+
+void SparseFilter::Data(xpcs::data_structure::SparseData* data) 
+{
+  data_ = data;
 }
 
 } // namespace io

@@ -72,17 +72,31 @@ public:
 
   float* PixelsSum();
 
+  void PixelsSum(float*);
+
   float* FramesSum();
+
+  void FramesSum(float*);
 
   float* PartitionsMean();
 
+  void PartitionsMean(float*);
+
   float* PartialPartitionsMean();
+
+  void PartialPartitionsMean(float *);
 
   double* TimestampClock();
 
+  void TimestampClock(double *);
+
   double* TimestampTicks();
 
+  void TimestampTicks(double *);
+
   xpcs::data_structure::SparseData* Data();
+
+  void Data(xpcs::data_structure::SparseData*);
 
 private:
 
