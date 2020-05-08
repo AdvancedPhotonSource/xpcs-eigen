@@ -205,7 +205,6 @@ int main(int argc, char** argv)
   } else {
     reader = new xpcs::io::Imm(conf->getIMMFilePath().c_str());
   }
-
   
   xpcs::data_structure::DarkImage *dark_image = NULL;
   {

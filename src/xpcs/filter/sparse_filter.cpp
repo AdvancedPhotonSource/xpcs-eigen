@@ -61,7 +61,7 @@ namespace xpcs {
 namespace filter {
 
 
-SparseFilter::SparseFilter() {
+SparseFilter::SparseFilter() : data_(NULL) {
   Configuration *conf = Configuration::instance();
 
   pixel_mask_ = conf->getPixelMask();
@@ -105,12 +105,6 @@ SparseFilter::SparseFilter() {
   for (int i = 0; i < (frame_width_ * frame_height_); i++)
     pixels_sum_[i] = 0.0f;
 
-  data_ = new xpcs::data_structure::SparseData(frame_width_ * frame_height_);
-
-  /*printf("QMAP\n");
-  for (int i = 0 ; i < frame_width_ * frame_height_; i++) {
-    if (pixel_mask_[i] != 0) printf("%d\n", i);
-  }*/
 
 }
 
@@ -119,6 +113,12 @@ SparseFilter::~SparseFilter() {
 }
 
 void SparseFilter::Apply(xpcs::io::ImmBlock* blk) {
+
+  if (data_ == NULL) 
+  {
+    data_ = new xpcs::data_structure::SparseData(frame_width_ * frame_height_);
+  }
+
   int **indx = blk->index;
   float **val = blk->value;
   int frames = blk->frames;

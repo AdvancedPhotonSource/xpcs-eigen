@@ -78,7 +78,7 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
   float *partitions_mean = new float[total_static_partns];
 
   int framesize = frame_width * frame_height;
-  
+  printf("%d\n", framesize);
   float *pixels_sum = new float[framesize];
   float *frames_sum =  new float[2 * conf->getFrameTodoCount()];
     
@@ -120,29 +120,29 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
   {
     for (int i = 0; i < read; i++) 
     {
-        frame = buffer[i] >> 40;    
+        frame = (buffer[i] >> 40);    
         if (frame != previous_frame) 
         {
             ppf[previous_frame] = pixcount;
-            pixcount = 0;
-            previous_frame = frame;
-
-            frames_sum[frame] = frame + 1.0;
-            frames_sum[frame + frames] = fsum / (float)framesize;
-
+            frames_sum[previous_frame] = previous_frame + 1.0;
+            frames_sum[previous_frame + frames] = fsum / (float)framesize;
+            
             if (frame > 0 && (frame % static_window) == 0) 
             {
               partition_no++;
             }
-
+            previous_frame = frame;
+            pixcount = 0;
+            
             fsum = 0.0;
         }
         
         uint pix = (buffer[i] >> 16) & 0xFFFFF;
-          
+        
+        pix = (pix % frame_height) * frame_width + (pix / frame_height);
+
         if (pixel_mask[pix] == 0) 
           continue;
-
           
         float val = buffer[i] & 0x7FF;
         val *= flatfield[pix];
@@ -166,6 +166,10 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
     
     read = fread(&buffer, sizeof(long long), buffer_size, file_);
   }
+
+  frames_sum[frame] = frame + 1.0;
+  frames_sum[frame + frames] = fsum / (float)framesize;
+
 
   filter->FramesSum(frames_sum);
   filter->PixelsSum(pixels_sum);

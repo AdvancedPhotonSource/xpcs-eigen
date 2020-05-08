@@ -62,7 +62,6 @@ SparseData::SparseData(int rows, int initialSize)
     m_initSize = initialSize;
     m_data = new Row*[rows];
     valid_pixels_ = new short[rows];
-
     for (int i = 0; i < m_rows; i++) {
       m_data[i] = new Row();
       valid_pixels_[i] = 0;
