@@ -77,8 +77,10 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
   float *partial_partitions_mean = new float[total_static_partns * partitions];
   float *partitions_mean = new float[total_static_partns];
 
+  int stride_factor = conf->FrameStride();
+  int average_factor = conf->FrameAverage();
+
   int framesize = frame_width * frame_height;
-  printf("%d\n", framesize);
   float *pixels_sum = new float[framesize];
   float *frames_sum =  new float[2 * conf->getFrameTodoCount()];
     
@@ -115,6 +117,15 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
   int partition_no = 0;
 
   float fsum = 0.0;
+
+  // int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
+  // if (stride_factor > 1 && average_factor > 1)
+  //   read_in_count = stride_factor * average_factor;
+
+  // bool in_average = false;
+  // bool in_stride = false;
+
+  int absolute_frames = 0;
 
   while (read) 
   {
@@ -156,6 +167,8 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
     
         partitions_mean[sbin] += val;
 
+        partial_partitions_mean[partition_no * total_static_partns + sbin ] += val;
+
         pixels_sum[pix] += val;
 
         fsum += val;
@@ -189,53 +202,7 @@ void Rigaku::Process()
 }
 
 ImmBlock* Rigaku::NextFrames(int count) {
-    // int **index = new int*[count];
-    // float **value = new float*[count];
-    // double *clock = new double[count];
-    // double *ticks = new double[count];
 
-    // std::vector<int> ppf;
-    // int done = 0, pxs = 0;
-
-    // while (done < count) {
-    //     clock[done] = last_frame_index_;
-    //     ticks[done] = last_frame_index_;
-
-    //     if (ppf_[last_frame_index_] == 0) {
-    //         index[done] = new int[0];
-    //         value[done] = new float[0];
-
-    //         ppf.push_back(0);
-    //         last_frame_index_++;
-    //         done++;
-    //         continue;
-    //     }
-        
-    //     int pix_cnt = ppf_[last_frame_index_];
-    //     index[done] = new int[pix_cnt];
-    //     value[done] = new float[pix_cnt];
-    //     ppf.push_back(pix_cnt);
-
-    //     uint idx = 0;
-    //     for (int i = last_pixel_index_; i < (last_pixel_index_ + pix_cnt); i++) {
-    //         long long it = data_[i];
-
-    //         uint pix = (it >> 16) & 0xFFFFF;
-            
-    //         int row = pix % frame_height_;
-    //         int col = pix / frame_height_;
-
-    //         float val = it & 0x7FF;
-
-    //         index[done][idx] = pix;
-    //         value[done][idx] = val * flatfield[pix];;
-    //         idx++;
-    //     }
-    //     done++;
-    //     last_frame_index_++;
-    //     last_pixel_index_ += ppf[last_frame_index_];
-    // }
-   
     ImmBlock *ret = new ImmBlock;
     ret->index = NULL;
     ret->value = NULL;

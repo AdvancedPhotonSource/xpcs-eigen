@@ -193,14 +193,11 @@ int main(int argc, char** argv)
   xpcs::filter::Filter *filter = NULL;
 
   if (FLAGS_ufxc) {
-    printf("Loading UFXC as binary\n");
     reader = new xpcs::io::Ufxc(conf->getIMMFilePath().c_str());
   } else if (FLAGS_rigaku) {
-    printf("Loading Rigaku as binary\n");
-    filter = new xpcs::filter::SparseFilter();
+     filter = new xpcs::filter::SparseFilter();
     reader = new xpcs::io::Rigaku(conf->getIMMFilePath().c_str(), filter);
   } else if (FLAGS_hdf5) {
-    printf("Loading data from HDF5 file\n");
     reader = new xpcs::io::Hdf5(conf->getIMMFilePath().c_str());
   } else {
     reader = new xpcs::io::Imm(conf->getIMMFilePath().c_str());
