@@ -67,19 +67,31 @@ public:
 
   virtual float* PixelsSum() = 0;
 
+  virtual void PixelsSum(float* pixels_sum) = 0;
+
   virtual float* FramesSum() = 0;
+
+  virtual void FramesSum(float* frame_sum) = 0;
 
   virtual float* PartitionsMean() = 0;
 
+  virtual void PartitionsMean(float *) = 0;
+
   virtual float* PartialPartitionsMean() = 0;
+
+  virtual void PartialPartitionsMean(float *) = 0;
 
   virtual double* TimestampClock() = 0;
 
+  virtual void TimestampClock(double *) = 0;
+
   virtual double* TimestampTicks() = 0;
 
+  virtual void TimestampTicks(double *) = 0;
   
   virtual xpcs::data_structure::SparseData* Data() = 0;
 
+  virtual void Data(xpcs::data_structure::SparseData*) = 0;
   
 };
 

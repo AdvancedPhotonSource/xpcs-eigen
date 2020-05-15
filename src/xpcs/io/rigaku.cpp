@@ -52,108 +52,214 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 
 #include "xpcs/configuration.h"
+#include "xpcs/data_structure/sparse_data.h"
+#include "xpcs/filter/filter.h"
+
 #include "../benchmark.h"
 
 namespace xpcs {
 namespace io {
 
-Rigaku::Rigaku(const std::string& filename) {
-    xpcs::Benchmark benchmark("Reading rigaku file");
-    file_ = fopen(filename.c_str(), "rb");
-    if (file_ == NULL) return ; //TODO handle error
+Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
+  xpcs::Benchmark benchmark("Reading rigaku file");
 
-    std::vector<long long> data;
+  Configuration* conf = Configuration::instance();
+  int frame_width = conf->getFrameWidth();
+  int frame_height = conf->getFrameHeight();
+  short *pixel_mask = conf->getPixelMask();
+  double *flatfield = conf->getFlatField();
+  int static_window = conf->getStaticWindowSize();
+  int *sbin_mask = conf->getSbinMask();
+  int total_static_partns = conf->getTotalStaticPartitions();
+  int swindow = conf->getStaticWindowSize();
+  int frames = conf->getFrameTodoCount();
+  int partitions = (int) ceil((double)frames/swindow);
+  float *partial_partitions_mean = new float[total_static_partns * partitions];
+  float *partitions_mean = new float[total_static_partns];
 
-    long buffer_size = 4096 * 10;
-    long long buffer[buffer_size];
-    size_t read = fread(&buffer, sizeof(long long), buffer_size, file_);
-    while (read) {
-        for (int i = 0; i < read; i++) {
-            data.push_back(buffer[i]);
+  int stride_factor = conf->FrameStride();
+  int average_factor = conf->FrameAverage();
+
+  int framesize = frame_width * frame_height;
+  float *pixels_sum = new float[framesize];
+  float *frames_sum =  new float[2 * conf->getFrameTodoCount()];
+    
+  xpcs::data_structure::SparseData *data = new xpcs::data_structure::SparseData(framesize);
+
+  file_ = fopen(filename.c_str(), "rb");
+  if (file_ == NULL) return ; //TODO handle error
+
+  long buffer_size = 4096 * 10;
+  long long buffer[buffer_size];
+  size_t read = fread(&buffer, sizeof(long long), buffer_size, file_);
+
+  int *ppf = new int[frames];
+
+  for (int i = 0; i < frames; i++) {
+      ppf[i] = 0;
+  }
+
+  for (int i = 0; i < total_static_partns; i++) 
+    partitions_mean[i] = 0.0;
+
+  for (int i = 0; i < total_static_partns * partitions; i++)
+    partial_partitions_mean[i] = 0.0;
+
+  for (int i = 0; i < framesize; i++)
+    pixels_sum[i] = 0.0f;
+
+  uint previous_frame = 0;    
+  uint frame = 0;
+  int sbin = 0;
+  int partition_no = 0;
+
+
+  int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
+  if (stride_factor > 1 && average_factor > 1)
+    read_in_count = stride_factor * average_factor;
+
+  // int *sparse_pixel_mask = new int[framesize];
+  // float *pixel_values = new float[framesize];
+
+  std::vector<int> sparse_pixel_mask;
+  std::vector<float> pixel_values;
+
+  int real_frame_index = 0;
+  int next_expected_frame = 0 + read_in_count;
+  
+  while (read) 
+  {
+    for (int i = 0; i < read; i++) 
+    {
+        frame = (buffer[i] >> 40);
+
+        if (stride_factor > 1 && (frame % stride_factor) != 0)
+          continue;
+
+        // Two set of conditions, 1) averaging is on and we reached the boundary of frames to be averaged
+        // 2) averaging is off and we reached the end of frame. 
+        if ( (average_factor > 1 && ( (frame % read_in_count) == 0 || (frame > next_expected_frame) ) ) || 
+             (average_factor == 1 && frame != previous_frame) ) 
+        {
+
+          int pixcount = 0;
+          float fsum = 0.0;
+          int idx = 0;
+
+          for (auto pix : sparse_pixel_mask)
+          {
+            xpcs::data_structure::Row *row = data->Pixel(pix);
+            
+            float value = pixel_values[idx++] / average_factor;
+
+            row->indxPtr.push_back(value);
+            row->valPtr.push_back(value);
+
+            sbin = sbin_mask[pix] - 1;
+            partitions_mean[sbin] += value;
+            partial_partitions_mean[partition_no * total_static_partns + sbin ] += value;
+            pixels_sum[pix] += value;
+            fsum += value;
+
+            pixcount++;
+          }
+
+          ppf[real_frame_index] = pixcount;
+
+          frames_sum[real_frame_index] = real_frame_index + 1.0;
+          frames_sum[real_frame_index + frames] = fsum / (float)framesize;
+            
+          if (real_frame_index > 0 && (real_frame_index % static_window) == 0) 
+          {
+            partition_no++;
+          }
+
+          previous_frame = frame;
+          real_frame_index++;
+          next_expected_frame += read_in_count;
+
+          pixel_values.clear();
+          sparse_pixel_mask.clear();
         }
-        read = fread(&buffer, sizeof(long long), buffer_size, file_);
+        
+        uint pix = (buffer[i] >> 16) & 0xFFFFF;
+        
+        pix = (pix % frame_height) * frame_width + (pix / frame_height);
+
+        if (pixel_mask[pix] == 0) 
+          continue;
+          
+        float val = buffer[i] & 0x7FF;
+        val *= flatfield[pix];
+
+        // sparse_pixel_mask[pix] = 1;
+        // pixel_values[pix] += val;
+
+        sparse_pixel_mask.emplace_back(pix);
+        pixel_values.emplace_back(val);
     }
 
-    auto it = data.begin();
+    read = fread(&buffer, sizeof(long long), buffer_size, file_);
 
-    uint frame = *it >> 40;
-   
-    data_frames_[frame] = std::vector<long long>();
-    data_frames_[frame].push_back(*it);
+  }
 
-    ++it;
-    for(; it != data.end(); ++it) {
-        frame = *it >> 40;
-        if (data_frames_.find(frame) == data_frames_.end()) { 
-            data_frames_[frame] = std::vector<long long>();
-	    }
-        data_frames_[frame].push_back(*it);
+  // Edge cases when we don't have even number of frames / average*stride_factor.
+  if (average_factor == 1)
+  {
+    int pixcount = 0;
+    float fsum = 0.0;
+    int idx = 0;
+    
+    for (auto pix : sparse_pixel_mask)
+    {
+      xpcs::data_structure::Row *row = data->Pixel(pix);
+      
+      float value = pixel_values[idx++] / average_factor;
+
+      row->indxPtr.push_back(value);
+      row->valPtr.push_back(value);
+
+      sbin = sbin_mask[pix] - 1;
+      partitions_mean[sbin] += value;
+      partial_partitions_mean[partition_no * total_static_partns + sbin ] += value;
+      pixels_sum[pix] += value;
+      fsum += value;
+      pixcount++;
     }
-   
-    last_frame_index = 0;
 
-    xpcs::Configuration *conf = xpcs::Configuration::instance();
-    frame_width_ = conf->getFrameWidth();
-    frame_height_ = conf->getFrameHeight();
+    ppf[real_frame_index] = pixcount;
 
-    printf("frame widht %d, frame height %d\n", frame_width_, frame_height_);
+    frames_sum[real_frame_index] = real_frame_index + 1.0;
+    frames_sum[real_frame_index + frames] = fsum / (float)framesize;
+  }
+
+  filter->FramesSum(frames_sum);
+  filter->PixelsSum(pixels_sum);
+  filter->PartitionsMean(partitions_mean);
+  filter->PartialPartitionsMean(partial_partitions_mean);
+  filter->Data(data);
 }
 
-Rigaku::~Rigaku() {
+
+Rigaku::~Rigaku() 
+{
+}
+
+void Rigaku::Process() 
+{
+  
 }
 
 ImmBlock* Rigaku::NextFrames(int count) {
-    int **index = new int*[count];
-    float **value = new float*[count];
-    double *clock = new double[count];
-    double *ticks = new double[count];
 
-    std::vector<int> ppf;
-    int done = 0, pxs = 0;
-
-    while (done < count) {
-        clock[done] = last_frame_index;
-        ticks[done] = last_frame_index;
-
-        if (data_frames_.find(last_frame_index) == data_frames_.end()) {
-            index[done] = new int[0];
-            value[done] = new float[0];
-
-            ppf.push_back(0);
-            last_frame_index++;
-            done++;
-            continue;
-        }
-
-        std::vector<long long> frame = data_frames_[last_frame_index];
-        index[done] = new int[frame.size()];
-        value[done] = new float[frame.size()];
-        ppf.push_back(frame.size());
-
-        int idx = 0;
-        for (auto& it : frame) {
-            uint pix = (it >> 16) & 0xFFFFF;
-            
-            int row = pix % frame_height_;
-            int col = pix / frame_height_;
-
-            float val = it & 0x7FF;
-            index[done][idx] = row * frame_width_ + col;
-            value[done][idx] = val;
-	        idx++;
-        }
-        done++;
-        last_frame_index++;
-    }
-   
     ImmBlock *ret = new ImmBlock;
-    ret->index = index;
-    ret->value = value;
-    ret->frames = count;
-    ret->pixels_per_frame = ppf;
-    ret->clock = clock;
-    ret->ticks = ticks;
-    ret->id = 1;
+    ret->index = NULL;
+    ret->value = NULL;
+    ret->frames = 0;
+    ret->pixels_per_frame = std::vector<int>();
+    ret->clock = NULL;
+    ret->ticks = NULL;
+    ret->id = -1;
 
     return ret;
 }
