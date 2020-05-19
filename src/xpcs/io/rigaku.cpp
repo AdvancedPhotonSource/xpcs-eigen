@@ -152,7 +152,7 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
             
             float value = pixel_values[idx++] / average_factor;
 
-            row->indxPtr.push_back(value);
+            row->indxPtr.push_back(real_frame_index);
             row->valPtr.push_back(value);
 
             sbin = sbin_mask[pix] - 1;
