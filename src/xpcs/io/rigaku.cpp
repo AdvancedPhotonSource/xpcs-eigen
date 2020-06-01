@@ -83,6 +83,9 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
   int framesize = frame_width * frame_height;
   float *pixels_sum = new float[framesize];
   float *frames_sum =  new float[2 * conf->getFrameTodoCount()];
+
+  double *clock = new double[frames];
+  double *ticks = new double[frames];
     
   xpcs::data_structure::SparseData *data = new xpcs::data_structure::SparseData(framesize);
 
@@ -117,9 +120,6 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
   int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
   if (stride_factor > 1 && average_factor > 1)
     read_in_count = stride_factor * average_factor;
-
-  // int *sparse_pixel_mask = new int[framesize];
-  // float *pixel_values = new float[framesize];
 
   std::vector<int> sparse_pixel_mask;
   std::vector<float> pixel_values;
@@ -168,6 +168,8 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
 
           frames_sum[real_frame_index] = real_frame_index + 1.0;
           frames_sum[real_frame_index + frames] = fsum / (float)framesize;
+          clock[real_frame_index] = real_frame_index;
+          ticks[real_frame_index] = real_frame_index;
             
           if (real_frame_index > 0 && (real_frame_index % static_window) == 0) 
           {
@@ -237,6 +239,8 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
   filter->PixelsSum(pixels_sum);
   filter->PartitionsMean(partitions_mean);
   filter->PartialPartitionsMean(partial_partitions_mean);
+  filter->TimestampClock(clock);
+  filter->TimestampTicks(ticks);
   filter->Data(data);
 }
 

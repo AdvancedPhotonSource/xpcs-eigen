@@ -377,19 +377,19 @@ int main(int argc, char** argv)
                         1, 
                         &norm_factor);
 
-  // xpcs::H5Result::write2DData(conf->getFilename(), 
-  //                             conf->OutputPath(), 
-  //                             "timestamp_clock", 
-  //                             2, 
-  //                             conf->getRealFrameTodoCount(), 
-  //                             filter->TimestampClock());
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                              conf->OutputPath(), 
+                              "timestamp_clock", 
+                              2, 
+                              conf->getRealFrameTodoCount(), 
+                              filter->TimestampClock());
 
-  // xpcs::H5Result::write2DData(conf->getFilename(), 
-  //                             conf->OutputPath(), 
-  //                             "timestamp_tick", 
-  //                             2, 
-  //                             conf->getRealFrameTodoCount(), 
-  //                             filter->TimestampTicks());
+  xpcs::H5Result::write2DData(conf->getFilename(), 
+                              conf->OutputPath(), 
+                              "timestamp_tick", 
+                              2, 
+                              conf->getRealFrameTodoCount(), 
+                              filter->TimestampTicks());
 
   float *tau = new float[delays_per_level.size()];
   for (int x = 0 ; x < delays_per_level.size(); x++)
