@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 3.5)
 set(CMAKE_BUILD_TYPE RELEASE)
 #set(CMAKE_BUILD_TYPE DEBUG)
 
+add_definitions(-fno-stack-protector)
 add_definitions(-std=c++0x)
 
 set(headers
