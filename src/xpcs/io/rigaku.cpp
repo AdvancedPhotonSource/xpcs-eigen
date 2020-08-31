@@ -206,6 +206,7 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
   }
 
   // Edge cases when we don't have even number of frames / average*stride_factor.
+  // drain sparse_pixel_mask.
   if (average_factor == 1)
   {
     int pixcount = 0;
@@ -218,7 +219,7 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
       
       float value = pixel_values[idx++] / average_factor;
 
-      row->indxPtr.push_back(value);
+      row->indxPtr.push_back(real_frame_index);
       row->valPtr.push_back(value);
 
       sbin = sbin_mask[pix] - 1;

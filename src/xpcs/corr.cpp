@@ -318,6 +318,7 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
     int h = conf->getFrameHeight();
     int frames = conf->getFrameTodoCount();
     int pixels = w * h;
+  printf("Frame w=%d, h=%d\n", w, h);
 
     int maxLevel = calculateLevelMax(frames, conf->DelaysPerLevel());
 
@@ -392,18 +393,32 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
                 tau = tau / pow(2, level);
 
             g2Index = tauIndex * pixels + validPixels[i]; 
-            
+
+            // if (validPixels[i] == 265493 && tauIndex == 25) {
+            //   printf("%d\n", g2Index);
+            // }
+
             for (int r = 0; r < lastIndex; r++)
             {
                 int src = row->indxPtr[r];
                 // int dst = src;
                 
                 if (src < (lastframe-tau)) {
+
                     IPs[g2Index] += row->valPtr[r];
-                    int limit = min(lastIndex, src+tau+1);
-                    int pos = lower_bound(row->indxPtr.begin(), row->indxPtr.end(), src+tau) - (row->indxPtr.begin());
-                    if (pos < lastIndex && row->indxPtr[pos] == (src+tau))
+                    // int limit = min(lastIndex, src+tau+1);
+                    auto lower = lower_bound(row->indxPtr.begin(), row->indxPtr.end(), src+tau); 
+                    if (lower != row->indxPtr.end()) {
+                      int pos = lower - row->indxPtr.begin();
+                      if (pos < lastIndex && row->indxPtr[pos] == (src+tau))
                         G2s[g2Index] += row->valPtr[r] * row->valPtr[pos];
+                      
+                      if (tauIndex == 24 && validPixels[i] == 264980) {
+                        printf("valPtr[r] == %f, pos = %d, lastIndex = %d, (src+tau) = %d, indxPtr[pos] = %d, valPtr[pos] = %f\n", row->valPtr[r], pos, lastIndex, (src+tau), row->indxPtr[pos], row->valPtr[pos]);
+                        printf("%f\n", G2s[g2Index]);
+                      }
+                    }
+                    
 
                     
                     // for (int j = r+1; j < limit; j++)
@@ -425,6 +440,10 @@ void Corr::multiTau2(data_structure::SparseData* data, float* G2s, float* IPs, f
                 G2s[g2Index] /= (lastframe-tau);
                 IPs[g2Index] /= (lastframe-tau);
                 IFs[g2Index] /= (lastframe-tau);
+
+                if (validPixels[i] == 264980) {
+                  printf("tauIndex = %d, g2Index = %d, value = %f\n", tauIndex, g2Index, G2s[g2Index]);
+                }
             }
             
             ll = level;
@@ -582,6 +601,7 @@ void Corr::twotimeFrameThreading(data_structure::SparseData *data)
   int wsize = conf->Two2OneWindowSize();
   int w = conf->getFrameWidth();
   int h = conf->getFrameHeight();
+
   vector<int> qphi_bins_to_process = conf->TwoTimeQMask();
   std::map<int, std::map<int, vector<int>> > qbins = conf->getBinMaps();
   std::map<int, vector<int>> qbin_to_pixels = conf->QbinPixelList();
