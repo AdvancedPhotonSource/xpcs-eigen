@@ -85,6 +85,7 @@ DEFINE_bool(darkout, false, "Write dark average and std-data");
 DEFINE_bool(ufxc, false, "IF the file format is from ufxc photon counting detector.");
 DEFINE_bool(rigaku, false, "IF the file format is from rigaku photon counting detector.");
 DEFINE_bool(hdf5, false, "IF the file format is HDF5 file format.");
+DEFINE_bool(frame_threading, false, "Run twotime with frame threading.");
 DEFINE_int32(frameout, false, "Number of post-processed frames to write out for debuggin.");
 DEFINE_string(imm, "", "The path to IMM file. By default the file specified in HDF5 metadata is used");
 DEFINE_string(inpath, "", "The path prefix to replace");
@@ -190,21 +191,18 @@ int main(int argc, char** argv)
   }
 
   xpcs::io::Reader *reader = NULL; 
+  xpcs::filter::Filter *filter = NULL;
 
   if (FLAGS_ufxc) {
-    printf("Loading UFXC as binary\n");
     reader = new xpcs::io::Ufxc(conf->getIMMFilePath().c_str());
   } else if (FLAGS_rigaku) {
-    printf("Loading Rigaku as binary\n");
-    reader = new xpcs::io::Rigaku(conf->getIMMFilePath().c_str());
+     filter = new xpcs::filter::SparseFilter();
+    reader = new xpcs::io::Rigaku(conf->getIMMFilePath().c_str(), filter);
   } else if (FLAGS_hdf5) {
-    printf("Loading data from HDF5 file\n");
     reader = new xpcs::io::Hdf5(conf->getIMMFilePath().c_str());
   } else {
     reader = new xpcs::io::Imm(conf->getIMMFilePath().c_str());
   }
-
-  xpcs::filter::Filter *filter = NULL;
   
   xpcs::data_structure::DarkImage *dark_image = NULL;
   {
@@ -212,61 +210,68 @@ int main(int argc, char** argv)
 
     int r = 0;
 
-    if (!reader->compression()) {
+    if (!reader->compression()) 
+    {
       int dark_s = conf->getDarkFrameStart();
       int dark_e = conf->getDarkFrameEnd();
       int darks = conf->getDarkFrames();
 
-      if (dark_s != dark_e) {
+      if (dark_s != dark_e) 
+      {
         struct xpcs::io::ImmBlock *data = reader->NextFrames(darks);
         dark_image = new xpcs::data_structure::DarkImage(data->value, darks, pixels, conf->getFlatField());
         r += darks;
       }
     }
     
-    if (frameFrom > 0 && r < frameFrom) {
+    if (frameFrom > 0 && r < frameFrom) 
+    {
       reader->SkipFrames(frameFrom - r);
       r += (frameFrom - r);
     }
 
-    if (reader->compression()) {
-      filter = new xpcs::filter::SparseFilter();
+    if (!FLAGS_rigaku)
+    {
+      if (reader->compression()) 
+      {
+        filter = new xpcs::filter::SparseFilter();
+      }
+      else 
+      {
+        filter = new xpcs::filter::DenseFilter(dark_image);
+      }
+
+      int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
+      if (stride_factor > 1 && average_factor > 1)
+        read_in_count = stride_factor * average_factor;
+
+      // The last frame outside the stride will be ignored. 
+      int f = 0;
+      while (f < frames) {
+        struct xpcs::io::ImmBlock* data = reader->NextFrames(read_in_count);
+        filter->Apply(data);
+        f++;
+      }
     }
-    else {
-      filter = new xpcs::filter::DenseFilter(dark_image);
-    }
 
-    xpcs::filter::Stride stride;
-    // xpcs::filter::Average average;
-    // xpcs::filter::DenseAverage dense_average;
-
-    int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
-    if (stride_factor > 1 && average_factor > 1)
-      read_in_count = stride_factor * average_factor;
-
-    // The last frame outside the stride will be ignored. 
-    int f = 0;
-    while (f < frames) {
-      struct xpcs::io::ImmBlock* data = reader->NextFrames(read_in_count);
-      filter->Apply(data);
-      f++;
-    }
-
-    if (FLAGS_frameout > 0 && FLAGS_frameout < frames) {
+    if (FLAGS_frameout > 0 && FLAGS_frameout < frames) 
+    {
       xpcs::data_structure::SparseData *data = filter->Data();
       int fcount = FLAGS_frameout;
-      f = 0;
+      int f = 0;
 
       float* data_out = new float[pixels * fcount];
 
       for (int i = 0; i < (pixels*fcount); i++)
         data_out[i] = 0.0f;
 
-      for (int j = 0; j < pixels; j++) {
+      for (int j = 0; j < pixels; j++) 
+      {
         if (!data->Exists(j)) continue;
 
         xpcs::data_structure::Row *row = data->Pixel(j);
-        for (int x = 0; x < row->indxPtr.size(); x++) {
+        for (int x = 0; x < row->indxPtr.size(); x++) 
+        {
           int f = row->indxPtr[x];
           float v = row->valPtr[x];
 
@@ -287,21 +292,25 @@ int main(int argc, char** argv)
   }
 
   float* frames_sum = filter->FramesSum();
-  if (conf->IsNormalizedByFramesum()) {
+  if (conf->IsNormalizedByFramesum()) 
+  {
     xpcs::Benchmark benchmark("Normalize by Frame-sum took ");
     float sum_of_framesums = 0.0f;
     float framesums_mean = 0.0f;
-    for (int i = 0 ; i < frames; i++) {
+    for (int i = 0 ; i < frames; i++) 
+    {
       sum_of_framesums += frames_sum[i+frames];
     }
     framesums_mean = sum_of_framesums / frames;
 
     xpcs::data_structure::SparseData *data = filter->Data();
-    for (int j = 0; j < pixels; j++) {
+    for (int j = 0; j < pixels; j++) 
+    {
       if (!data->Exists(j)) continue;
 
       xpcs::data_structure::Row *row = data->Pixel(j);
-      for (int x = 0; x < row->indxPtr.size(); x++) {
+      for (int x = 0; x < row->indxPtr.size(); x++) 
+      {
         int f = row->indxPtr[x];
         row->valPtr[x] = row->valPtr[x] / (frames_sum[f+frames] / framesums_mean);
       }
@@ -309,7 +318,8 @@ int main(int argc, char** argv)
   }
   
   float* pixels_sum = filter->PixelsSum();
-  for (int i = 0 ; i < pixels; i++) {
+  for (int i = 0 ; i < pixels; i++) 
+  {
     pixels_sum[i] /= frames;
   }
 
@@ -399,7 +409,7 @@ int main(int argc, char** argv)
   {
     if (conf->IsTwoTime()) {
       xpcs::Benchmark benchmark("Computing G2 TwoTimes");
-      xpcs::Corr::twotime(filter->Data());
+      xpcs::Corr::twotime(filter->Data(), FLAGS_frame_threading);
     } else {
 
       {

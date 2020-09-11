@@ -62,9 +62,8 @@ SparseData::SparseData(int rows, int initialSize)
     m_initSize = initialSize;
     m_data = new Row*[rows];
     valid_pixels_ = new short[rows];
-
     for (int i = 0; i < m_rows; i++) {
-      m_data[i] = NULL;
+      m_data[i] = new Row();
       valid_pixels_[i] = 0;
     }
 }
@@ -76,22 +75,25 @@ SparseData::~SparseData()
 
 Row* SparseData::Pixel(int index)
 {
-    assert(index < m_rows);
     Row *r = m_data[index];
+    valid_pixels_[index] = 1;
     
-    if (!r) {
-        r = new Row(m_initSize);
-        m_data[index] = r;
-        m_validPixels.push_back(index);
-        valid_pixels_[index] = 1;
-    }
-
     return r;
 }
 
 std::vector<int>& SparseData::ValidPixels()
 {
-    return m_validPixels;
+  m_validPixels.resize(0);
+
+  for (int i = 0; i < m_rows; i++)
+  {
+    if (valid_pixels_[i] == 1)
+    {
+      m_validPixels.push_back(i);
+    }
+    
+  }
+  return m_validPixels;
 }
 
 bool SparseData::Exists(int index) {
