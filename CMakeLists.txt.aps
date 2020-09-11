@@ -57,11 +57,15 @@ endif()
 
 
 # TODO. Fix the hard-coded path. 
-include_directories("/usr/local/hdf5/include" 
+include_directories(
+                    "/APSshare/anaconda/x86_64/include"
+                    "/usr/local/hdf5/include" 
                     "src" 
                     "src/external")
 
-link_directories("/usr/local/hdf5/lib")
+link_directories(
+                 "/usr/local/hdf5/lib"
+                 "/APSshare/anaconda/x86_64/include")
 
 add_subdirectory("src/external/gflags")
 add_executable(corr ${sources})
