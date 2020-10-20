@@ -121,8 +121,15 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
   if (stride_factor > 1 && average_factor > 1)
     read_in_count = stride_factor * average_factor;
 
-  std::vector<int> sparse_pixel_mask;
-  std::vector<float> pixel_values;
+  std::map<int, float> pixel_key_value;
+  // std::vector<int> sparse_pixel_mask;
+  // int sparse_pixel_mask[framesize];
+  // float pixel_values[framesize];
+
+  // for (int i = 0 ; i < framesize; i++) {
+  //   sparse_pixel_mask[i] = 0;
+  //   pixel_values[i] = 0.0;
+  // }
 
   int real_frame_index = 0;
   int next_expected_frame = 0 + read_in_count;
@@ -136,31 +143,32 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
         if (stride_factor > 1 && (frame % stride_factor) != 0)
           continue;
 
+        // printf("frame # %d\n", frame);
+        // printf("Averaging factor %d\n", average_factor);
+        // printf("read_in_count %d\n", read_in_count);
         // Two set of conditions, 1) averaging is on and we reached the boundary of frames to be averaged
         // 2) averaging is off and we reached the end of frame. 
-        if ( (average_factor > 1 && ( (frame % read_in_count) == 0 || (frame > next_expected_frame) ) ) || 
+        // if ( (average_factor > 1 && ( (frame % read_in_count) == 0 || (frame > next_expected_frame) ) ) || 
+        if ( (average_factor > 1 && frame > next_expected_frame) ||
              (average_factor == 1 && frame != previous_frame) ) 
         {
-
           int pixcount = 0;
           float fsum = 0.0;
-          int idx = 0;
 
-          for (auto pix : sparse_pixel_mask)
+          for (auto it = pixel_key_value.begin(); it != pixel_key_value.end(); ++it)
           {
-            xpcs::data_structure::Row *row = data->Pixel(pix);
-            
-            float value = pixel_values[idx++] / average_factor;
+
+            xpcs::data_structure::Row *row = data->Pixel(it->first);
+            float value = it->second / average_factor;
 
             row->indxPtr.push_back(real_frame_index);
             row->valPtr.push_back(value);
 
-            sbin = sbin_mask[pix] - 1;
+            sbin = sbin_mask[it->first] - 1;
             partitions_mean[sbin] += value;
             partial_partitions_mean[partition_no * total_static_partns + sbin ] += value;
-            pixels_sum[pix] += value;
+            pixels_sum[it->first] += value;
             fsum += value;
-
             pixcount++;
           }
 
@@ -180,8 +188,15 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
           real_frame_index++;
           next_expected_frame += read_in_count;
 
-          pixel_values.clear();
-          sparse_pixel_mask.clear();
+          // pixel_values.clear();
+          // sparse_pixel_mask.clear();
+
+          // for (int ij = 0 ; ij < framesize; ij++) {
+          //   sparse_pixel_mask[ij] = 0;
+          //   pixel_values[ij] = 0.0;
+          // }
+
+          pixel_key_value.clear();
         }
         
         uint pix = (buffer[i] >> 16) & 0xFFFFF;
@@ -197,8 +212,16 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
         // sparse_pixel_mask[pix] = 1;
         // pixel_values[pix] += val;
 
-        sparse_pixel_mask.emplace_back(pix);
-        pixel_values.emplace_back(val);
+        // sparse_pixel_mask.push_back(pix);
+        // sparse_pixel_mask[pix] = 1;
+        // pixel_values[pix] += val; //push_back(val);
+        auto key_exists = pixel_key_value.find(pix);
+        if (key_exists != pixel_key_value.end()) {
+          pixel_key_value[pix] += val;
+        } else {
+          pixel_key_value[pix] = val;
+        }
+
     }
 
     read = fread(&buffer, sizeof(long long), buffer_size, file_);
@@ -207,34 +230,36 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
 
   // Edge cases when we don't have even number of frames / average*stride_factor.
   // drain sparse_pixel_mask.
-  if (average_factor == 1)
-  {
-    int pixcount = 0;
-    float fsum = 0.0;
-    int idx = 0;
+  // if (average_factor == 1)
+  // {
+  //   int pixcount = 0;
+  //   float fsum = 0.0;
     
-    for (auto pix : sparse_pixel_mask)
-    {
-      xpcs::data_structure::Row *row = data->Pixel(pix);
+  //   for (int pix = 0; pix < framesize; pix++)
+  //   {
+
+  //     if (sparse_pixel_mask[pix] == 0) continue;
+
+  //     xpcs::data_structure::Row *row = data->Pixel(pix);
       
-      float value = pixel_values[idx++] / average_factor;
+  //     float value = pixel_values[pix] / average_factor;
 
-      row->indxPtr.push_back(real_frame_index);
-      row->valPtr.push_back(value);
+  //     row->indxPtr.push_back(real_frame_index);
+  //     row->valPtr.push_back(value);
 
-      sbin = sbin_mask[pix] - 1;
-      partitions_mean[sbin] += value;
-      partial_partitions_mean[partition_no * total_static_partns + sbin ] += value;
-      pixels_sum[pix] += value;
-      fsum += value;
-      pixcount++;
-    }
+  //     sbin = sbin_mask[pix] - 1;
+  //     partitions_mean[sbin] += value;
+  //     partial_partitions_mean[partition_no * total_static_partns + sbin ] += value;
+  //     pixels_sum[pix] += value;
+  //     fsum += value;
+  //     pixcount++;
+  //   }
 
-    ppf[real_frame_index] = pixcount;
+  //   ppf[real_frame_index] = pixcount;
 
-    frames_sum[real_frame_index] = real_frame_index + 1.0;
-    frames_sum[real_frame_index + frames] = fsum / (float)framesize;
-  }
+  //   frames_sum[real_frame_index] = real_frame_index + 1.0;
+  //   frames_sum[real_frame_index + frames] = fsum / (float)framesize;
+  // }
 
   filter->FramesSum(frames_sum);
   filter->PixelsSum(pixels_sum);
