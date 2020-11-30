@@ -116,7 +116,6 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
   int sbin = 0;
   int partition_no = 0;
 
-
   int read_in_count = stride_factor > 1 ? stride_factor : average_factor;
   if (stride_factor > 1 && average_factor > 1)
     read_in_count = stride_factor * average_factor;
@@ -133,6 +132,11 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
     {
         frame = (buffer[i] >> 40);
 
+        // We reached to end of frames required for this read.
+        if (frame >= frames) {
+          break;
+        }
+        
         if (stride_factor > 1 && (frame % stride_factor) != 0)
           continue;
 
