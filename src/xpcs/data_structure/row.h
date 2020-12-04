@@ -48,37 +48,33 @@ POSSIBILITY OF SUCH DAMAGE.
 #define ROW_H
 
 #include <vector>
+#include <stdio.h>
 
 namespace xpcs {
 namespace data_structure {
-
-struct Row 
+class Row
 {
+
+
+public:
+
+  Row()
+  {
+    
+  }
+  Row(int size)
+  {
+      indxPtr.reserve(size);
+      valPtr.reserve(size);
+  }
+  ~Row()
+  {
+  }
+
   std::vector<int> indxPtr;
   std::vector<float> valPtr;
+
 };
-
-// public:
-
-//   Row()
-//   {
-    
-//   }
-//   Row(int size)
-//   {
-//       indxPtr.reserve(size);
-//       valPtr.reserve(size);
-//   }
-//   ~Row()
-//   {
-
-//   }
-
-//   std::vector<int> indxPtr;
-//   //TODO: Lets make this a template argument. 
-//   std::vector<float> valPtr;
-
-// };
 
 } // namespace data_structure
 } // namespace xpcs
