@@ -115,7 +115,7 @@ int main(int argc, char** argv)
 
   xpcs::Configuration *conf = xpcs::Configuration::instance();
   conf->init(argv[1], entry);
-
+  
   if (!FLAGS_imm.empty())
       conf->setIMMFilePath(FLAGS_imm);
 
@@ -203,7 +203,7 @@ int main(int argc, char** argv)
   } else {
     reader = new xpcs::io::Imm(conf->getIMMFilePath().c_str());
   }
-  
+    
   xpcs::data_structure::DarkImage *dark_image = NULL;
   {
     xpcs::Benchmark benchmark("Loading data");

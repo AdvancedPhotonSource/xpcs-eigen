@@ -77,6 +77,7 @@ using Eigen::VectorXi;
 using Eigen::MatrixXf;
 using Eigen::SparseMatrix;
 using Eigen::VectorXf;
+using Eigen::RowVectorXf;
 using Eigen::RowMajor;
 using Eigen::Ref;
 using Eigen::Map;
@@ -572,6 +573,7 @@ void Corr::twotime(data_structure::SparseData *data, bool twotimeFrameThreading)
 
 void Corr::twotimeFrameThreading(data_structure::SparseData *data)
 {
+  printf("Two Time Threading\n");
   Configuration* conf = Configuration::instance();
   int frames = conf->getFrameTodoCount();
   int wsize = conf->Two2OneWindowSize();
@@ -1014,7 +1016,7 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
     // // Compute the mean of normalized g2 values per dynamic bin.
     VectorXf incrs(g2Sums.cols());
     incrs.setOnes();
-    VectorXf counts(g2Sums.cols());
+    RowVectorXf counts(g2Sums.cols());
 
     for (map<int, map<int, vector<int>> >::const_iterator it = qbins.begin(); 
             it != qbins.end(); it++) {
@@ -1032,7 +1034,7 @@ void Corr::normalizeG2s(Eigen::Ref<Eigen::MatrixXf> G2,
             counts += Eigen::isnan(g2sum.array()).select(0.0, incrs); 
         }
 
-        // Mean of each G2 across tau values. This is our final g2 Matrix. 
+        // Mean of each G2 across tau values. This is our final g2 Matrix.
         g2.row(q - 1).array() = g2.row(q - 1).array() / counts.array();
     }
 

@@ -198,8 +198,13 @@ void Configuration::init(const std::string &path, const std::string& entry)
 }
 
 void Configuration::BuildQMap() {
-  this->m_validPixelMask = new short[this->xdim * this->ydim];
+  m_validPixelMask = new short[this->xdim * this->ydim];
   m_sbin = new int[this->xdim * this->ydim];
+
+  for (int i = 0; i < xdim * ydim; i++) {
+    m_validPixelMask[i] = 0;
+    m_sbin[i] = 0;
+  }
 
   std::map<int, std::set<int>> sbin_to_qbin;
 

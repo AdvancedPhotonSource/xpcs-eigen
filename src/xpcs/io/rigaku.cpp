@@ -72,7 +72,7 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
   int *sbin_mask = conf->getSbinMask();
   int total_static_partns = conf->getTotalStaticPartitions();
   int swindow = conf->getStaticWindowSize();
-  int frames = conf->getFrameTodoCount();
+  uint frames = conf->getFrameTodoCount();
   int partitions = (int) ceil((double)frames/swindow);
   float *partial_partitions_mean = new float[total_static_partns * partitions];
   float *partitions_mean = new float[total_static_partns];
@@ -161,7 +161,6 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
 
           for (auto it = pixel_key_value.begin(); it != pixel_key_value.end(); ++it)
           {
-
             xpcs::data_structure::Row *row = data->Pixel(it->first);
             float value = it->second / average_factor;
 
@@ -169,6 +168,8 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
             row->valPtr.push_back(value);
 
             sbin = sbin_mask[it->first] - 1;
+            
+            // printf("Total static partitions %d, sbin %d\n", total_static_partns, sbin);
             partitions_mean[sbin] += value;
             partial_partitions_mean[partition_no * total_static_partns + sbin ] += value;
             pixels_sum[it->first] += value;
