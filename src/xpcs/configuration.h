@@ -115,6 +115,7 @@ public:
   std::string getFilename();
   std::string& getIMMFilePath();
   std::string& OutputPath();
+  void OutputPath(std::string& exchange);
   
   void setIMMFilePath(std::string& str);
 

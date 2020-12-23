@@ -686,6 +686,11 @@ std::string& Configuration::OutputPath()
     return output_path_;
 }
 
+void Configuration::OutputPath(std::string& exchange)
+{
+  output_path_ = exchange;
+}
+
 int Configuration::DelaysPerLevel()
 {
   return delays_per_level_;

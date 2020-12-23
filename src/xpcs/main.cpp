@@ -90,6 +90,7 @@ DEFINE_int32(frameout, false, "Number of post-processed frames to write out for 
 DEFINE_string(imm, "", "The path to IMM file. By default the file specified in HDF5 metadata is used");
 DEFINE_string(inpath, "", "The path prefix to replace");
 DEFINE_string(outpath, "", "The path prefix to replace with");
+DEFINE_string(exchange, "", "The output result path");
 DEFINE_string(entry, "", "The metadata path in HDF5 file");
 
 int main(int argc, char** argv)
@@ -132,6 +133,11 @@ int main(int argc, char** argv)
       }
 
       conf->setIMMFilePath(file);
+  }
+
+  if (!FLAGS_exchange.empty())
+  {
+    conf->OutputPath(FLAGS_exchange);
   }
 
   console->info("Processing IMM file at path {}..", conf->getIMMFilePath().c_str());
