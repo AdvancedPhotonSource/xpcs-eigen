@@ -91,9 +91,6 @@ void Configuration::init(const std::string &path, const std::string& entry)
     dqmap = get2DTable(entry + "/dqmap");
     sqmap = get2DTable(entry + "/sqmap");
 
-    smoothing_method_ = getString(entry + "/smoothing_method");
-    smoothing_filter_ = getString(entry + "/smoothing_filter");
-    
     this->xdim = getInteger("/measurement/instrument/detector/x_dimension");
     this->ydim = getInteger("/measurement/instrument/detector/y_dimension");
 
@@ -181,6 +178,9 @@ void Configuration::init(const std::string &path, const std::string& entry)
     } catch (const std::exception& e){}
 
     if (twotime_) {
+      smoothing_method_ = getString(entry + "/smoothing_method");
+      smoothing_filter_ = getString(entry + "/smoothing_filter");
+
       int* size = Dim2DTable(entry + "/qphi_bin_to_process");
       long* qphibins = get2DTableL(entry + "/qphi_bin_to_process");
       for (int i = 0 ; i < size[0]; i++)
