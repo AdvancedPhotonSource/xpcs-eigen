@@ -72,6 +72,7 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
   int *sbin_mask = conf->getSbinMask();
   int total_static_partns = conf->getTotalStaticPartitions();
   int swindow = conf->getStaticWindowSize();
+  uint frames_start_todo = conf->getFrameStartTodo();
   uint frames = conf->getFrameTodoCount();
   int partitions = (int) ceil((double)frames/swindow);
   float *partial_partitions_mean = new float[total_static_partns * partitions];
@@ -138,6 +139,10 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
     for (int i = 0; i < read; i++) 
     {
         frame = (buffer[i] >> 40);
+
+        if (frame < frames_start_todo) {
+          continue;
+        }
 
         // We reached to end of frames required for this read.
         if (real_frame_index >= frames) {
