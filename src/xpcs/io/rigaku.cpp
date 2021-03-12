@@ -140,7 +140,7 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
     {
         frame = (buffer[i] >> 40);
 
-        if (frame < frames_start_todo) {
+        if (frame <= frames_start_todo) {
           continue;
         }
 
