@@ -133,8 +133,10 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
   
   int real_frame_index = 0;
   int next_expected_frame = read_in_count - 1;
-  
-  while (read) 
+  previous_frame = frames_start_todo + 1;
+  bool not_frame_endtodo = true;
+
+  while (read && not_frame_endtodo) 
   {
     for (int i = 0; i < read; i++) 
     {
@@ -146,6 +148,7 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
 
         // We reached to end of frames required for this read.
         if (real_frame_index >= frames) {
+          not_frame_endtodo = false;
           break;
         }
         
