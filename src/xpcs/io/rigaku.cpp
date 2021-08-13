@@ -132,7 +132,7 @@ Rigaku::Rigaku(const std::string& filename, xpcs::filter::Filter *filter) {
   // }
   
   int real_frame_index = 0;
-  int next_expected_frame = read_in_count - 1;
+  int next_expected_frame = frames_start_todo + read_in_count;
   previous_frame = frames_start_todo + 1;
   bool not_frame_endtodo = true;
 

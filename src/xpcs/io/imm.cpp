@@ -94,7 +94,7 @@ ImmBlock* Imm::NextFrames(int count) {
         //     // for (int i = 0 ; i < pxs; i++)
         //     //     index[done][i] = i;
         // }
-
+        //1, 2, 4 bytes from the IMM.
         fread(tmpmem, pxs * 2, 1, file_);
         std::copy(tmpmem, tmpmem + pxs, value[done]);
         delete [] tmpmem;
