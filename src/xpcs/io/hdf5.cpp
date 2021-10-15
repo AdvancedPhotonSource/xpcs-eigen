@@ -58,11 +58,10 @@ using namespace std;
 namespace xpcs {
 namespace io {
 
-Hdf5::Hdf5(const std::string& filename) {
+Hdf5::Hdf5(const std::string& filename, bool transposed) {
     xpcs::Configuration *conf = xpcs::Configuration::instance();
     int fw = conf->getFrameWidth();
     int fh = conf->getFrameHeight();
-
     hsize_t count[3] = {1, fw, fh};
     hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     hid_t gid = H5Gopen2(file, "/entry/data", H5P_DEFAULT);
@@ -91,8 +90,6 @@ Hdf5::Hdf5(const std::string& filename) {
     hsize_t maxdims[3];
     H5Sget_simple_extent_dims(space_id_, dims, maxdims);
 
-    // std::cout<<dims[0]<<" , " << dims[1] << " , " <<dims[2] <<std::endl;
-
     buffer_ = new unsigned short[fw * fh];
 
     // std::cout<<file<<std::endl;
@@ -113,6 +110,7 @@ Hdf5::Hdf5(const std::string& filename) {
     // std::cout<<"Rank : " <<rank<<std::endl;
 
     last_frame_index_ = 0;
+    tranposed = tranposed;
 }
 
 Hdf5::~Hdf5() {
@@ -151,7 +149,11 @@ ImmBlock* Hdf5::NextFrames(int count) {
 
       for (int i = 0; i < (fw * fh); i++) {
         if (buffer_[i] != 0) {
-          index[done][idx] = i;
+          int pixel_index = i;
+          if (tranposed) {
+            pixel_index = (i % fw) * fw + (i / fw);
+          }
+          index[done][idx] = pixel_index;
           value[done][idx] = buffer_[i];
           idx++;
         }

@@ -86,6 +86,7 @@ DEFINE_bool(ufxc, false, "IF the file format is from ufxc photon counting detect
 DEFINE_bool(rigaku, false, "IF the file format is from rigaku photon counting detector.");
 DEFINE_bool(hdf5, false, "IF the file format is HDF5 file format.");
 DEFINE_bool(frame_threading, false, "Run twotime with frame threading.");
+DEFINE_bool(transposed, false, "HDF5 flag when data is stored in col-major order");
 DEFINE_int32(frameout, false, "Number of post-processed frames to write out for debuggin.");
 DEFINE_string(imm, "", "The path to IMM file. By default the file specified in HDF5 metadata is used");
 DEFINE_string(inpath, "", "The path prefix to replace");
@@ -205,11 +206,12 @@ int main(int argc, char** argv)
      filter = new xpcs::filter::SparseFilter();
     reader = new xpcs::io::Rigaku(conf->getIMMFilePath().c_str(), filter);
   } else if (FLAGS_hdf5) {
-    reader = new xpcs::io::Hdf5(conf->getIMMFilePath().c_str());
+    printf("Reading HDF5 file\n");
+    reader = new xpcs::io::Hdf5(conf->getIMMFilePath().c_str(), FLAGS_transposed);
   } else {
     reader = new xpcs::io::Imm(conf->getIMMFilePath().c_str());
   }
-    
+      
   xpcs::data_structure::DarkImage *dark_image = NULL;
   {
     xpcs::Benchmark benchmark("Loading data");
