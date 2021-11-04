@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <vector>
 #include <iterator>
+#include<fstream>
 
 #include "xpcs/configuration.h"
 
@@ -121,6 +122,8 @@ ImmBlock* Hdf5::NextFrames(int count) {
     int fw = conf->getFrameWidth();
     int fh = conf->getFrameHeight();
 
+    // printf("%d, %d\n", fw, fh);
+
     int **index = new int*[count];
     float **value = new float*[count];
     double *clock = new double[count];
@@ -135,7 +138,18 @@ ImmBlock* Hdf5::NextFrames(int count) {
       hsize_t offset[3] = {last_frame_index_, 0, 0};
       herr_t errstatus = H5Sselect_hyperslab(space_id_, H5S_SELECT_SET, offset, NULL, hdf_count, NULL);
       hid_t status = H5Dread(dataset_id_, datatype_id_, memspace_id_, space_id_, H5P_DEFAULT, buffer_);
+
+      // unsigned short* buffer2 = new unsigned short[fw * fh];
+      // for (int i = 0; i < (fw * fh); i++) {
+      //   int new_index = (i % fh) * fh + (i / fh);
+      //   buffer2[new_index] = buffer_[i];
+      // }
       
+      // ofstream wf("frame2.txt");
+      // wf.write((char*)buffer2, (fw*fh)*sizeof(unsigned short));
+      // wf.close();
+      // exit(1);
+
       // count total non-zero values.
       int sparse = 0;
       for (int i = 0; i < (fw * fh); i++) {
@@ -151,7 +165,9 @@ ImmBlock* Hdf5::NextFrames(int count) {
         if (buffer_[i] != 0) {
           int pixel_index = i;
           if (tranposed) {
-            pixel_index = (i % fw) * fw + (i / fw);
+            int row = i % fh;
+            int col = i / fh;
+            pixel_index = row * fw + col;
           }
           index[done][idx] = pixel_index;
           value[done][idx] = buffer_[i];
