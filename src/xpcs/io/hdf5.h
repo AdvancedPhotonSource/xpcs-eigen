@@ -65,7 +65,7 @@ namespace io {
 class Hdf5 : public Reader {
 
 public:
-  Hdf5(const std::string& filename, bool tranposed=false);
+  Hdf5(const std::string& filename, bool tranposed);
    
   ~Hdf5();
 
@@ -85,10 +85,10 @@ private:
   hid_t space_id_;
   hid_t memspace_id_;
   hid_t datatype_id_;
-  
+  hsize_t dims_[3];
   unsigned short* buffer_;
 
-  bool tranposed;
+  bool tranposed_;
 };
 
 } //namespace io

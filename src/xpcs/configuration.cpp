@@ -48,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "configuration.h"
 
 #include <iostream>
+#include<fstream>
+
 #include <set>
 
 #include "hdf5.h"
@@ -88,11 +90,32 @@ void Configuration::init(const std::string &path, const std::string& entry)
          this->compression = true;
 
     output_path_ = getString(entry + "/output_data");
-    dqmap = get2DTable(entry + "/dqmap");
-    sqmap = get2DTable(entry + "/sqmap");
 
     this->xdim = getInteger("/measurement/instrument/detector/x_dimension");
     this->ydim = getInteger("/measurement/instrument/detector/y_dimension");
+
+    dqmap = get2DTable(entry + "/dqmap");
+    sqmap = get2DTable(entry + "/sqmap");
+
+    printf("ydim %d\n", ydim);
+
+    std::string tranpos_value = getString(entry + "/transposed");
+    if (tranpos_value.compare("ENABLED") == 0) {
+      int *new_dqmap = new int [ xdim * ydim ];
+      int *new_sqmap = new int [ xdim * ydim ];
+
+      for (int i = 0 ; i < (xdim*ydim); i++) {
+        int row = i % xdim;
+        int col = i / xdim;
+        int idx = row * ydim + col;
+
+        new_dqmap[idx] = dqmap[i];
+        new_sqmap[idx] = sqmap[i];
+      }
+
+      dqmap = new_dqmap;
+      sqmap = new_sqmap;
+    }
 
     // Subtract 1 to make the index zero based. 
     this->frameStart = getInteger(entry + "/data_begin");

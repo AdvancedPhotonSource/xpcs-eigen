@@ -59,7 +59,7 @@ using namespace std;
 namespace xpcs {
 namespace io {
 
-Hdf5::Hdf5(const std::string& filename, bool transposed) {
+Hdf5::Hdf5(const std::string& filename, bool tranposed) : tranposed_(tranposed) {
     xpcs::Configuration *conf = xpcs::Configuration::instance();
     int fw = conf->getFrameWidth();
     int fh = conf->getFrameHeight();
@@ -87,9 +87,8 @@ Hdf5::Hdf5(const std::string& filename, bool transposed) {
     int rank = H5Sget_simple_extent_ndims(space_id_);
     //TODO: Check return values.
 
-    hsize_t dims[3];
     hsize_t maxdims[3];
-    H5Sget_simple_extent_dims(space_id_, dims, maxdims);
+    H5Sget_simple_extent_dims(space_id_, dims_, maxdims);
 
     buffer_ = new unsigned short[fw * fh];
 
@@ -111,7 +110,6 @@ Hdf5::Hdf5(const std::string& filename, bool transposed) {
     // std::cout<<"Rank : " <<rank<<std::endl;
 
     last_frame_index_ = 0;
-    tranposed = tranposed;
 }
 
 Hdf5::~Hdf5() {
@@ -122,8 +120,6 @@ ImmBlock* Hdf5::NextFrames(int count) {
     int fw = conf->getFrameWidth();
     int fh = conf->getFrameHeight();
 
-    // printf("%d, %d\n", fw, fh);
-
     int **index = new int*[count];
     float **value = new float*[count];
     double *clock = new double[count];
@@ -132,7 +128,7 @@ ImmBlock* Hdf5::NextFrames(int count) {
     int done = 0;
     std::vector<int> ppf;
 
-    hsize_t hdf_count[3] = {1, fw, fh};
+    hsize_t hdf_count[3] = {1, dims_[1], dims_[2]};
 
     while (done < count) {
       hsize_t offset[3] = {last_frame_index_, 0, 0};
@@ -164,11 +160,11 @@ ImmBlock* Hdf5::NextFrames(int count) {
       for (int i = 0; i < (fw * fh); i++) {
         if (buffer_[i] != 0) {
           int pixel_index = i;
-          if (tranposed) {
-            int row = i % fh;
-            int col = i / fh;
-            pixel_index = row * fw + col;
-          }
+          // if (tranposed_) {
+          //   int row = i % fh;
+          //   int col = i / fh;
+          //   pixel_index = row * fw + col;
+          // }
           index[done][idx] = pixel_index;
           value[done][idx] = buffer_[i];
           idx++;

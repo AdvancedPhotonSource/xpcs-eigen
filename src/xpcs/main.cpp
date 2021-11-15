@@ -206,8 +206,11 @@ int main(int argc, char** argv)
      filter = new xpcs::filter::SparseFilter();
     reader = new xpcs::io::Rigaku(conf->getIMMFilePath().c_str(), filter);
   } else if (FLAGS_hdf5) {
-    printf("Reading HDF5 file\n");
-    reader = new xpcs::io::Hdf5(conf->getIMMFilePath().c_str(), FLAGS_transposed);
+    if (FLAGS_transposed)
+      reader = new xpcs::io::Hdf5(conf->getIMMFilePath().c_str(), true);
+    else {
+      reader = new xpcs::io::Hdf5(conf->getIMMFilePath().c_str(), false);
+    }
   } else {
     reader = new xpcs::io::Imm(conf->getIMMFilePath().c_str());
   }
