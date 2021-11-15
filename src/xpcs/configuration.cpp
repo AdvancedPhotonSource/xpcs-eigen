@@ -99,8 +99,18 @@ void Configuration::init(const std::string &path, const std::string& entry)
 
     printf("ydim %d\n", ydim);
 
-    std::string tranpos_value = getString(entry + "/transposed");
-    if (tranpos_value.compare("ENABLED") == 0) {
+    bool take_qmap_tranpose = false;
+
+    try {
+      std::string tranpos_value = getString(entry + "/transposed");
+      if (tranpos_value.compare("ENABLED") == 0) {
+        take_qmap_tranpose = true;
+      }
+
+      printf("ENABLED transpose of QMAP\n");
+    } catch (const std::exception&e){printf("IGNORED tranpose of QMAP\n");}
+    
+    if (take_qmap_tranpose) {
       int *new_dqmap = new int [ xdim * ydim ];
       int *new_sqmap = new int [ xdim * ydim ];
 
