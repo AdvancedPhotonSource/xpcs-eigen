@@ -47,6 +47,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
+#include<fstream>
+
 #include <errno.h>
 #include <stdint.h>
 #include <memory>
@@ -264,6 +267,11 @@ int main(int argc, char** argv)
         f++;
       }
     }
+
+    float* pixelssum = filter->PixelsSum();
+    ofstream wf("pixelsum.txt");
+    wf.write( (char*)pixelssum, (conf->getFrameWidth()*conf->getFrameHeight()) * sizeof(float) );
+    wf.close();
 
     if (FLAGS_frameout > 0 && FLAGS_frameout < frames) 
     {

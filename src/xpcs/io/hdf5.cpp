@@ -140,9 +140,13 @@ ImmBlock* Hdf5::NextFrames(int count) {
       //   int new_index = (i % fh) * fh + (i / fh);
       //   buffer2[new_index] = buffer_[i];
       // }
+
+      // char framen[100];
+      // sprintf(framen, "frame_%d.txt", last_frame_index_);
+
       
-      // ofstream wf("frame2.txt");
-      // wf.write((char*)buffer2, (fw*fh)*sizeof(unsigned short));
+      // ofstream wf(framen);
+      // wf.write((char*)buffer_, (fw*fh)*sizeof(unsigned short));
       // wf.close();
       // exit(1);
 

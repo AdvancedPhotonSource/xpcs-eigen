@@ -108,6 +108,10 @@ void Configuration::init(const std::string &path, const std::string& entry)
       }
 
       printf("ENABLED transpose of QMAP\n");
+      int tmp = this->xdim;
+      xdim = ydim;
+      ydim = tmp;
+
     } catch (const std::exception&e){printf("IGNORED tranpose of QMAP\n");}
     
     if (take_qmap_tranpose) {
