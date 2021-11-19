@@ -97,8 +97,6 @@ void Configuration::init(const std::string &path, const std::string& entry)
     dqmap = get2DTable(entry + "/dqmap");
     sqmap = get2DTable(entry + "/sqmap");
 
-    printf("ydim %d\n", ydim);
-
     bool take_qmap_tranpose = false;
 
     try {
@@ -107,12 +105,7 @@ void Configuration::init(const std::string &path, const std::string& entry)
         take_qmap_tranpose = true;
       }
 
-      printf("ENABLED transpose of QMAP\n");
-      int tmp = this->xdim;
-      xdim = ydim;
-      ydim = tmp;
-
-    } catch (const std::exception&e){printf("IGNORED tranpose of QMAP\n");}
+    } catch (const std::exception&e){printf("IGNORED transpose of QMAP\n");}
     
     if (take_qmap_tranpose) {
       int *new_dqmap = new int [ xdim * ydim ];
@@ -129,7 +122,20 @@ void Configuration::init(const std::string &path, const std::string& entry)
 
       dqmap = new_dqmap;
       sqmap = new_sqmap;
+
+      printf("ENABLED transpose of QMAP\n");
+
+      int tmp = this->xdim;
+      xdim = ydim;
+      ydim = tmp;
+
+      printf("%d, %d\n", xdim, ydim);
     }
+
+    std::ofstream wf("dqmap.txt");
+    wf.write((char*)dqmap, (xdim*ydim)*sizeof(int));
+    wf.close();
+    
 
     // Subtract 1 to make the index zero based. 
     this->frameStart = getInteger(entry + "/data_begin");
