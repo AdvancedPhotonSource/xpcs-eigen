@@ -105,9 +105,14 @@ void Configuration::init(const std::string &path, const std::string& entry)
         take_qmap_tranpose = true;
       }
 
-    } catch (const std::exception&e){printf("IGNORED transpose of QMAP\n");}
+    } catch (const std::exception&e)  {
+      take_qmap_tranpose = false;
+      printf("IGNORED transpose of QMAP\n");
+    }
     
     if (take_qmap_tranpose) {
+      
+      Benchmark conf("Tranposing QMAP");
       int *new_dqmap = new int [ xdim * ydim ];
       int *new_sqmap = new int [ xdim * ydim ];
 
@@ -123,13 +128,9 @@ void Configuration::init(const std::string &path, const std::string& entry)
       dqmap = new_dqmap;
       sqmap = new_sqmap;
 
-      printf("ENABLED transpose of QMAP\n");
-
       int tmp = this->xdim;
       xdim = ydim;
       ydim = tmp;
-
-      printf("%d, %d\n", xdim, ydim);
     }
 
     std::ofstream wf("dqmap.txt");
