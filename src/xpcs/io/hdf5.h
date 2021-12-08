@@ -87,6 +87,7 @@ private:
   hid_t datatype_id_;
   hsize_t dims_[3];
   unsigned short* buffer_;
+  unsigned int* buffer_init_;
 
   bool tranposed_;
 };

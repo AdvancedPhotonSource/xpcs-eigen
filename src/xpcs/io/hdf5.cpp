@@ -81,7 +81,13 @@ Hdf5::Hdf5(const std::string& filename, bool tranposed) : tranposed_(tranposed) 
     }
 
     datatype_id_ = H5Dget_type(dataset_id_);
-    // std::cout<<"Data type " << datatype_id_ << " " <<  H5T_NATIVE_UINT16 <<std::endl;
+
+    if (H5Tequal(datatype_id_, H5T_NATIVE_UINT32)) {
+      buffer_init_ = new unsigned int[fw * fh];
+    } else {
+      buffer_ = new unsigned short[fw * fh];
+    }
+
     space_id_ = H5Dget_space(dataset_id_);
     memspace_id_ = H5Screate_simple(3, count, NULL);
     int rank = H5Sget_simple_extent_ndims(space_id_);
@@ -89,8 +95,6 @@ Hdf5::Hdf5(const std::string& filename, bool tranposed) : tranposed_(tranposed) 
 
     hsize_t maxdims[3];
     H5Sget_simple_extent_dims(space_id_, dims_, maxdims);
-
-    buffer_ = new unsigned short[fw * fh];
 
     // std::cout<<file<<std::endl;
     // std::cout<<space_id_<<std::endl;
@@ -133,11 +137,18 @@ ImmBlock* Hdf5::NextFrames(int count) {
     while (done < count) {
       hsize_t offset[3] = {last_frame_index_, 0, 0};
       herr_t errstatus = H5Sselect_hyperslab(space_id_, H5S_SELECT_SET, offset, NULL, hdf_count, NULL);
-      hid_t status = H5Dread(dataset_id_, datatype_id_, memspace_id_, space_id_, H5P_DEFAULT, buffer_);
 
-      // unsigned short* buffer2 = new unsigned short[fw * fh];
+      hid_t status;
+      if (H5Tequal(datatype_id_, H5T_NATIVE_UINT32)) {
+        status = H5Dread(dataset_id_, datatype_id_, memspace_id_, space_id_, H5P_DEFAULT, buffer_init_);
+      } else {
+        status = H5Dread(dataset_id_, datatype_id_, memspace_id_, space_id_, H5P_DEFAULT, buffer_);
+      }
+      
+      
+      // unsigned short* buffer2 = new unsigned short[dims_[1] * dims_[2]];
       // for (int i = 0; i < (fw * fh); i++) {
-      //   int new_index = (i % fh) * fh + (i / fh);
+      //   int new_index = (i % dims_[2]) * dims_[2] + (i / dims_[2]);
       //   buffer2[new_index] = buffer_[i];
       // }
 
@@ -152,8 +163,15 @@ ImmBlock* Hdf5::NextFrames(int count) {
 
       // count total non-zero values.
       int sparse = 0;
-      for (int i = 0; i < (fw * fh); i++) {
-        if (buffer_[i] != 0) sparse++;
+
+      if (H5Tequal(datatype_id_, H5T_NATIVE_UINT32)) {
+        for (int i = 0; i < (fw * fh); i++) {
+          if (buffer_init_[i] != 0) sparse++;
+        }
+      } else {
+        for (int i = 0; i < (fw * fh); i++) {
+          if (buffer_[i] != 0) sparse++;
+        }
       }
 
       index[done] = new int[sparse];
@@ -161,19 +179,26 @@ ImmBlock* Hdf5::NextFrames(int count) {
 
       int idx = 0;
 
-      for (int i = 0; i < (fw * fh); i++) {
-        if (buffer_[i] != 0) {
-          int pixel_index = i;
-          // if (tranposed_) {
-          //   int row = i % fh;
-          //   int col = i / fh;
-          //   pixel_index = row * fw + col;
-          // }
-          index[done][idx] = pixel_index;
-          value[done][idx] = buffer_[i];
-          idx++;
+      if (H5Tequal(datatype_id_, H5T_NATIVE_UINT32)) {
+        for (int i = 0; i < (fw * fh); i++) {
+          if (buffer_init_[i] != 0) {
+            int pixel_index = i;
+            index[done][idx] = pixel_index;
+            value[done][idx] = buffer_init_[i];
+            idx++;
+          }
+        }
+      } else {
+        for (int i = 0; i < (fw * fh); i++) {
+          if (buffer_[i] != 0) {
+            int pixel_index = i;
+            index[done][idx] = pixel_index;
+            value[done][idx] = buffer_[i];
+            idx++;
+          }
         }
       }
+
       ppf.push_back(sparse);
 
       clock[done] = last_frame_index_;
